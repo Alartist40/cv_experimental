@@ -1,0 +1,13 @@
+[package]
+name = "vision"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+bytes = "1.6"
+
+[dev-dependencies]
+tokio = { workspace = true }

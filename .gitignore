@@ -1,0 +1,40 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+Cargo.lock.orig
+
+# Python virtual environment & caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Large ONNX / PyTorch model binaries (>100MB)
+*.onnx
+*.pt
+/models/
+
+# ESP-IDF firmware build and managed dependencies
+firmware/build/
+firmware/managed_components/
+
+# Transient live camera buffers and dynamic runtime telemetry
+data/live_frame.jpg
+data/live_frame.jpg.*
+data/live_detections.json
+data/live_detections.json.tmp
+data/current_mode.txt
+data/lighting_filter.txt
+data/gesture_armed.flag
+data/faces/database.json
+data/detections/
+*.log
+*.bak
+
+# OS & Editor
+.DS_Store
+.idea/
+.vscode/

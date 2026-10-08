@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="midnight-gold">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AERIS // Vision Telemetry & Biometric Matrix OS</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Technical Clean Monospace & Display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  
+  <!-- MediaPipe Hands & Face Mesh for 60FPS Client-Side 3D Tracking -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+  <style>
+    /* =========================================================================
+     * MAZZAROTH THEME SYSTEM (STRICT COLOR INTEGRITY)
+     * ========================================================================= */
+    :root, [data-theme="midnight-gold"] {
+      --bg-canvas: #07111e;
+      --bg-shell: #091728;
+      --panel-bg: rgba(13, 30, 52, 0.90);
+      --panel-border: rgba(35, 62, 99, 0.75);
+      --text-main: #f0f6fc;
+      --text-secondary: #93a8c7;
+      --text-muted: #577399;
+      --accent-primary: #f59e0b;      /* Warm Golden Amber */
+      --accent-secondary: #38bdf8;    /* River Cyan */
+      --accent-alt: #10b981;          /* Emerald */
+      --accent-glow: rgba(245, 158, 11, 0.4);
+      --grid-line: rgba(56, 189, 248, 0.04);
+    }
+
+    [data-theme="synth-magenta"] {
+      --bg-canvas: #06070e;
+      --bg-shell: #0c0e18;
+      --panel-bg: rgba(17, 20, 34, 0.92);
+      --panel-border: rgba(46, 51, 82, 0.75);
+      --text-main: #ffffff;
+      --text-secondary: #a7b0cf;
+      --text-muted: #646c8d;
+      --accent-primary: #ec4899;      /* Neon Magenta */
+      --accent-secondary: #00f0ff;    /* Electric Cyan */
+      --accent-alt: #a855f7;          /* Purple */
+      --accent-glow: rgba(236, 72, 153, 0.4);
+      --grid-line: rgba(0, 240, 255, 0.05);
+    }
+
+    [data-theme="obsidian-mono"], [data-theme="dark"] {
+      --bg-canvas: #08090c;
+      --bg-shell: #0e1014;
+      --panel-bg: rgba(19, 22, 29, 0.94);
+      --panel-border: rgba(238, 242, 246, 0.3);
+      --text-main: #eef2f6;
+      --text-secondary: #9da6b5;
+      --text-muted: #5f6775;
+      --accent-primary: #ffffff;      /* Pure White */
+      --accent-secondary: #cbd5e1;    /* Slate White */
+      --accent-alt: #94a3b8;          /* Light Slate */
+      --accent-glow: rgba(255, 255, 255, 0.25);
+      --grid-line: rgba(255, 255, 255, 0.04);
+    }
+
+    [data-theme="technical-paper"], [data-theme="light"] {
+      --bg-canvas: #dce1e6;
+      --bg-shell: #e4e8ec;
+      --panel-bg: rgba(255, 255, 255, 0.94);
+      --panel-border: rgba(20, 23, 29, 0.35);
+      --text-main: #0b0d11;
+      --text-secondary: #58606f;
+      --text-muted: #8c94a2;
+      --accent-primary: #0b0d11;      /* Architectural Ink Black */
+      --accent-secondary: #0284c7;    /* Precision Blue */
+      --accent-alt: #475569;          /* Deep Slate */
+      --accent-glow: rgba(0, 0, 0, 0.15);
+      --grid-line: rgba(11, 13, 17, 0.06);
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      font-family: 'Share Tech Mono', 'JetBrains Mono', monospace;
+      overflow: hidden;
+      user-select: none;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .font-industrial {
+      font-family: 'Chakra Petch', sans-serif;
+    }
+
+    .blueprint-grid {
+      background-image: 
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .scanlines {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+      background-size: 100% 3px;
+      pointer-events: none;
+    }
+
+    .theme-card {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(12px);
+      transition: background-color 0.25s ease, border-color 0.25s ease;
+    }
+
+    .glow-theme {
+      text-shadow: 0 0 12px var(--accent-glow);
+    }
+  </style>
+</head>
+
+<body class="w-screen h-screen relative text-slate-200 overflow-hidden flex flex-col justify-between p-3 select-none">
+  
+  <div class="fixed inset-0 blueprint-grid pointer-events-none opacity-40"></div>
+  <div class="fixed inset-0 scanlines pointer-events-none opacity-20 z-20"></div>
+
+  <!-- TOP APP HEADER & CONTROLS -->
+  <header class="relative z-30 flex items-center justify-between theme-card px-4 py-2 rounded-lg shadow-xl">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full animate-pulse shadow-sm" style="background-color: var(--accent-primary);"></span>
+        <h1 class="text-sm font-bold tracking-wider uppercase font-industrial glow-theme" style="color: var(--accent-primary);">
+          AERIS // VISION MATRIX
+        </h1>
+        <span class="text-[10px] px-2 py-0.5 rounded border font-mono" style="border-color: var(--panel-border); color: var(--accent-secondary);">v5.0</span>
+      </div>
+      
+      <div class="text-xs border-l pl-3 hidden md:flex items-center gap-3 font-mono" style="border-color: var(--panel-border); color: var(--text-secondary);">
+        <span>FPS: <span id="telemetryFps" class="font-bold text-emerald-400">15.0</span></span>
+        <span>LATENCY: <span id="telemetryLatency" class="font-semibold" style="color: var(--accent-secondary);">18.0ms</span></span>
+      </div>
+    </div>
+
+    <!-- PRIMARY SYSTEM MODE SWITCHER -->
+    <div class="flex items-center bg-black/60 border rounded-lg p-1 gap-1" style="border-color: var(--panel-border);">
+      <button id="modeBtnObject" onclick="switchSystemMode('OBJECT_DETECT')" class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all border shadow-sm" style="border-color: var(--accent-primary); color: var(--accent-primary); background-color: rgba(0,0,0,0.4);">
+        <i data-lucide="scan" class="w-3.5 h-3.5"></i>
+        <span>IMAGE 2 MATRIX (YOLOv11M)</span>
+      </button>
+
+      <button id="modeBtnFace" onclick="switchSystemMode('FACE_BIOMETRIC')" class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
+        <i data-lucide="scan-face" class="w-3.5 h-3.5"></i>
+        <span>3D FACE MESH WIRING</span>
+      </button>
+
+      <button id="modeBtnHand" onclick="switchSystemMode('HAND_GESTURE')" class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
+        <i data-lucide="hand" class="w-3.5 h-3.5"></i>
+        <span>HAND CV (MEDIAPIPE)</span>
+      </button>
+    </div>
+
+    <!-- LIGHTING BUTTONS & THEME SELECTOR -->
+    <div class="flex items-center space-x-2 text-xs font-mono">
+      <!-- Too Dark / Too Bright / Normal Exposure Buttons -->
+      <div class="flex items-center bg-black/60 border rounded-md p-0.5 gap-0.5" style="border-color: var(--panel-border);">
+        <button id="btnDark" onclick="setLightingFilter('TOO_DARK')" title="Brighten underexposed / dark frame" class="px-2 py-1 rounded text-[10px] font-bold transition hover:bg-white/10" style="color: var(--text-secondary);">
+          DARK [▲]
+        </button>
+        <button id="btnNorm" onclick="setLightingFilter('NORMAL')" title="Normal exposure" class="px-2 py-1 rounded text-[10px] font-bold transition bg-white/10" style="color: var(--accent-primary);">
+          NORM
+        </button>
+        <button id="btnBright" onclick="setLightingFilter('TOO_BRIGHT')" title="Darken overexposed / blown out frame" class="px-2 py-1 rounded text-[10px] font-bold transition hover:bg-white/10" style="color: var(--text-secondary);">
+          BRIGHT [▼]
+        </button>
+      </div>
+
+      <!-- Theme Selector Dropdown Menu -->
+      <div class="relative">
+        <button id="themeDropdownBtn" onclick="toggleThemeMenu()" class="flex items-center gap-1.5 px-3 py-1.5 border rounded font-semibold transition" style="background-color: rgba(0,0,0,0.5); border-color: var(--panel-border); color: var(--accent-primary);">
+          <i data-lucide="palette" class="w-3.5 h-3.5"></i>
+          <span id="activeThemeLabel">MIDNIGHT GOLD</span>
+          <i data-lucide="chevron-down" class="w-3 h-3 ml-0.5 opacity-60"></i>
+        </button>
+
+        <div id="themeMenu" class="hidden absolute right-0 mt-1.5 w-44 rounded-lg shadow-2xl border p-1 z-50 text-[11px] font-mono theme-card" style="background-color: var(--bg-shell); border-color: var(--panel-border);">
+          <button onclick="setTheme('midnight-gold')" class="w-full text-left px-2.5 py-1.5 rounded hover:bg-white/10 flex items-center justify-between">
+            <span>MIDNIGHT GOLD</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+          </button>
+          <button onclick="setTheme('synth-magenta')" class="w-full text-left px-2.5 py-1.5 rounded hover:bg-white/10 flex items-center justify-between">
+            <span>SYNTH MAGENTA</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-pink-500"></span>
+          </button>
+          <button onclick="setTheme('obsidian-mono')" class="w-full text-left px-2.5 py-1.5 rounded hover:bg-white/10 flex items-center justify-between">
+            <span>OBSIDIAN MONO</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-white"></span>
+          </button>
+          <button onclick="setTheme('technical-paper')" class="w-full text-left px-2.5 py-1.5 rounded hover:bg-white/10 flex items-center justify-between">
+            <span>TECHNICAL PAPER</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Timeline SLM Trigger -->
+      <button onclick="toggleSlmDrawer()" class="flex items-center gap-1.5 px-2.5 py-1.5 border rounded font-semibold transition text-purple-300" style="background-color: rgba(147, 51, 234, 0.15); border-color: rgba(147, 51, 234, 0.4);">
+        <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+        <span>SLM</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="relative z-10 flex-1 grid grid-cols-12 gap-3 my-2.5 overflow-hidden">
+    
+    <!-- LEFT SIDEBAR: KERNEL FEED & MODE DIAGNOSTICS -->
+    <aside class="col-span-12 lg:col-span-3 flex flex-col justify-between space-y-2.5 overflow-hidden">
+      <!-- Kernel dmesg Stream -->
+      <div class="theme-card p-3 rounded-lg flex-1 flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
+          <div class="flex items-center gap-2 text-xs font-bold font-industrial" style="color: var(--accent-primary);">
+            <i data-lucide="terminal" class="w-4 h-4"></i>
+            <span>KERNEL TELEMETRY</span>
+          </div>
+          <span class="text-[11px] font-mono text-emerald-400">0x7FFF004</span>
+        </div>
+        <div id="dmesgStream" class="space-y-1 text-[11px] leading-relaxed font-mono overflow-y-auto flex-1 pr-1" style="color: var(--text-secondary);">
+          <!-- Live log lines -->
+        </div>
+      </div>
+
+      <!-- Mode Diagnostics Card -->
+      <div class="theme-card p-3 rounded-lg space-y-2">
+        <div class="flex items-center justify-between border-b pb-1" style="border-color: var(--panel-border);">
+          <span class="text-xs font-bold uppercase font-industrial" id="modeCardTitle" style="color: var(--accent-secondary);">IMAGE 2 DENSE WIREFRAME MATRIX</span>
+          <span class="text-[11px] font-mono text-emerald-400" id="modeCardBadge">ONLINE</span>
+        </div>
+        <p class="text-xs leading-relaxed font-mono" id="modeCardDesc" style="color: var(--text-secondary);">
+          Deep nested sub-frames, chromatic wireframes, anchor crosshair clusters, and dynamic non-overlapping badges strictly rendered in your active theme.
+        </p>
+        <div class="flex justify-between items-center text-[11px] pt-1 border-t font-mono" style="border-color: var(--panel-border); color: var(--text-muted);">
+          <span>ENGINE: <span id="modePipeline" style="color: var(--text-main); font-weight:bold;">YOLOv11M ONNX</span></span>
+          <span>THEME LOCK: <span class="font-bold text-emerald-400">SYNCHRONIZED</span></span>
+        </div>
+      </div>
+
+      <!-- Hardware Meters -->
+      <div class="theme-card p-3 rounded-lg h-28 flex flex-col justify-between font-mono">
+        <div class="flex items-center justify-between border-b pb-1 mb-1" style="border-color: var(--panel-border);">
+          <span class="text-xs font-bold font-industrial" style="color: var(--accent-primary);">HARDWARE TELEMETRY</span>
+          <span class="text-[10px] text-emerald-400 font-bold">OPTIMIZED</span>
+        </div>
+        <div class="space-y-1.5 text-xs">
+          <div>
+            <div class="flex justify-between text-[11px] mb-0.5" style="color: var(--text-secondary);">
+              <span>INFERENCE:</span>
+              <span id="inferTimeVal" class="font-bold" style="color: var(--accent-secondary);">18.0 ms</span>
+            </div>
+            <div class="w-full bg-black/60 h-1.5 rounded overflow-hidden">
+              <div id="inferBar" class="h-full w-[25%] transition-all" style="background-color: var(--accent-secondary);"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] mb-0.5" style="color: var(--text-secondary);">
+              <span>EXPOSURE BIAS:</span>
+              <span id="expBiasText" class="text-amber-400 font-bold">NORMAL</span>
+            </div>
+            <div class="w-full bg-black/60 h-1.5 rounded overflow-hidden">
+              <div class="bg-emerald-400 h-full w-[20%]"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER COLUMN: CALIBRATED 16:9 VIEWPORT -->
+    <section class="col-span-12 lg:col-span-6 flex flex-col items-center justify-center relative">
+      <div class="relative w-full h-full max-h-[740px] aspect-[16/9] border-2 rounded-xl bg-black overflow-hidden shadow-2xl flex items-center justify-center" style="border-color: var(--panel-border);">
+        
+        <!-- Live Video Element for Camera feed & MediaPipe -->
+        <img id="liveFeedImg" class="hidden" alt="Live Camera Feed">
+        <canvas id="viewCanvas" class="w-full h-full object-contain block"></canvas>
+
+        <!-- Fixed Tactical Bezel Frame -->
+        <div class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <div class="flex items-center gap-1.5">
+              <div class="w-5 h-5 border-t-2 border-l-2" style="border-color: var(--accent-primary);"></div>
+              <span class="text-[10px] font-mono tracking-widest pl-1 opacity-70">AERIS // HUB</span>
+            </div>
+            
+            <div class="flex items-center gap-2 font-mono">
+              <div class="px-2.5 py-0.5 bg-black/80 border rounded text-xs" style="border-color: var(--panel-border); color: var(--accent-secondary);">
+                SOURCE: <span class="font-bold text-emerald-400">ESP32 / UVC</span>
+              </div>
+              <div id="activeModeBadge" class="px-2.5 py-0.5 border rounded text-xs font-bold uppercase tracking-wider font-industrial" style="background-color: rgba(0,0,0,0.8); border-color: var(--accent-primary); color: var(--accent-primary);">
+                IMAGE 2 MATRIX
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-mono tracking-widest pr-1 opacity-70">CAL // 99.4%</span>
+              <div class="w-5 h-5 border-t-2 border-r-2" style="border-color: var(--accent-primary);"></div>
+            </div>
+          </div>
+          
+          <div class="flex justify-between items-end">
+            <div class="flex items-center gap-1.5">
+              <div class="w-5 h-5 border-b-2 border-l-2" style="border-color: var(--accent-primary);"></div>
+              <span class="text-[10px] font-mono tracking-widest pl-1 opacity-70">PORT // 8085</span>
+            </div>
+            
+            <div class="px-3 py-1 bg-black/80 border rounded text-xs flex items-center gap-2 font-mono" style="border-color: var(--panel-border); color: var(--text-secondary);">
+              <span class="w-2 h-2 rounded-full animate-ping" style="background-color: var(--accent-primary);"></span>
+              <span id="trackerDetailText">NESTED SUB-FRAMES • ANCHOR MATRIX • OPT-X</span>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-mono tracking-widest pr-1 opacity-70">FRAME 16:9</span>
+              <div class="w-5 h-5 border-b-2 border-r-2" style="border-color: var(--accent-primary);"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RIGHT SIDEBAR: BIOMETRIC CLEARANCE & GESTURE STATUS -->
+    <aside class="col-span-12 lg:col-span-3 flex flex-col justify-between space-y-2.5 overflow-hidden">
+      
+      <!-- Biometric Security Authority Clearance Card -->
+      <div class="theme-card p-3 rounded-lg space-y-2.5">
+        <div class="flex items-center justify-between border-b pb-1.5" style="border-color: var(--panel-border);">
+          <div class="flex items-center gap-2 text-xs font-bold font-industrial" style="color: var(--accent-primary);">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            <span>3D BIOMETRIC LOCK</span>
+          </div>
+          <span id="authStatusPill" class="text-xs font-bold font-mono text-emerald-400">STANDBY</span>
+        </div>
+
+        <div class="flex items-center gap-3 pt-1">
+          <div class="relative w-12 h-12 border-2 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-[10px]" style="border-color: var(--accent-secondary); color: var(--accent-secondary); background-color: rgba(0,0,0,0.4);">
+            3D<br>MESH
+          </div>
+
+          <div class="space-y-0.5 text-xs font-mono leading-tight">
+            <div class="font-bold font-industrial" id="subjectName" style="color: var(--accent-secondary);">OPERATOR: STANDBY</div>
+            <div style="color: var(--text-secondary);">ID: <span id="subjectId">#WAITING_SCAN</span></div>
+            <div style="color: var(--text-muted);">ROLE: <span id="subjectStatus" class="font-bold text-amber-400">OPERATOR</span></div>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t space-y-1.5 font-mono text-xs" style="border-color: var(--panel-border);">
+          <button onclick="scanFaceTrigger()" class="w-full py-1.5 border rounded font-bold transition flex items-center justify-center gap-1.5" style="background-color: rgba(0,0,0,0.5); border-color: var(--accent-primary); color: var(--accent-primary);">
+            <i data-lucide="scan-face" class="w-3.5 h-3.5"></i>
+            <span>LOCK BIOMETRICS</span>
+          </button>
+          
+          <div class="flex gap-1">
+            <input id="enrollName" type="text" placeholder="NAME (e.g. XANDER)" class="flex-1 bg-black/60 border rounded px-2 py-0.5 text-[10px] outline-none" style="border-color: var(--panel-border); color: var(--text-main);">
+            <select id="enrollRole" class="bg-black/60 border rounded text-[10px] outline-none" style="border-color: var(--panel-border); color: var(--text-main);">
+              <option value="COMMANDER">CMD</option>
+              <option value="OPERATOR" selected>OPR</option>
+              <option value="VIP">VIP</option>
+            </select>
+          </div>
+          <button onclick="enrollFaceCurrentFrame()" class="w-full py-0.5 border rounded text-[10px] font-semibold transition hover:bg-white/10" style="border-color: var(--panel-border); color: var(--text-secondary);">
+            + ENROLL NEW SUBJECT IN REGISTRY
+          </button>
+        </div>
+      </div>
+
+      <!-- Real-Time Tracker Output / Gesture Monitor -->
+      <div id="gestureMonitorCard" class="theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono">
+        <div>
+          <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
+            <div class="flex items-center gap-2 text-xs font-bold font-industrial" style="color: var(--accent-secondary);">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+              <span>DYNAMIC TELEMETRY MONITOR</span>
+            </div>
+            <span class="text-[10px] text-emerald-400 font-bold">ACTIVE</span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div class="p-2 bg-black/60 border rounded flex items-center justify-between" style="border-color: var(--panel-border);">
+              <div>
+                <div class="text-[9px] opacity-70">ACTIVE DETECTION / GESTURE:</div>
+                <div id="detectedGestureText" class="font-bold text-sm" style="color: var(--accent-primary);">MONITORING</div>
+              </div>
+              <div id="gestureIconDisplay" class="w-8 h-8 rounded border flex items-center justify-center" style="border-color: var(--accent-primary); color: var(--accent-primary);">
+                <i data-lucide="crosshair" class="w-4 h-4"></i>
+              </div>
+            </div>
+
+            <div class="space-y-1 text-[11px]" style="color: var(--text-secondary);">
+              <div class="flex justify-between items-center">
+                <span>✌️ PEACE (FACE SCAN):</span>
+                <span id="peaceState" class="font-bold text-slate-500">READY</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span>🖐️ OPEN PALM (CV TOGGLE):</span>
+                <span id="palmState" class="font-bold text-slate-500">READY</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-2 bg-black/40 border rounded text-[10px] leading-tight" style="border-color: var(--panel-border); color: var(--text-muted);">
+          All CV boxes, corner ticks, wireframes, and 3D facial reticles dynamically synchronize with the selected Mazzaroth theme palette.
+        </div>
+      </div>
+
+      <!-- JSON Telemetry Buffer Status -->
+      <div class="theme-card p-2.5 rounded-lg flex items-center justify-between font-mono text-xs">
+        <span style="color: var(--text-secondary);">FIFO: <strong class="text-emerald-400" id="jsonCountDisp">0 packets</strong></span>
+        <button onclick="downloadJsonFile()" class="px-2.5 py-1 border rounded text-[10px] font-bold hover:bg-white/10" style="border-color: var(--panel-border); color: var(--accent-secondary);">
+          DOWNLOAD .JSON
+        </button>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- BOTTOM FOOTER TELEMETRY STRIP -->
+  <footer class="relative z-30 flex items-center justify-between theme-card px-4 py-1.5 rounded-lg text-xs font-mono">
+    <div class="flex items-center space-x-6" style="color: var(--text-muted);">
+      <div>STATUS: <span class="font-bold text-emerald-400">ACTIVE_TELEMETRY</span></div>
+      <div class="hidden md:block">ORBIT: <span style="color: var(--text-secondary);">142.84° AZ // 67.12° EL</span></div>
+      <div>THEME: <span id="footerThemeName" class="font-bold" style="color: var(--accent-primary);">MIDNIGHT GOLD</span></div>
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <span class="text-[10px]" style="color: var(--text-muted);">ESP32-S3 HIGH-SPEED NCM HUB</span>
+    </div>
+  </footer>
+
+  <!-- SLM TIMELINE INTERROGATION DRAWER -->
+  <div id="slmDrawer" class="fixed left-4 bottom-16 z-50 w-96 max-h-[480px] bg-black/95 border rounded-xl p-4 shadow-2xl backdrop-blur-md transform -translate-x-[450px] transition-transform duration-300 flex flex-col font-mono text-xs" style="border-color: var(--panel-border);">
+    <div class="flex items-center justify-between border-b pb-2 mb-2" style="border-color: var(--panel-border);">
+      <div class="flex items-center gap-2 text-purple-300 font-bold font-industrial">
+        <i data-lucide="bot" class="w-4 h-4"></i>
+        <span>TIMELINE INTERROGATOR (Qwen2.5:3B)</span>
+      </div>
+      <button onclick="toggleSlmDrawer()" class="text-purple-400 hover:text-white">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+    
+    <div id="chatBox" class="bg-black/80 border p-2.5 rounded-lg text-purple-200 text-[11px] overflow-y-auto flex-1 font-mono leading-relaxed space-y-2 h-64" style="border-color: var(--panel-border);">
+      <div class="text-cyan-400/80">✦ AERIS Timeline Memory ready. Ask what was seen today.</div>
+    </div>
+
+    <form id="chatForm" class="mt-2.5 pt-2 border-t flex gap-1" style="border-color: var(--panel-border);">
+      <input id="chatInput" type="text" placeholder="e.g. When did you see a person?" class="flex-1 bg-black/80 border rounded px-2 py-1 text-[11px] text-purple-200 outline-none" style="border-color: var(--panel-border);">
+      <button type="submit" class="px-3 py-1 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-200 rounded font-bold">ASK</button>
+    </form>
+  </div>
+
+  <script>
+    /*
+     * =================================================================================
+     * AERIS // MULTI-MODE VISION MATRIX CONTROLLER
+     * =================================================================================
+     */
+
+    const AppState = {
+      currentMode: 'OBJECT_DETECT',
+      currentTheme: 'midnight-gold',
+      currentFilter: 'NORMAL',
+      authorityLevel: 'admin',
+      jsonTelemetryBuffer: [],
+      liveDetections: [],
+      liveLatency: 18.0,
+      activeFaceAlert: null,
+
+      // MediaPipe Clients (60FPS client-side tracking)
+      hands: null,
+      faceMesh: null,
+      detectedHandLandmarks: null,
+      detectedFaceLandmarks: null,
+      lastGestureTriggerTime: 0
+    };
+
+    const canvas = document.getElementById('viewCanvas');
+    const ctx = canvas.getContext('2d');
+    const liveImg = document.getElementById('liveFeedImg');
+
+    const THEME_NAMES = {
+      'midnight-gold': 'MIDNIGHT GOLD',
+      'synth-magenta': 'SYNTH MAGENTA',
+      'obsidian-mono': 'OBSIDIAN MONO',
+      'technical-paper': 'TECHNICAL PAPER'
+    };
+
+    // Helper: get current theme colors from computed CSS variables
+    function getThemeColors() {
+      const style = getComputedStyle(document.documentElement);
+      return {
+        primary: style.getPropertyValue('--accent-primary').trim() || '#f59e0b',
+        secondary: style.getPropertyValue('--accent-secondary').trim() || '#38bdf8',
+        alt: style.getPropertyValue('--accent-alt').trim() || '#10b981',
+        text: style.getPropertyValue('--text-main').trim() || '#f0f6fc',
+        panelBg: style.getPropertyValue('--panel-bg').trim() || 'rgba(13, 30, 52, 0.9)',
+        border: style.getPropertyValue('--panel-border').trim() || 'rgba(35, 62, 99, 0.7)'
+      };
+    }
+
+    // 1. THEME SWITCHING (Synchronizes UI and CV render colors)
+    function setTheme(theme) {
+      AppState.currentTheme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('aeris-vision-theme', theme);
+      document.getElementById('activeThemeLabel').innerText = THEME_NAMES[theme] || theme.toUpperCase();
+      document.getElementById('footerThemeName').innerText = THEME_NAMES[theme] || theme.toUpperCase();
+      document.getElementById('themeMenu').classList.add('hidden');
+    }
+
+    function toggleThemeMenu() {
+      document.getElementById('themeMenu').classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('themeMenu');
+      const btn = document.getElementById('themeDropdownBtn');
+      if (!menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+
+    // 2. LIGHTING BUTTONS (TOO DARK / NORM / TOO BRIGHT)
+    async function setLightingFilter(filterName) {
+      AppState.currentFilter = filterName;
+      document.getElementById('expBiasText').innerText = filterName.replace('TOO_', '');
+      
+      const btnDark = document.getElementById('btnDark');
+      const btnNorm = document.getElementById('btnNorm');
+      const btnBright = document.getElementById('btnBright');
+
+      [btnDark, btnNorm, btnBright].forEach(b => b.classList.remove('bg-white/20', 'text-amber-400', 'font-extrabold'));
+
+      if (filterName === 'TOO_DARK') {
+        btnDark.classList.add('bg-white/20', 'text-amber-400', 'font-extrabold');
+      } else if (filterName === 'TOO_BRIGHT') {
+        btnBright.classList.add('bg-white/20', 'text-amber-400', 'font-extrabold');
+      } else {
+        btnNorm.classList.add('bg-white/20', 'text-amber-400', 'font-extrabold');
+      }
+
+      try {
+        await fetch('/api/filter', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ filter: filterName })
+        });
+      } catch (e) {}
+    }
+
+    // 3. CONTINUOUS LIVE CAMERA FEED INGEST
+    liveImg.crossOrigin = "anonymous";
+    function loopLiveFeed() {
+      const nextImg = new Image();
+      nextImg.crossOrigin = "anonymous";
+      nextImg.src = '/frame.jpg?r=' + Math.random();
+      nextImg.onload = () => {
+        liveImg.src = nextImg.src;
+
+        // Process frames through active client-side MediaPipe detector
+        if (AppState.currentMode === 'HAND_GESTURE' && AppState.hands) {
+          AppState.hands.send({ image: liveImg }).catch(() => {});
+        } else if (AppState.currentMode === 'FACE_BIOMETRIC' && AppState.faceMesh) {
+          AppState.faceMesh.send({ image: liveImg }).catch(() => {});
+        }
+
+        requestAnimationFrame(() => setTimeout(loopLiveFeed, 33));
+      };
+      nextImg.onerror = () => setTimeout(loopLiveFeed, 100);
+    }
+    loopLiveFeed();
+
+    // 4. MEDIAPIPE INITIALIZATION (HANDS & FACE MESH)
+    function initMediaPipe() {
+      // Hands
+      if (typeof Hands !== 'undefined') {
+        try {
+          AppState.hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+          });
+          AppState.hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.45,
+            minTrackingConfidence: 0.45
+          });
+          AppState.hands.onResults(onHandResults);
+        } catch (e) {}
+      }
+
+      // Face Mesh (468 landmarks for lively 3D face wiring that follows your head!)
+      if (typeof FaceMesh !== 'undefined') {
+        try {
+          AppState.faceMesh = new FaceMesh({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+          });
+          AppState.faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+          });
+          AppState.faceMesh.onResults(onFaceMeshResults);
+        } catch (e) {}
+      }
+    }
+
+    function onHandResults(results) {
+      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        AppState.detectedHandLandmarks = null;
+        document.getElementById('detectedGestureText').innerText = 'AWAITING HAND';
+        document.getElementById('peaceState').innerText = 'READY';
+        document.getElementById('peaceState').className = 'font-bold text-slate-500';
+        document.getElementById('palmState').innerText = 'READY';
+        document.getElementById('palmState').className = 'font-bold text-slate-500';
+        return;
+      }
+
+      const lm = results.multiHandLandmarks[0];
+      AppState.detectedHandLandmarks = lm;
+
+      const wrist = lm[0];
+      function isExtended(tipIdx, pipIdx, mcpIdx) {
+        const dTip = Math.hypot(lm[tipIdx].x - wrist.x, lm[tipIdx].y - wrist.y);
+        const dMcp = Math.hypot(lm[mcpIdx].x - wrist.x, lm[mcpIdx].y - wrist.y);
+        return (dTip > dMcp * 1.15) || (lm[tipIdx].y < lm[pipIdx].y);
+      }
+
+      const thumbUp = Math.hypot(lm[4].x - wrist.x, lm[4].y - wrist.y) > Math.hypot(lm[2].x - wrist.x, lm[2].y - wrist.y) * 1.25;
+      const indexUp = isExtended(8, 6, 5);
+      const middleUp = isExtended(12, 10, 9);
+      const ringUp = isExtended(16, 14, 13);
+      const pinkyUp = isExtended(20, 18, 17);
+
+      // Distance between thumb tip and index tip for OK / pinch
+      const dThbIdx = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
+      const handScale = Math.max(0.01, Math.hypot(lm[9].x - wrist.x, lm[9].y - wrist.y));
+      const isOkCircle = (dThbIdx / handScale) < 0.28;
+
+      if (isOkCircle && middleUp && ringUp && pinkyUp) {
+        document.getElementById('detectedGestureText').innerText = '👌 OK SIGN (CONFIRMED)';
+      } else if (thumbUp && pinkyUp && !indexUp && !middleUp && !ringUp) {
+        document.getElementById('detectedGestureText').innerText = '🤙 CALL ME / SHAKA';
+      } else if (indexUp && middleUp && !ringUp && !pinkyUp) {
+        document.getElementById('detectedGestureText').innerText = '✌️ PEACE (FACE SCAN)';
+        document.getElementById('peaceState').innerText = 'TRIGGERED';
+        document.getElementById('peaceState').className = 'font-bold text-emerald-400';
+        
+        if (Date.now() - AppState.lastGestureTriggerTime > 2500) {
+          AppState.lastGestureTriggerTime = Date.now();
+          scanFaceTrigger();
+        }
+      } else if (indexUp && pinkyUp && !middleUp && !ringUp) {
+        document.getElementById('detectedGestureText').innerText = '🤘 ROCK / HORNS';
+      } else if (thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp) {
+        document.getElementById('detectedGestureText').innerText = '👍 THUMBS UP (CONFIRMED)';
+      } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+        document.getElementById('detectedGestureText').innerText = '☝️ POINTING / TARGET';
+      } else if (indexUp && middleUp && ringUp && pinkyUp) {
+        document.getElementById('detectedGestureText').innerText = '🖐️ OPEN PALM (CV TOGGLE)';
+        document.getElementById('palmState').innerText = 'ACTIVE';
+        document.getElementById('palmState').className = 'font-bold text-amber-400';
+      } else if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbUp) {
+        document.getElementById('detectedGestureText').innerText = '✊ CLENCHED FIST';
+      } else {
+        document.getElementById('detectedGestureText').innerText = 'HAND TRACKED';
+      }
+    }
+
+    function onFaceMeshResults(results) {
+      if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+        AppState.detectedFaceLandmarks = null;
+        return;
+      }
+      AppState.detectedFaceLandmarks = results.multiFaceLandmarks[0];
+    }
+
+    // 5. MODE SWITCHING WITH BACKEND SYNC
+    window.switchSystemMode = async function(newMode) {
+      if (AppState.currentMode === newMode) return;
+      AppState.currentMode = newMode;
+
+      try {
+        await fetch('/api/mode', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ mode: newMode })
+        });
+      } catch (e) {}
+
+      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'HAND_GESTURE'];
+      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnHand'];
+
+      modes.forEach((m, idx) => {
+        const btn = document.getElementById(btnIds[idx]);
+        if (m === newMode) {
+          btn.style.borderColor = 'var(--accent-primary)';
+          btn.style.color = 'var(--accent-primary)';
+          btn.style.backgroundColor = 'rgba(0,0,0,0.4)';
+        } else {
+          btn.style.borderColor = 'transparent';
+          btn.style.color = 'var(--text-secondary)';
+          btn.style.backgroundColor = 'transparent';
+        }
+      });
+
+      if (newMode === 'OBJECT_DETECT') {
+        document.getElementById('activeModeBadge').innerText = 'IMAGE 2 MATRIX';
+        document.getElementById('trackerDetailText').innerText = 'NESTED SUB-FRAMES • ANCHOR MATRIX • OPT-X';
+        document.getElementById('modeCardTitle').innerText = 'IMAGE 2 DENSE WIREFRAME MATRIX';
+        document.getElementById('modeCardDesc').innerText = 'Aesthetic multi-nested boxes with outer alignment ticks, floating + anchor glyphs, and optical guides matching Image 2.';
+        document.getElementById('modePipeline').innerText = 'YOLOv11M ONNX';
+      } else if (newMode === 'FACE_BIOMETRIC') {
+        document.getElementById('activeModeBadge').innerText = '3D FACE MESH WIRING';
+        document.getElementById('trackerDetailText').innerText = 'REAL-TIME 3D FACIAL POLAR WIRING';
+        document.getElementById('modeCardTitle').innerText = '3D BIOMETRIC MESH RETICLE';
+        document.getElementById('modeCardDesc').innerText = 'Lively 3D facial wireframe matrix tracking your head in real-time as you move, with biometric lock telemetry.';
+        document.getElementById('modePipeline').innerText = 'MEDIAPIPE 3D MESH';
+      } else if (newMode === 'HAND_GESTURE') {
+        document.getElementById('activeModeBadge').innerText = 'HAND CV (MEDIAPIPE)';
+        document.getElementById('trackerDetailText').innerText = 'MEDIAPIPE 21-JOINT 60FPS TRACKER';
+        document.getElementById('modeCardTitle').innerText = 'MEDIAPIPE HAND GESTURES';
+        document.getElementById('modeCardDesc').innerText = 'Client-side 21-joint skeletal wireframe running at 60 FPS in your active theme.';
+        document.getElementById('modePipeline').innerText = 'MEDIAPIPE WASM';
+      }
+
+      lucide.createIcons();
+    };
+
+    // 6. TELEMETRY POLLING LOOP
+    async function fetchTelemetry() {
+      try {
+        const res = await fetch('/api/live_detections');
+        const data = await res.json();
+        if (data) {
+          AppState.liveLatency = data.latency_ms || 18.0;
+          document.getElementById('telemetryLatency').innerText = `${AppState.liveLatency}ms`;
+          document.getElementById('inferTimeVal').innerText = `${AppState.liveLatency}ms`;
+          document.getElementById('inferBar').style.width = `${Math.min(100, AppState.liveLatency * 2.5)}%`;
+
+          if (data.detections) {
+            AppState.liveDetections = data.detections;
+          }
+
+          // Backend Hand Gesture Telemetry Sync
+          if (data.gesture) {
+            AppState.backendGesture = data.gesture;
+            const gName = data.gesture.gesture;
+            if (gName === 'peace') {
+              document.getElementById('detectedGestureText').innerText = '✌️ PEACE (FACE SCAN)';
+              document.getElementById('peaceState').innerText = 'TRIGGERED';
+              document.getElementById('peaceState').className = 'font-bold text-emerald-400';
+              if (Date.now() - AppState.lastGestureTriggerTime > 2500) {
+                AppState.lastGestureTriggerTime = Date.now();
+                scanFaceTrigger();
+              }
+            } else if (gName === 'palm') {
+              document.getElementById('detectedGestureText').innerText = '🖐️ OPEN PALM (CV TOGGLE)';
+              document.getElementById('palmState').innerText = 'ACTIVE';
+              document.getElementById('palmState').className = 'font-bold text-amber-400';
+            } else if (gName === 'thumbs_up') {
+              document.getElementById('detectedGestureText').innerText = '👍 THUMBS UP (CONFIRMED)';
+            } else if (gName === 'rock') {
+              document.getElementById('detectedGestureText').innerText = '🤘 ROCK / HORNS';
+            } else if (gName === 'pointing') {
+              document.getElementById('detectedGestureText').innerText = '☝️ POINTING / TARGET';
+            } else if (gName === 'ok') {
+              document.getElementById('detectedGestureText').innerText = '👌 OK SIGN (CONFIRMED)';
+            } else if (gName === 'call') {
+              document.getElementById('detectedGestureText').innerText = '🤙 CALL ME / SHAKA';
+            } else if (gName === 'fist') {
+              document.getElementById('detectedGestureText').innerText = '✊ CLENCHED FIST';
+            }
+          } else if (!AppState.detectedHandLandmarks) {
+            AppState.backendGesture = null;
+          }
+
+          // Backend Real-time Face Tracking Sync
+          if (data.face) {
+            AppState.backendFace = data.face;
+          } else {
+            AppState.backendFace = null;
+          }
+        }
+      } catch (e) {}
+    }
+    setInterval(fetchTelemetry, 60);
+
+    // 7. BIOMETRIC FACE SCAN API
+    async function scanFaceTrigger() {
+      const pill = document.getElementById('authStatusPill');
+      const name = document.getElementById('subjectName');
+      const id = document.getElementById('subjectId');
+      const status = document.getElementById('subjectStatus');
+
+      pill.innerText = 'LOCKING...';
+      pill.className = 'text-xs font-bold font-mono text-amber-400 animate-pulse';
+
+      try {
+        const res = await fetch('/api/face/scan', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.status === 'authorized') {
+          pill.innerText = `AUTH: ${data.clearance}`;
+          pill.className = 'text-xs font-bold font-mono text-emerald-400';
+          name.innerText = `OPERATOR: ${data.name}`;
+          id.innerText = `#ROLE: ${data.role} (${data.confidence}%)`;
+          status.innerText = 'BIOMETRIC LOCK';
+          status.className = 'font-bold text-emerald-400';
+
+          AppState.activeFaceAlert = {
+            authorized: true,
+            name: data.name,
+            clearance: data.clearance,
+            role: data.role,
+            box: data.face_box,
+            expiry: Date.now() + 6000
+          };
+        } else if (data.status === 'unauthorized') {
+          pill.innerText = 'DENIED';
+          pill.className = 'text-xs font-bold font-mono text-pink-400 animate-pulse';
+          name.innerText = 'UNKNOWN ENTITY';
+          id.innerText = `#UNMATCHED (${data.confidence}%)`;
+          status.innerText = 'UNAUTHORIZED';
+          status.className = 'font-bold text-pink-400';
+
+          AppState.activeFaceAlert = {
+            authorized: false,
+            name: 'UNKNOWN SUBJECT',
+            clearance: 'RESTRICTED',
+            role: 'TRESPASSER',
+            box: data.face_box,
+            expiry: Date.now() + 6000
+          };
+        } else {
+          pill.innerText = 'NO FACE';
+          pill.className = 'text-xs font-bold font-mono text-amber-400';
+          name.innerText = 'LOOK AT CAMERA';
+          id.innerText = '#CHECK_FRAME';
+          status.innerText = 'STANDBY';
+          status.className = 'font-bold text-amber-400';
+        }
+      } catch (err) {
+        pill.innerText = 'ERROR';
+        pill.className = 'text-xs font-bold font-mono text-red-400';
+      }
+    }
+
+    async function enrollFaceCurrentFrame() {
+      const nameInput = document.getElementById('enrollName');
+      const name = nameInput.value.trim();
+      const role = document.getElementById('enrollRole').value;
+      if (!name) {
+        alert("Please enter subject name first.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/face/enroll', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name, role, clearance: 'LEVEL-5' })
+        });
+        const data = await res.json();
+        if (data.status === 'enrolled') {
+          alert(`Successfully enrolled ${name} into security matrix.`);
+          nameInput.value = '';
+          scanFaceTrigger();
+        } else {
+          alert(data.message || 'Enrollment failed.');
+        }
+      } catch (e) {
+        alert("Enroll error: " + e.message);
+      }
+    }
+
+    // 8. SLM TIMELINE INTERROGATION DRAWER
+    function toggleSlmDrawer() {
+      const isOpen = slmDrawer.style.transform === 'translateX(0px)';
+      slmDrawer.style.transform = isOpen ? 'translateX(-450px)' : 'translateX(0px)';
+    }
+
+    document.getElementById('chatForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chatBox = document.getElementById('chatBox');
+      chatBox.innerHTML += `<div class="text-right"><span class="bg-black/60 border px-2.5 py-1 rounded" style="border-color: var(--panel-border); color: var(--accent-secondary);">${text}</span></div>`;
+      input.value = '';
+
+      const waitDiv = document.createElement('div');
+      waitDiv.className = 'text-purple-300/80 italic';
+      waitDiv.innerText = 'Interrogating timeline with Qwen2.5...';
+      chatBox.appendChild(waitDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      try {
+        const res = await fetch('/api/ask', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ prompt: text })
+        });
+        const data = await res.json();
+        waitDiv.className = 'text-purple-300';
+        waitDiv.innerText = `✦ ${data.response}`;
+      } catch (err) {
+        waitDiv.className = 'text-red-400';
+        waitDiv.innerText = 'Error interrogating SLM model.';
+      }
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    window.downloadJsonFile = function() {
+      const blob = new Blob([JSON.stringify(AppState.jsonTelemetryBuffer, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `aeris_telemetry_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    /*
+     * =================================================================================
+     * RENDER PASS 1: IMAGE 2 UNIQUE MULTI-SQUARE WIREFRAME DESIGN
+     * =================================================================================
+     */
+    function renderImage2MultiSquareDesign(ctx, dets) {
+      if (!dets || dets.length === 0) return;
+
+      const colors = getThemeColors();
+      const scaleX = canvas.width / 640;
+      const scaleY = canvas.height / 480;
+
+      dets.forEach((d) => {
+        const [rawX1, rawY1, rawX2, rawY2] = d.box;
+        const x1 = rawX1 * scaleX;
+        const y1 = rawY1 * scaleY;
+        const x2 = rawX2 * scaleX;
+        const y2 = rawY2 * scaleY;
+        const w = x2 - x1;
+        const h = y2 - y1;
+        const className = (d.class || 'TARGET').toUpperCase();
+        const confPercent = Math.round((d.confidence || 0.8) * 100);
+
+        ctx.save();
+
+        // A. Primary Bounding Wireframe (Theme Primary Accent)
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(x1, y1, w, h);
+
+        // Outer corner alignment ticks (Image 2 style)
+        const tick = Math.min(14, w * 0.15);
+        ctx.strokeStyle = colors.text;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        // Top-left
+        ctx.moveTo(x1 - 3, y1); ctx.lineTo(x1 - 3, y1 + tick);
+        ctx.moveTo(x1, y1 - 3); ctx.lineTo(x1 + tick, y1 - 3);
+        // Bottom-right
+        ctx.moveTo(x2 + 3, y2); ctx.lineTo(x2 + 3, y2 - tick);
+        ctx.moveTo(x2, y2 + 3); ctx.lineTo(x2 - tick, y2 + 3);
+        ctx.stroke();
+
+        // B. Aesthetic Nested Sub-Boxes (The Image 2 Antenna Matrix Density)
+        // Sub-box 1 (Theme Secondary Accent)
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 0.9;
+        ctx.strokeRect(x1 + 6, y1 + 8, Math.max(10, w - 12), Math.max(10, h - 16));
+
+        // Sub-box 2 (Theme Alt Accent with offset)
+        ctx.strokeStyle = colors.alt;
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(x1 + 14, y1 + 16, Math.max(6, w * 0.62), Math.max(6, h * 0.68));
+
+        // C. Target Object Label Badge (Clean, prominent & non-overlapping)
+        ctx.font = '10px "Share Tech Mono", monospace';
+        const labelText = className;
+        const confText = `${confPercent}%`;
+        const labelW = ctx.measureText(labelText).width;
+        const confW = ctx.measureText(confText).width;
+        const badgeW = labelW + confW + 18;
+        const badgeH = 17;
+
+        const badgeX = Math.max(4, Math.min(canvas.width - badgeW - 4, x1));
+        const badgeY = y1 >= badgeH + 6 ? y1 - badgeH - 3 : y1 + 4;
+
+        ctx.fillStyle = 'rgba(7, 12, 20, 0.92)';
+        ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+
+        ctx.fillStyle = colors.primary;
+        ctx.fillText(labelText, badgeX + 5, badgeY + 12);
+        ctx.fillStyle = colors.secondary;
+        ctx.fillText(confText, badgeX + labelW + 11, badgeY + 12);
+
+        // Coordinates stamp on edge
+        ctx.font = '8px "Share Tech Mono", monospace';
+        ctx.fillStyle = colors.secondary;
+        ctx.fillText(`XY:[${Math.round(x1)},${Math.round(y1)}]`, x1 + 4, y2 - 4);
+        ctx.fillText(`DIM:${Math.round(w)}x${Math.round(h)}`, Math.max(x1 + 4, x2 - 58), y2 - 4);
+
+        // D. Lightweight Targeting Glyphs (+ and *)
+        const anchors = [
+          { x: x1, y: y1, sym: '+' },
+          { x: x2, y: y1, sym: '+' },
+          { x: x1, y: y2, sym: '+' },
+          { x: x2, y: y2, sym: '+' },
+          { x: Math.round(x1 + w * 0.5), y: Math.round(y1 + h * 0.25), sym: '*' },
+          { x: Math.round(x1 + w * 0.5), y: Math.round(y1 + h * 0.75), sym: '*' },
+          { x: Math.round(x1 + w * 0.25), y: Math.round(y1 + h * 0.5), sym: '+' },
+          { x: Math.round(x1 + w * 0.75), y: Math.round(y1 + h * 0.5), sym: '+' },
+        ];
+
+        ctx.font = '10px "Share Tech Mono", monospace';
+        anchors.forEach((anc, aIdx) => {
+          ctx.fillStyle = aIdx % 2 === 0 ? colors.primary : colors.secondary;
+          ctx.fillText(anc.sym, anc.x - 3, anc.y + 4);
+        });
+
+        // E. Horizontal Optical Guide Line (OPT-X)
+        const cy = Math.round((y1 + y2) / 2);
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 0.8;
+        ctx.setLineDash([3, 4]);
+        ctx.beginPath();
+        ctx.moveTo(Math.max(0, x1 - 30), cy);
+        ctx.lineTo(Math.min(canvas.width, x2 + 30), cy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = colors.secondary;
+        ctx.font = '8px "Share Tech Mono", monospace';
+        ctx.fillText(`OPT-X`, x2 + 4, cy + 3);
+
+        ctx.restore();
+      });
+    }
+
+    /*
+     * =================================================================================
+     * RENDER PASS 2: 3D FACE MESH WIRING (Lively 3D Facial Reticle Following Movement)
+     * =================================================================================
+     */
+    function render3DFaceWiring(ctx) {
+      const colors = getThemeColors();
+
+      // If MediaPipe FaceMesh has detected landmarks (follows head in full 3D!)
+      if (AppState.detectedFaceLandmarks) {
+        const lm = AppState.detectedFaceLandmarks;
+        ctx.save();
+
+        // 3D Wireframe Triangular Struts connecting key facial anchors
+        // Jawline, brows, nose bridge, lips, cheeks
+        const struts = [
+          // Jaw contour
+          [10, 338], [338, 297], [297, 332], [332, 284], [284, 251], [251, 389], [389, 356], [356, 454], [454, 323], [323, 361], [361, 288], [288, 397], [397, 365], [365, 379], [379, 378], [378, 400], [400, 377], [377, 152],
+          [10, 109], [109, 67], [67, 103], [103, 54], [54, 21], [21, 162], [162, 127], [127, 234], [234, 93], [93, 132], [132, 58], [58, 172], [172, 136], [136, 150], [150, 149], [149, 176], [176, 148], [148, 152],
+          // Nose bridge & midline
+          [10, 151], [151, 9], [9, 8], [8, 168], [168, 6], [6, 197], [197, 195], [195, 5], [5, 4], [4, 1], [1, 19], [19, 94], [94, 2], [2, 164], [164, 0], [0, 11], [11, 12], [12, 13], [13, 14], [14, 15], [15, 16], [16, 17], [17, 18], [18, 200], [200, 199], [199, 175], [175, 152],
+          // Left Eye orbit
+          [33, 7], [7, 163], [163, 144], [144, 145], [145, 153], [153, 154], [154, 155], [155, 133], [133, 173], [173, 157], [157, 158], [158, 159], [159, 160], [160, 161], [161, 246], [246, 33],
+          // Right Eye orbit
+          [263, 249], [249, 390], [390, 373], [373, 374], [374, 380], [380, 381], [381, 382], [382, 362], [362, 398], [398, 384], [384, 385], [385, 386], [386, 387], [387, 388], [388, 466], [466, 263],
+          // Cheeks & Triangulation
+          [168, 107], [107, 66], [66, 105], [105, 63], [63, 70],
+          [168, 336], [336, 296], [296, 334], [334, 293], [293, 300],
+          [1, 123], [123, 50], [50, 205], [1, 352], [352, 280], [280, 425]
+        ];
+
+        // Draw 3D polygonal struts in Theme Secondary color
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 1.0;
+        struts.forEach(([i, j]) => {
+          if (lm[i] && lm[j]) {
+            ctx.beginPath();
+            ctx.moveTo(lm[i].x * canvas.width, lm[i].y * canvas.height);
+            ctx.lineTo(lm[j].x * canvas.width, lm[j].y * canvas.height);
+            ctx.stroke();
+          }
+        });
+
+        // 3D Nodes on key anchors (Theme Primary)
+        const keyNodes = [1, 4, 33, 263, 61, 291, 199, 10, 152];
+        keyNodes.forEach(idx => {
+          if (lm[idx]) {
+            const px = lm[idx].x * canvas.width;
+            const py = lm[idx].y * canvas.height;
+            ctx.fillStyle = colors.primary;
+            ctx.beginPath();
+            ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+
+        // Floating dynamic head telemetry callout
+        const nose = lm[1];
+        if (nose) {
+          const nx = nose.x * canvas.width;
+          const ny = nose.y * canvas.height;
+
+          // Animated tracking reticle ring around face center
+          const tNow = Date.now();
+          const rotAngle = (tNow % 4000) / 4000 * Math.PI * 2;
+          ctx.save();
+          ctx.translate(nx, ny);
+          ctx.rotate(rotAngle);
+          ctx.strokeStyle = colors.primary;
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([12, 10]);
+          ctx.beginPath();
+          ctx.arc(0, 0, 75, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+
+          // Live 3D Head Angle & Biometric Lock Stamp
+          const pitch = ((lm[1].y - lm[10].y) * 100).toFixed(1);
+          const yaw = ((lm[1].x - (lm[33].x + lm[263].x) / 2) * 100).toFixed(1);
+
+          ctx.fillStyle = 'rgba(7, 12, 20, 0.9)';
+          ctx.fillRect(nx + 90, ny - 30, 150, 45);
+          ctx.strokeStyle = colors.primary;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(nx + 90, ny - 30, 150, 45);
+
+          ctx.fillStyle = colors.primary;
+          ctx.font = '10px "Share Tech Mono", monospace';
+          ctx.fillText(`3D FACE TRACKING`, nx + 96, ny - 16);
+          ctx.fillStyle = colors.secondary;
+          ctx.font = '9px "Share Tech Mono", monospace';
+          ctx.fillText(`PITCH:${pitch}° // YAW:${yaw}°`, nx + 96, ny - 2);
+          ctx.fillStyle = colors.text;
+          ctx.fillText(`NODES: 468 MESH // LOCK OK`, nx + 96, ny + 10);
+        }
+
+        ctx.restore();
+      } else if (AppState.backendFace) {
+        // Real-time backend YuNet Face Tracking Reticle with Facial Anchors
+        ctx.save();
+        const bf = AppState.backendFace;
+        const [fx, fy, fw, fh] = bf.box;
+        const scaleX = canvas.width / 640;
+        const scaleY = canvas.height / 480;
+        const bx = fx * scaleX;
+        const by = fy * scaleY;
+        const bw = fw * scaleX;
+        const bh = fh * scaleY;
+
+        // Animated rotating biometric targeting ring
+        const cx = bx + bw / 2;
+        const cy = by + bh / 2;
+        const rad = Math.max(bw, bh) * 0.65;
+        const rotAngle = (Date.now() % 3500) / 3500 * Math.PI * 2;
+
+        ctx.translate(cx, cy);
+        ctx.rotate(rotAngle);
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([14, 8]);
+        ctx.beginPath();
+        ctx.arc(0, 0, rad, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // 3D Wireframe Bounding Box & Corner brackets
+        ctx.save();
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(bx, by, bw, bh);
+
+        const cornerLen = Math.min(18, bw * 0.25);
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        // Top-left
+        ctx.moveTo(bx - 2, by); ctx.lineTo(bx - 2, by + cornerLen);
+        ctx.moveTo(bx, by - 2); ctx.lineTo(bx + cornerLen, by - 2);
+        // Bottom-right
+        ctx.moveTo(bx + bw + 2, by + bh); ctx.lineTo(bx + bw + 2, by + bh - cornerLen);
+        ctx.moveTo(bx + bw, by + bh + 2); ctx.lineTo(bx + bw - cornerLen, by + bh + 2);
+        ctx.stroke();
+
+        // Facial landmark nodes
+        if (bf.landmarks && bf.landmarks.length > 0) {
+          ctx.strokeStyle = colors.alt;
+          ctx.lineWidth = 1.0;
+          ctx.beginPath();
+          bf.landmarks.forEach(([lx, ly], idx) => {
+            const px = lx * scaleX;
+            const py = ly * scaleY;
+            if (idx === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          });
+          ctx.stroke();
+
+          bf.landmarks.forEach(([lx, ly]) => {
+            const px = lx * scaleX;
+            const py = ly * scaleY;
+            ctx.fillStyle = colors.primary;
+            ctx.beginPath();
+            ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+
+        // Target badge
+        ctx.fillStyle = 'rgba(7, 12, 20, 0.9)';
+        ctx.fillRect(bx, by - 24, Math.max(140, bw), 20);
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bx, by - 24, Math.max(140, bw), 20);
+        ctx.fillStyle = colors.primary;
+        ctx.font = '10px "Share Tech Mono", monospace';
+        ctx.fillText(`BIOMETRIC TRACK // CONF ${(bf.score * 100).toFixed(0)}%`, bx + 6, by - 10);
+
+        ctx.restore();
+      } else {
+        // Subtle standby reticle in theme color
+        const cx = canvas.width * 0.5;
+        const cy = canvas.height * 0.45;
+        ctx.save();
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 6]);
+        ctx.strokeRect(cx - 70, cy - 90, 140, 180);
+        ctx.setLineDash([]);
+        ctx.fillStyle = colors.primary;
+        ctx.font = '11px "Share Tech Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('AWAITING 3D FACE INGEST', cx, cy);
+        ctx.restore();
+      }
+    }
+
+    /*
+     * =================================================================================
+     * RENDER PASS 3: HAND SKELETON CV (THEME SYNCHRONIZED)
+     * =================================================================================
+     */
+    function renderHandGestureMode(ctx) {
+      const colors = getThemeColors();
+      ctx.save();
+
+      if (AppState.detectedHandLandmarks) {
+        const lm = AppState.detectedHandLandmarks;
+        const connections = [
+          [0,1],[1,2],[2,3],[3,4],
+          [0,5],[5,6],[6,7],[7,8],
+          [5,9],[9,10],[10,11],[11,12],
+          [9,13],[13,14],[14,15],[15,16],
+          [13,17],[17,18],[18,19],[19,20],[0,17]
+        ];
+
+        // Draw Skeletal Struts in Theme Secondary
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 2.2;
+        connections.forEach(([i, j]) => {
+          ctx.beginPath();
+          ctx.moveTo(lm[i].x * canvas.width, lm[i].y * canvas.height);
+          ctx.lineTo(lm[j].x * canvas.width, lm[j].y * canvas.height);
+          ctx.stroke();
+        });
+
+        // Draw Joint Nodes in Theme Primary
+        lm.forEach((p, idx) => {
+          const px = p.x * canvas.width;
+          const py = p.y * canvas.height;
+          ctx.fillStyle = (idx === 8 || idx === 12 || idx === 4) ? colors.primary : colors.alt;
+          ctx.beginPath();
+          ctx.arc(px, py, (idx === 8 || idx === 12) ? 6 : 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      } else if (AppState.backendGesture && AppState.backendGesture.box) {
+        // Backend gesture bounding box and finger tip anchors
+        const bg = AppState.backendGesture;
+        const scaleX = canvas.width / 640;
+        const scaleY = canvas.height / 480;
+        const [x1, y1, x2, y2] = bg.box;
+        const bx = x1 * scaleX;
+        const by = y1 * scaleY;
+        const bw = (x2 - x1) * scaleX;
+        const bh = (y2 - y1) * scaleY;
+
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.8;
+        ctx.strokeRect(bx, by, bw, bh);
+
+        // Sub-box inside
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 1.0;
+        ctx.strokeRect(bx + 4, by + 4, Math.max(10, bw - 8), Math.max(10, bh - 8));
+
+        // Finger tips
+        if (bg.tips && bg.tips.length > 0) {
+          bg.tips.forEach(([tx, ty]) => {
+            const px = tx * scaleX;
+            const py = ty * scaleY;
+            ctx.fillStyle = colors.alt;
+            ctx.beginPath();
+            ctx.arc(px, py, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = colors.primary;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(px, py, 9, 0, Math.PI * 2);
+            ctx.stroke();
+          });
+        }
+
+        // Label
+        ctx.fillStyle = 'rgba(7, 12, 20, 0.9)';
+        ctx.fillRect(bx, by - 22, 160, 20);
+        ctx.fillStyle = colors.primary;
+        ctx.font = '10px "Share Tech Mono", monospace';
+        ctx.fillText(`GESTURE: ${bg.gesture.toUpperCase()}`, bx + 6, by - 8);
+      } else {
+        const cx = canvas.width * 0.5;
+        const cy = canvas.height * 0.5;
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(cx - 70, cy - 80, 140, 160);
+        ctx.setLineDash([]);
+        ctx.fillStyle = colors.primary;
+        ctx.font = '11px "Share Tech Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('PRESENT HAND (✌️ PEACE / 🖐️ PALM)', cx, cy);
+      }
+
+      ctx.restore();
+    }
+
+    let lastTime = performance.now();
+    let frameCounter = 0;
+
+    function renderEngine(now) {
+      const dt = now - lastTime;
+      lastTime = now;
+      frameCounter++;
+
+      if (frameCounter % 15 === 0) {
+        document.getElementById('telemetryFps').innerText = Math.round(1000 / (dt || 16.6));
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (liveImg && liveImg.naturalWidth > 0) {
+        ctx.drawImage(liveImg, 0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(7, 10, 15, 0.30)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else {
+        const colors = getThemeColors();
+        ctx.fillStyle = colors.panelBg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      if (AppState.currentMode === 'OBJECT_DETECT') {
+        renderImage2MultiSquareDesign(ctx, AppState.liveDetections);
+      } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
+        render3DFaceWiring(ctx);
+      } else if (AppState.currentMode === 'HAND_GESTURE') {
+        renderHandGestureMode(ctx);
+      }
+
+      requestAnimationFrame(renderEngine);
+    }
+
+    const kernelLines = [
+      "[    0.000000] Linux version 6.12.8-arch1-1 (root@arch) (gcc 14.2.1)",
+      "[    0.419204] smpboot: CPU0: Pinned INTRA=2 INTER=1 (cool fan mode)",
+      "[    1.029410] AERIS_CV: YOLOv11-Medium ONNX graph loaded (20.1M params)",
+      "[    1.189201] NET: LwIP NCM virtual interface link UP 1000Mbps",
+      "[    2.419082] THEME: Mazzaroth palette synchronized to canvas CV shaders",
+      "[    3.029481] MESH_3D: MediaPipe 468-point 3D facial reticle initialized",
+      "[    3.894102] OPTICAL: Direct exposure bias controls active"
+    ];
+
+    setInterval(() => {
+      const line = kernelLines[Math.floor(Math.random() * kernelLines.length)];
+      const el = document.createElement('div');
+      el.className = 'truncate opacity-80';
+      el.innerText = line;
+      dmesgStream.appendChild(el);
+      if (dmesgStream.children.length > 8) {
+        dmesgStream.removeChild(dmesgStream.children[0]);
+      }
+    }, 900);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      resizeCanvas();
+      const savedTheme = localStorage.getItem('aeris-vision-theme') || 'midnight-gold';
+      setTheme(savedTheme);
+      initMediaPipe();
+      switchSystemMode('OBJECT_DETECT');
+      requestAnimationFrame(renderEngine);
+    });
+  </script>
+</body>
+</html>
