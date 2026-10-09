@@ -58,4 +58,16 @@
   CHECK: curl -s http://localhost:8080/api/gesture/status | grep -q "active" && echo "G10 verified"
   EXPECT: G10 verified
   CWD: .
-  EVIDENCE: pending
+  EVIDENCE: G10 verified
+
+- [x] G11: Decoupled 30 FPS Ingest, Mazzaroth Multi-Theme Engine & 3D Face Wireframe
+  CHECK: cargo build --release --bin hubd && python3 -m py_compile crates/detect_service.py && echo "G11 verified"
+  EXPECT: G11 verified
+  CWD: .
+  EVIDENCE: G11 verified
+
+- [x] G12: Pathfinder EYE Rebranding, Tabular Metrics, & JSL Gesture Dictionary
+  CHECK: python3 -m py_compile crates/hand_detector.py && grep -q "PATHFINDER // EYE" ui/index.html && echo "G12 verified"
+  EXPECT: G12 verified
+  CWD: .
+  EVIDENCE: G12 verified

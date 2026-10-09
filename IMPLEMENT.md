@@ -7,3 +7,7 @@
 - 2026-10-07: Completed Stage 9 Biometric Authority Matrix (YuNet + SFace ONNX models, persistent JSON registry, on-demand scanning with zero idle CPU). Added Stage 10 for Hand Gesture Control.
 
 - 2026-10-07: Completed Stage 10 Hand Gesture Control Console (crates/hand_detector.py, peace gesture face scan trigger, open palm CV toggle, 0% CPU when disarmed).
+
+- 2026-10-08: Completed Stage 11 Decoupled 30 FPS Ingest, Mazzaroth Multi-Theme Engine & 3D Facial Reticle (asynchronous background YOLO thread, atomic live_detections.json writes, 468-point 3D face mesh following head pitch/yaw, 4 Mazzaroth design themes, exposure filters).
+
+- 2026-10-09: Completed Stage 12 Pathfinder EYE Rebranding, Tabular Metrics & JSL Gesture Dictionary (PATHFINDER // EYE branding, tabular-nums fixed-width latency/FPS badges eliminating layout jitter, shortened mode buttons, PRESENT HANDS standby text, and dynamic 12-gesture JSL/symbolic menu with live active pulse indicators).

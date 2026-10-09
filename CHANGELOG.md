@@ -2,7 +2,17 @@
 
 All notable changes to the Vision Hub project are documented in this file.
 
-## [Unreleased] - 2026-10-07
+## [Pathfinder EYE & Japanese Sign Language] - 2026-10-09
+
+### Added
+- **Rebranding & UX Overhaul**: Rebranded system to **Pathfinder EYE** (`PATHFINDER // EYE`).
+- **Telemetry Stabilization**: Replaced dynamic-width latency and FPS badge layouts with fixed-width containers and `tabular-nums` formatting to completely eliminate navigation bar jitter.
+- **Concise Navigation Switcher**: Shortened navigation tabs to `OBJECT_RECOGNITION`, `FACIAL_RECOGNITION`, and `HAND_GESTURES` while moving detailed pipeline diagnostics to the left sidebar panel.
+- **Standby Placeholder**: Updated hand gesture canvas standby placeholder from peace/palm hint to clean `PRESENT HANDS`.
+- **Dynamic JSL & Universal Gesture Dictionary**: Added real-time 12-gesture menu in right sidebar highlighting active gestures (✌️ Peace/2, 🖐️ Palm/5, ☝️ Pointing/1, 🤟 Three/3, 🖖 Four/4, 👍 Thumbs Up, 👌 OK/Money, 🦊 Kitsune/Fox, 🤙 Pinky Promise, 🤙 Call Me, 🤘 Rock, ✊ Fist/0).
+- **Decoupled 30 FPS Stream Pipeline**: Camera ingest loop decoupled from YOLOv11M background inference worker with atomic file writes preventing race conditions.
+- **Mazzaroth Multi-Theme Engine**: 4 design themes (Midnight Gold, Synth Magenta, Obsidian Mono, Technical Paper) with full canvas and HUD synchronization.
+- **3D Biometric Facial Reticle**: 468-point head tracking mesh following user movement with live pitch/yaw telemetry.
 
 ### Added
 - **Deep Wireframe Matrix HUD (`ui/index.html`)**:

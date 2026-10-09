@@ -1,4 +1,4 @@
-# Vision Hub Plan
+# Vision Hub Plan (Pathfinder EYE)
 
 - [x] Stage 1: Harness & Workspace Scaffold (OWNS: Cargo.toml, PLAN.md, GATES.md, IMPLEMENT.md, AGENTS.md) [G1]
 - [x] Stage 2: Store Crate (OWNS: crates/store/*) [G2]
@@ -9,5 +9,6 @@
 - [x] Stage 7: Integration & End-to-End Verification [G7]
 - [x] Stage 8: Deep Wireframe Matrix HUD & Thermal Optimization (OWNS: crates/detect_service.py, ui/index.html, README.md, CHANGELOG.md) [G8]
 - [x] Stage 9: Biometric Authority Matrix Verification (OWNS: crates/face_service.py, crates/hubd/src/main.rs, ui/index.html) [G9]
-- [x] Stage 10: Cyber Hand Gesture Control Console (OWNS: crates/gesture_service.py, crates/hubd/src/main.rs, ui/index.html) [G10]
-- [ ] Stage 11: High-Accuracy Vision & Neural Hand Landmark Upgrade (OWNS: models/yolo11s.onnx, crates/hand_detector.py, crates/detect_service.py) [G11]
+- [x] Stage 10: Cyber Hand Gesture Control Console (OWNS: crates/hand_detector.py, crates/hubd/src/main.rs, ui/index.html) [G10]
+- [x] Stage 11: Decoupled 30 FPS Ingest, Mazzaroth Multi-Theme Engine & 3D Facial Reticle [G11]
+- [x] Stage 12: Pathfinder EYE Rebranding, Tabular Metrics, & Japanese Sign Language (JSL) Dictionary [G12]
