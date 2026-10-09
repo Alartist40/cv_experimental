@@ -133,14 +133,14 @@
       <div class="flex items-center gap-2.5">
         <span class="w-2.5 h-2.5 rounded-full animate-pulse shadow-sm" style="background-color: var(--accent-primary);"></span>
         <h1 class="text-sm font-bold tracking-wider uppercase font-industrial glow-theme" style="color: var(--accent-primary);">
-          AERIS // VISION MATRIX
+          PATHFINDER // EYE
         </h1>
         <span class="text-[10px] px-2 py-0.5 rounded border font-mono" style="border-color: var(--panel-border); color: var(--accent-secondary);">v5.0</span>
       </div>
       
       <div class="text-xs border-l pl-3 hidden md:flex items-center gap-3 font-mono" style="border-color: var(--panel-border); color: var(--text-secondary);">
-        <span>FPS: <span id="telemetryFps" class="font-bold text-emerald-400">15.0</span></span>
-        <span>LATENCY: <span id="telemetryLatency" class="font-semibold" style="color: var(--accent-secondary);">18.0ms</span></span>
+        <span class="inline-flex items-center">FPS:&nbsp;<span id="telemetryFps" class="font-bold text-emerald-400 w-8 inline-block text-left" style="font-variant-numeric: tabular-nums;">15.0</span></span>
+        <span class="inline-flex items-center">LATENCY:&nbsp;<span id="telemetryLatency" class="font-semibold w-16 inline-block text-left" style="color: var(--accent-secondary); font-variant-numeric: tabular-nums;">18.0ms</span></span>
       </div>
     </div>
 
@@ -148,17 +148,17 @@
     <div class="flex items-center bg-black/60 border rounded-lg p-1 gap-1" style="border-color: var(--panel-border);">
       <button id="modeBtnObject" onclick="switchSystemMode('OBJECT_DETECT')" class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all border shadow-sm" style="border-color: var(--accent-primary); color: var(--accent-primary); background-color: rgba(0,0,0,0.4);">
         <i data-lucide="scan" class="w-3.5 h-3.5"></i>
-        <span>IMAGE 2 MATRIX (YOLOv11M)</span>
+        <span>OBJECT_RECOGNITION</span>
       </button>
 
       <button id="modeBtnFace" onclick="switchSystemMode('FACE_BIOMETRIC')" class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
         <i data-lucide="scan-face" class="w-3.5 h-3.5"></i>
-        <span>3D FACE MESH WIRING</span>
+        <span>FACIAL_RECOGNITION</span>
       </button>
 
       <button id="modeBtnHand" onclick="switchSystemMode('HAND_GESTURE')" class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
         <i data-lucide="hand" class="w-3.5 h-3.5"></i>
-        <span>HAND CV (MEDIAPIPE)</span>
+        <span>HAND_GESTURES</span>
       </button>
     </div>
 
@@ -378,10 +378,10 @@
         <div>
           <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
             <div class="flex items-center gap-2 text-xs font-bold font-industrial" style="color: var(--accent-secondary);">
-              <i data-lucide="activity" class="w-4 h-4"></i>
-              <span>DYNAMIC TELEMETRY MONITOR</span>
+              <i data-lucide="hand" class="w-4 h-4"></i>
+              <span>GESTURE DICTIONARY & TELEMETRY</span>
             </div>
-            <span class="text-[10px] text-emerald-400 font-bold">ACTIVE</span>
+            <span class="text-[10px] text-emerald-400 font-bold">JSL / USR</span>
           </div>
 
           <div class="space-y-2 text-xs">
@@ -395,21 +395,63 @@
               </div>
             </div>
 
-            <div class="space-y-1 text-[11px]" style="color: var(--text-secondary);">
-              <div class="flex justify-between items-center">
-                <span>✌️ PEACE (FACE SCAN):</span>
-                <span id="peaceState" class="font-bold text-slate-500">READY</span>
+            <!-- Dynamic Supported Gesture Menu (JSL & Universal) -->
+            <div class="text-[10px] opacity-70 font-semibold pt-1">RECOGNIZED GESTURES (MENU):</div>
+            <div class="space-y-1 text-[11px] max-h-48 overflow-y-auto pr-1" style="color: var(--text-secondary);" id="gestureMenuRows">
+              <div id="row_peace" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>✌️ PEACE / JSL 2</span>
+                <span id="badge_peace" class="font-bold text-[10px] text-slate-500">READY</span>
               </div>
-              <div class="flex justify-between items-center">
-                <span>🖐️ OPEN PALM (CV TOGGLE):</span>
-                <span id="palmState" class="font-bold text-slate-500">READY</span>
+              <div id="row_palm" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>🖐️ OPEN PALM / JSL 5</span>
+                <span id="badge_palm" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_pointing" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>☝️ POINTING / JSL 1</span>
+                <span id="badge_pointing" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_three" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>🤟 THREE / JSL 3</span>
+                <span id="badge_three" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_four" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>🖖 FOUR / JSL 4</span>
+                <span id="badge_four" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_thumbs_up" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>👍 THUMBS UP / GOOD (よい)</span>
+                <span id="badge_thumbs_up" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_ok" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>👌 OK / MONEY (お金)</span>
+                <span id="badge_ok" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_kitsune" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>🦊 KITSUNE / FOX (きつね)</span>
+                <span id="badge_kitsune" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_pinky_promise" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>🤙 PROMISE (指切り / 彼女)</span>
+                <span id="badge_pinky_promise" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_call" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>🤙 CALL ME / SHAKA</span>
+                <span id="badge_call" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_rock" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>🤘 ROCK / HORNS</span>
+                <span id="badge_rock" class="font-bold text-[10px] text-slate-500">READY</span>
+              </div>
+              <div id="row_fist" class="flex justify-between items-center px-1.5 py-0.5 rounded transition bg-black/40 border border-transparent">
+                <span>✊ FIST / JSL 0 (グー)</span>
+                <span id="badge_fist" class="font-bold text-[10px] text-slate-500">READY</span>
               </div>
             </div>
           </div>
         </div>
 
         <div class="p-2 bg-black/40 border rounded text-[10px] leading-tight" style="border-color: var(--panel-border); color: var(--text-muted);">
-          All CV boxes, corner ticks, wireframes, and 3D facial reticles dynamically synchronize with the selected Mazzaroth theme palette.
+          Gestures dynamically light up in the menu when performed. Peace auto-triggers 3D facial biometrics.
         </div>
       </div>
 
@@ -648,33 +690,88 @@
       const handScale = Math.max(0.01, Math.hypot(lm[9].x - wrist.x, lm[9].y - wrist.y));
       const isOkCircle = (dThbIdx / handScale) < 0.28;
 
+      // Kitsune test
+      const dMidThb = Math.hypot(lm[4].x - lm[12].x, lm[4].y - lm[12].y);
+      const dRngThb = Math.hypot(lm[4].x - lm[16].x, lm[4].y - lm[16].y);
+      const isSnoutClosed = (dMidThb / handScale < 0.38) && (dRngThb / handScale < 0.38);
+
+      let detected = null;
       if (isOkCircle && middleUp && ringUp && pinkyUp) {
-        document.getElementById('detectedGestureText').innerText = '👌 OK SIGN (CONFIRMED)';
+        detected = 'ok';
+      } else if (indexUp && pinkyUp && isSnoutClosed) {
+        detected = 'kitsune';
+      } else if (pinkyUp && !indexUp && !middleUp && !ringUp && !thumbUp) {
+        detected = 'pinky_promise';
       } else if (thumbUp && pinkyUp && !indexUp && !middleUp && !ringUp) {
-        document.getElementById('detectedGestureText').innerText = '🤙 CALL ME / SHAKA';
-      } else if (indexUp && middleUp && !ringUp && !pinkyUp) {
-        document.getElementById('detectedGestureText').innerText = '✌️ PEACE (FACE SCAN)';
-        document.getElementById('peaceState').innerText = 'TRIGGERED';
-        document.getElementById('peaceState').className = 'font-bold text-emerald-400';
-        
-        if (Date.now() - AppState.lastGestureTriggerTime > 2500) {
-          AppState.lastGestureTriggerTime = Date.now();
-          scanFaceTrigger();
-        }
+        detected = 'call';
       } else if (indexUp && pinkyUp && !middleUp && !ringUp) {
-        document.getElementById('detectedGestureText').innerText = '🤘 ROCK / HORNS';
-      } else if (thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp) {
-        document.getElementById('detectedGestureText').innerText = '👍 THUMBS UP (CONFIRMED)';
+        detected = 'rock';
+      } else if (indexUp && middleUp && ringUp && pinkyUp && !thumbUp) {
+        detected = 'four';
+      } else if (indexUp && middleUp && ringUp && !pinkyUp) {
+        detected = 'three';
+      } else if (indexUp && middleUp && !ringUp && !pinkyUp) {
+        detected = 'peace';
       } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
-        document.getElementById('detectedGestureText').innerText = '☝️ POINTING / TARGET';
+        detected = 'pointing';
+      } else if (thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp) {
+        detected = 'thumbs_up';
       } else if (indexUp && middleUp && ringUp && pinkyUp) {
-        document.getElementById('detectedGestureText').innerText = '🖐️ OPEN PALM (CV TOGGLE)';
-        document.getElementById('palmState').innerText = 'ACTIVE';
-        document.getElementById('palmState').className = 'font-bold text-amber-400';
+        detected = 'palm';
       } else if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbUp) {
-        document.getElementById('detectedGestureText').innerText = '✊ CLENCHED FIST';
-      } else {
-        document.getElementById('detectedGestureText').innerText = 'HAND TRACKED';
+        detected = 'fist';
+      }
+
+      updateGestureMenuUI(detected);
+    }
+
+    const ALL_GESTURE_KEYS = ['peace', 'palm', 'pointing', 'three', 'four', 'thumbs_up', 'ok', 'kitsune', 'pinky_promise', 'call', 'rock', 'fist'];
+    const GESTURE_LABELS = {
+      'peace': '✌️ PEACE / JSL 2',
+      'palm': '🖐️ OPEN PALM / JSL 5',
+      'pointing': '☝️ POINTING / JSL 1',
+      'three': '🤟 THREE / JSL 3',
+      'four': '🖖 FOUR / JSL 4',
+      'thumbs_up': '👍 THUMBS UP / GOOD (よい)',
+      'ok': '👌 OK / MONEY (お金)',
+      'kitsune': '🦊 KITSUNE / FOX (きつね)',
+      'pinky_promise': '🤙 PROMISE (指切り / 彼女)',
+      'call': '🤙 CALL ME / SHAKA',
+      'rock': '🤘 ROCK / HORNS',
+      'fist': '✊ FIST / JSL 0 (グー)'
+    };
+
+    function updateGestureMenuUI(activeKey) {
+      const txtElem = document.getElementById('detectedGestureText');
+      
+      ALL_GESTURE_KEYS.forEach(k => {
+        const row = document.getElementById(`row_${k}`);
+        const badge = document.getElementById(`badge_${k}`);
+        if (!row || !badge) return;
+
+        if (k === activeKey) {
+          row.style.backgroundColor = 'rgba(236, 72, 153, 0.2)';
+          row.style.borderColor = 'var(--accent-primary)';
+          badge.innerText = 'ACTIVE';
+          badge.className = 'font-bold text-[10px] text-emerald-400 animate-pulse';
+        } else {
+          row.style.backgroundColor = 'rgba(0,0,0,0.4)';
+          row.style.borderColor = 'transparent';
+          badge.innerText = 'READY';
+          badge.className = 'font-bold text-[10px] text-slate-500';
+        }
+      });
+
+      if (activeKey && GESTURE_LABELS[activeKey]) {
+        txtElem.innerText = GESTURE_LABELS[activeKey];
+        if (activeKey === 'peace') {
+          if (Date.now() - AppState.lastGestureTriggerTime > 2500) {
+            AppState.lastGestureTriggerTime = Date.now();
+            scanFaceTrigger();
+          }
+        }
+      } else if (!activeKey) {
+        txtElem.innerText = 'AWAITING HAND';
       }
     }
 
@@ -716,22 +813,22 @@
       });
 
       if (newMode === 'OBJECT_DETECT') {
-        document.getElementById('activeModeBadge').innerText = 'IMAGE 2 MATRIX';
+        document.getElementById('activeModeBadge').innerText = 'OBJECT RECOGNITION';
         document.getElementById('trackerDetailText').innerText = 'NESTED SUB-FRAMES • ANCHOR MATRIX • OPT-X';
-        document.getElementById('modeCardTitle').innerText = 'IMAGE 2 DENSE WIREFRAME MATRIX';
+        document.getElementById('modeCardTitle').innerText = 'OBJECT RECOGNITION MATRIX';
         document.getElementById('modeCardDesc').innerText = 'Aesthetic multi-nested boxes with outer alignment ticks, floating + anchor glyphs, and optical guides matching Image 2.';
         document.getElementById('modePipeline').innerText = 'YOLOv11M ONNX';
       } else if (newMode === 'FACE_BIOMETRIC') {
-        document.getElementById('activeModeBadge').innerText = '3D FACE MESH WIRING';
+        document.getElementById('activeModeBadge').innerText = 'FACIAL RECOGNITION';
         document.getElementById('trackerDetailText').innerText = 'REAL-TIME 3D FACIAL POLAR WIRING';
         document.getElementById('modeCardTitle').innerText = '3D BIOMETRIC MESH RETICLE';
         document.getElementById('modeCardDesc').innerText = 'Lively 3D facial wireframe matrix tracking your head in real-time as you move, with biometric lock telemetry.';
         document.getElementById('modePipeline').innerText = 'MEDIAPIPE 3D MESH';
       } else if (newMode === 'HAND_GESTURE') {
-        document.getElementById('activeModeBadge').innerText = 'HAND CV (MEDIAPIPE)';
+        document.getElementById('activeModeBadge').innerText = 'HAND GESTURES';
         document.getElementById('trackerDetailText').innerText = 'MEDIAPIPE 21-JOINT 60FPS TRACKER';
-        document.getElementById('modeCardTitle').innerText = 'MEDIAPIPE HAND GESTURES';
-        document.getElementById('modeCardDesc').innerText = 'Client-side 21-joint skeletal wireframe running at 60 FPS in your active theme.';
+        document.getElementById('modeCardTitle').innerText = 'JSL & HAND GESTURE CV';
+        document.getElementById('modeCardDesc').innerText = 'Client-side 21-joint skeletal wireframe and JSL gestures running at 60 FPS in your active theme.';
         document.getElementById('modePipeline').innerText = 'MEDIAPIPE WASM';
       }
 
@@ -757,33 +854,12 @@
           if (data.gesture) {
             AppState.backendGesture = data.gesture;
             const gName = data.gesture.gesture;
-            if (gName === 'peace') {
-              document.getElementById('detectedGestureText').innerText = '✌️ PEACE (FACE SCAN)';
-              document.getElementById('peaceState').innerText = 'TRIGGERED';
-              document.getElementById('peaceState').className = 'font-bold text-emerald-400';
-              if (Date.now() - AppState.lastGestureTriggerTime > 2500) {
-                AppState.lastGestureTriggerTime = Date.now();
-                scanFaceTrigger();
-              }
-            } else if (gName === 'palm') {
-              document.getElementById('detectedGestureText').innerText = '🖐️ OPEN PALM (CV TOGGLE)';
-              document.getElementById('palmState').innerText = 'ACTIVE';
-              document.getElementById('palmState').className = 'font-bold text-amber-400';
-            } else if (gName === 'thumbs_up') {
-              document.getElementById('detectedGestureText').innerText = '👍 THUMBS UP (CONFIRMED)';
-            } else if (gName === 'rock') {
-              document.getElementById('detectedGestureText').innerText = '🤘 ROCK / HORNS';
-            } else if (gName === 'pointing') {
-              document.getElementById('detectedGestureText').innerText = '☝️ POINTING / TARGET';
-            } else if (gName === 'ok') {
-              document.getElementById('detectedGestureText').innerText = '👌 OK SIGN (CONFIRMED)';
-            } else if (gName === 'call') {
-              document.getElementById('detectedGestureText').innerText = '🤙 CALL ME / SHAKA';
-            } else if (gName === 'fist') {
-              document.getElementById('detectedGestureText').innerText = '✊ CLENCHED FIST';
+            if (!AppState.detectedHandLandmarks) {
+              updateGestureMenuUI(gName);
             }
           } else if (!AppState.detectedHandLandmarks) {
             AppState.backendGesture = null;
+            updateGestureMenuUI(null);
           }
 
           // Backend Real-time Face Tracking Sync
@@ -1347,7 +1423,7 @@
         ctx.fillStyle = colors.primary;
         ctx.font = '11px "Share Tech Mono", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('PRESENT HAND (✌️ PEACE / 🖐️ PALM)', cx, cy);
+        ctx.fillText('PRESENT HANDS', cx, cy);
       }
 
       ctx.restore();

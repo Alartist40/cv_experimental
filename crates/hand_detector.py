@@ -82,38 +82,58 @@ def detect_hand_gesture(frame, person_box=None):
             if pnk_ext: tips.append([int(lm[20, 0]), int(lm[20, 1])])
 
             # =========================================================================
-            # SIGN LANGUAGE & HAND GESTURE CLASSIFIER
+            # SIGN LANGUAGE & HAND GESTURE CLASSIFIER (JSL / UNIVERSAL)
             # =========================================================================
 
-            # 1. OK Sign (👌): Thumb and index tips touching in circle, middle+ring+pinky extended
+            # 1. OK / Money (👌 / お金): Thumb and index tips touching in circle, remaining 3 extended
             if is_ok_circle and mid_ext and rng_ext and pnk_ext:
                 return {"gesture": "ok", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 2. Call Me / Shaka (🤙): Thumb and pinky extended, index, middle, ring closed
+            # 2. Kitsune / Fox (🦊 / きつね - Japanese traditional sign):
+            # Index and Pinky extended (ears), Thumb touching Middle & Ring tips (snout)
+            d_mid_thb = np.hypot(lm[4, 0] - lm[12, 0], lm[4, 1] - lm[12, 1])
+            d_rng_thb = np.hypot(lm[4, 0] - lm[16, 0], lm[4, 1] - lm[16, 1])
+            is_snout_closed = (d_mid_thb / hand_scale < 0.38) and (d_rng_thb / hand_scale < 0.38)
+            if idx_ext and pnk_ext and is_snout_closed:
+                return {"gesture": "kitsune", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
+
+            # 3. Pinky / Promise (🤙 / 指切り・彼女): Pinky alone extended, other 4 closed
+            if pnk_ext and not idx_ext and not mid_ext and not rng_ext and not thb_ext:
+                return {"gesture": "pinky_promise", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
+
+            # 4. Call Me / Shaka (🤙): Thumb and Pinky extended, middle three folded
             if thb_ext and pnk_ext and not idx_ext and not mid_ext and not rng_ext:
                 return {"gesture": "call", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 3. Rock / Horns (🤘): Index & pinky extended, middle & ring closed
+            # 5. Rock / Horns (🤘): Index & Pinky extended, Middle & Ring closed
             if idx_ext and pnk_ext and not mid_ext and not rng_ext:
                 return {"gesture": "rock", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 4. Peace / Victory (✌️): Index & middle extended, ring & pinky closed
+            # 6. JSL 4 / Four Fingers (4️⃣): 4 fingers extended, thumb folded
+            if idx_ext and mid_ext and rng_ext and pnk_ext and not thb_ext:
+                return {"gesture": "four", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
+
+            # 7. JSL 3 / Three (3️⃣): Index, Middle, Ring extended, pinky closed (or thumb+index+mid)
+            if idx_ext and mid_ext and rng_ext and not pnk_ext:
+                return {"gesture": "three", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
+
+            # 8. Peace / JSL 2 / Victory (✌️ / 2): Index & middle extended, ring & pinky closed
             if idx_ext and mid_ext and not rng_ext and not pnk_ext:
                 return {"gesture": "peace", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 5. Pointing / Number 1 (☝️): Index extended only
+            # 9. Pointing / JSL 1 (☝️ / 1): Index extended only
             if idx_ext and not mid_ext and not rng_ext and not pnk_ext:
                 return {"gesture": "pointing", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 6. Thumbs Up (👍): Thumb extended up, all 4 fingers closed
+            # 10. Thumbs Up / JSL Good / Male (👍 / よい・彼): Thumb extended up, 4 fingers closed
             if thb_ext and not idx_ext and not mid_ext and not rng_ext and not pnk_ext:
                 return {"gesture": "thumbs_up", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 7. Open Palm / Stop (🖐️): 3 or more fingers extended
+            # 11. Open Palm / JSL 5 / Paper (🖐️ / 5): All 5 fingers extended
             if sum([idx_ext, mid_ext, rng_ext, pnk_ext]) >= 3:
                 return {"gesture": "palm", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 8. Clenched Fist (✊): All fingers closed
+            # 12. Clenched Fist / JSL 0 / Rock (✊ / 0・グー): All fingers closed
             if not idx_ext and not mid_ext and not rng_ext and not pnk_ext and not thb_ext:
                 return {"gesture": "fist", "box": bbox, "tips": [], "landmarks": lm[:, :2].tolist()}
 
