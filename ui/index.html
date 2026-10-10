@@ -1072,7 +1072,8 @@
 
         // C. Target Object Label Badge (Clean, prominent & non-overlapping)
         ctx.font = '10px "Share Tech Mono", monospace';
-        const labelText = className;
+        const trackPrefix = (d.track_id !== null && d.track_id !== undefined) ? `#${d.track_id} ` : '';
+        const labelText = `${trackPrefix}${className}`;
         const confText = `${confPercent}%`;
         const labelW = ctx.measureText(labelText).width;
         const confW = ctx.measureText(confText).width;

@@ -34,6 +34,12 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 # Asynchronous YOLO inference state (keeps video feed silky smooth 30+ FPS)
 import threading
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+import supervision as sv
+
+tracker = sv.ByteTrack(track_activation_threshold=0.35, lost_track_buffer=30, minimum_matching_threshold=0.7)
+
 yolo_lock = threading.Lock()
 yolo_frame_to_process = None
 yolo_last_results = []
@@ -50,23 +56,57 @@ def yolo_worker():
         if frame_copy is not None:
             t0 = time.time()
             try:
-                results = model(frame_copy, verbose=False, conf=0.55)
-                det_list = []
-                person_boxes = []
+                results = model(frame_copy, verbose=False, conf=0.45)
+                raw_boxes = []
+                raw_confs = []
+                raw_cids = []
+                raw_names = []
+
                 for r in results:
                     for box in r.boxes:
-                        cls_id = int(box.cls[0])
-                        name = model.names[cls_id]
-                        conf = float(box.conf[0])
-                        xyxy = box.xyxy[0].tolist()
-                        x1, y1, x2, y2 = [int(v) for v in xyxy]
-                        if name == "person":
-                            person_boxes.append({"class": name, "confidence": round(conf, 2), "box": [x1, y1, x2, y2]})
-                        else:
-                            det_list.append({"class": name, "confidence": round(conf, 2), "box": [x1, y1, x2, y2]})
-                if person_boxes:
-                    person_boxes.sort(key=lambda x: x["confidence"], reverse=True)
-                    det_list.append(person_boxes[0])
+                        cid = int(box.cls[0])
+                        cname = model.names[cid]
+                        cconf = float(box.conf[0])
+                        xyxy = [float(v) for v in box.xyxy[0].tolist()]
+                        raw_boxes.append(xyxy)
+                        raw_confs.append(cconf)
+                        raw_cids.append(cid)
+                        raw_names.append(cname)
+
+                det_list = []
+                if raw_boxes:
+                    sv_dets = sv.Detections(
+                        xyxy=np.array(raw_boxes, dtype=np.float32),
+                        confidence=np.array(raw_confs, dtype=np.float32),
+                        class_id=np.array(raw_cids, dtype=int),
+                        data={"class_name": np.array(raw_names)}
+                    )
+                    tracked_dets = tracker.update_with_detections(sv_dets)
+
+                    if len(tracked_dets) > 0:
+                        for xy, conf, cid, tid in zip(tracked_dets.xyxy, tracked_dets.confidence, tracked_dets.class_id, tracked_dets.tracker_id):
+                            cname = model.names.get(int(cid), "object")
+                            x1, y1, x2, y2 = [int(v) for v in xy]
+                            det_list.append({
+                                "track_id": int(tid) if tid is not None else None,
+                                "class": cname,
+                                "confidence": round(float(conf), 2),
+                                "box": [x1, y1, x2, y2]
+                            })
+                    else:
+                        # Fallback to untracked detections if tracks are still initializing
+                        for xy, conf, cid, cname in zip(raw_boxes, raw_confs, raw_cids, raw_names):
+                            x1, y1, x2, y2 = [int(v) for v in xy]
+                            det_list.append({
+                                "track_id": None,
+                                "class": cname,
+                                "confidence": round(float(conf), 2),
+                                "box": [x1, y1, x2, y2]
+                            })
+                else:
+                    # Update tracker with empty detections to maintain track state
+                    tracker.update_with_detections(sv.Detections.empty())
+
                 with yolo_lock:
                     yolo_last_results = det_list
                     yolo_last_latency = round((time.time() - t0) * 1000, 1)
