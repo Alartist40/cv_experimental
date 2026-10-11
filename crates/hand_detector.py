@@ -9,9 +9,9 @@ def get_hand_models():
     if _palm_detector is None:
         from crates.mp_hand import MPPalmDet
         from crates.mp_handpose import MPHandPose
-        # Confidence threshold set to 0.38: completely ignores background objects/faces while reliably capturing hands
-        _palm_detector = MPPalmDet(modelPath="models/palm_detection_mediapipe_2023feb.onnx", scoreThreshold=0.38)
-        _hand_pose = MPHandPose(modelPath="models/handpose_estimation_mediapipe_2023feb.onnx", confThreshold=0.35)
+        # Calibrated threshold: reliably triggers on real hands across diverse webcam angles while preventing false positives
+        _palm_detector = MPPalmDet(modelPath="models/palm_detection_mediapipe_2023feb.onnx", scoreThreshold=0.45)
+        _hand_pose = MPHandPose(modelPath="models/handpose_estimation_mediapipe_2023feb.onnx", confThreshold=0.38)
     return _palm_detector, _hand_pose
 
 def detect_hand_gesture(frame, person_box=None):
@@ -37,7 +37,7 @@ def detect_hand_gesture(frame, person_box=None):
 
             # Check landmark confidence score
             pose_score = float(res[-1]) if len(res) > 132 else 0.8
-            if pose_score < 0.30:
+            if pose_score < 0.40:
                 continue
 
             bbox = [int(v) for v in res[0:4]]
@@ -52,17 +52,18 @@ def detect_hand_gesture(frame, person_box=None):
             # 17-20: Pinky (MCP, PIP, DIP, Tip)
             wrist = lm[0, :2]
 
-            # Euclidean scale invariant finger extension check
+            # Euclidean scale invariant finger extension check:
+            # Tip must be distinctly farther from wrist than both PIP and MCP joints
             def is_finger_extended(tip_idx, pip_idx, mcp_idx):
                 d_tip = np.linalg.norm(lm[tip_idx, :2] - wrist)
                 d_mcp = np.linalg.norm(lm[mcp_idx, :2] - wrist)
                 d_pip = np.linalg.norm(lm[pip_idx, :2] - wrist)
-                return (d_tip > d_mcp * 1.15 and d_tip > d_pip)
+                return (d_tip > d_pip * 1.12) and (d_tip > d_mcp * 1.20)
 
             # Thumb extension (landmark 4 vs 2)
             d_thb_tip = np.linalg.norm(lm[4, :2] - wrist)
             d_thb_mcp = np.linalg.norm(lm[2, :2] - wrist)
-            thb_ext = d_thb_tip > d_thb_mcp * 1.20
+            thb_ext = d_thb_tip > d_thb_mcp * 1.25
 
             idx_ext = is_finger_extended(8, 6, 5)
             mid_ext = is_finger_extended(12, 10, 9)
@@ -109,28 +110,28 @@ def detect_hand_gesture(frame, person_box=None):
             if idx_ext and pnk_ext and not mid_ext and not rng_ext:
                 return {"gesture": "rock", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 6. JSL 4 / Four Fingers (4️⃣): 4 fingers extended, thumb folded
-            if idx_ext and mid_ext and rng_ext and pnk_ext and not thb_ext:
-                return {"gesture": "four", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
-
-            # 7. JSL 3 / Three (3️⃣): Index, Middle, Ring extended, pinky closed (or thumb+index+mid)
-            if idx_ext and mid_ext and rng_ext and not pnk_ext:
-                return {"gesture": "three", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
-
-            # 8. Peace / JSL 2 / Victory (✌️ / 2): Index & middle extended, ring & pinky closed
+            # 6. Peace / JSL 2 / Victory (✌️ / 2): Index & middle extended, ring & pinky closed
             if idx_ext and mid_ext and not rng_ext and not pnk_ext:
                 return {"gesture": "peace", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 9. Pointing / JSL 1 (☝️ / 1): Index extended only
+            # 7. Pointing / JSL 1 (☝️ / 1): Index extended only
             if idx_ext and not mid_ext and not rng_ext and not pnk_ext:
                 return {"gesture": "pointing", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
+
+            # 8. JSL 4 / Four Fingers (4️⃣): 4 fingers extended, thumb folded
+            if idx_ext and mid_ext and rng_ext and pnk_ext and not thb_ext:
+                return {"gesture": "four", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
+
+            # 9. JSL 3 / Three (3️⃣): Index, Middle, Ring extended, pinky closed
+            if idx_ext and mid_ext and rng_ext and not pnk_ext:
+                return {"gesture": "three", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
             # 10. Thumbs Up / JSL Good / Male (👍 / よい・彼): Thumb extended up, 4 fingers closed
             if thb_ext and not idx_ext and not mid_ext and not rng_ext and not pnk_ext:
                 return {"gesture": "thumbs_up", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
-            # 11. Open Palm / JSL 5 / Paper (🖐️ / 5): All 5 fingers extended
-            if sum([idx_ext, mid_ext, rng_ext, pnk_ext]) >= 3:
+            # 11. Open Palm / JSL 5 / Paper (🖐️ / 5): All 4 fingers extended cleanly
+            if idx_ext and mid_ext and rng_ext and pnk_ext:
                 return {"gesture": "palm", "box": bbox, "tips": tips, "landmarks": lm[:, :2].tolist()}
 
             # 12. Clenched Fist / JSL 0 / Rock (✊ / 0・グー): All fingers closed

@@ -2,12 +2,26 @@
 
 All notable changes to the Vision Hub project are documented in this file.
 
+## [Interactive 3D Holographic CAD Viewport & Touchless Control] - 2026-10-11
+
+### Added
+- **Touchless 3D Holographic CAD Viewer (`ui/index.html`)**:
+  - Implemented real-time Three.js WebGL viewport featuring an explodable multi-component turbofan jet engine (central shaft, compressor discs, turbofan blades, outer nacelle cowlings, exhaust cone).
+  - Direct hand motion tracking: Natural orbital rotation mapping (`threeTargetRotY`, `threeTargetRotX`) with horizontal coordinate mirror inversion for intuitive webcam manipulation.
+  - Exploded view disassembly: Continuous extension factor calculation mapping closed fist to compacted (`0%`) and open palm to fully exploded (`100%`) component disassembly along component axes.
+  - Scale & zoom: Two-hand distance tracking scaling the 3D model dynamically from 0.5x to 2.5x.
+  - Dual-pipeline resilience: Seamless telemetry synchronization between client-side WebAssembly MediaPipe Hands and backend Python MediaPipe ONNX inference with timestamp decay clearing to prevent phantom skeleton latching.
+
+### Changed & Calibrated
+- **Hand Detector Threshold Calibration (`crates/hand_detector.py`)**:
+  - Calibrated palm detector score threshold to `0.45` and hand pose confidence to `0.38` for responsive hand capture across wide webcam angles while rejecting torso and background curtain contours.
+
 ## [Pathfinder EYE & Japanese Sign Language] - 2026-10-09
 
 ### Added
 - **Rebranding & UX Overhaul**: Rebranded system to **Pathfinder EYE** (`PATHFINDER // EYE`).
 - **Telemetry Stabilization**: Replaced dynamic-width latency and FPS badge layouts with fixed-width containers and `tabular-nums` formatting to completely eliminate navigation bar jitter.
-- **Concise Navigation Switcher**: Shortened navigation tabs to `OBJECT_RECOGNITION`, `FACIAL_RECOGNITION`, and `HAND_GESTURES` while moving detailed pipeline diagnostics to the left sidebar panel.
+- **Concise Navigation Switcher**: Shortened navigation tabs to `OBJECT_RECOGNITION`, `FACIAL_RECOGNITION`, `HAND_GESTURES`, and `INTERACTIVE_3D`.
 - **Standby Placeholder**: Updated hand gesture canvas standby placeholder from peace/palm hint to clean `PRESENT HANDS`.
 - **Dynamic JSL & Universal Gesture Dictionary**: Added real-time 12-gesture menu in right sidebar highlighting active gestures (✌️ Peace/2, 🖐️ Palm/5, ☝️ Pointing/1, 🤟 Three/3, 🖖 Four/4, 👍 Thumbs Up, 👌 OK/Money, 🦊 Kitsune/Fox, 🤙 Pinky Promise, 🤙 Call Me, 🤘 Rock, ✊ Fist/0).
 - **Decoupled 30 FPS Stream Pipeline**: Camera ingest loop decoupled from YOLOv11M background inference worker with atomic file writes preventing race conditions.

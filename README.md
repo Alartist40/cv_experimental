@@ -26,13 +26,14 @@ graph TD
 - **`crates/detect/`**: Rust temporal debounce filtering crate guaranteeing object detection persistence and zone tracking across continuous frames.
 - **`crates/vision/`**: Streaming MJPEG extraction engine parsing SOI (`0xFF 0xD8`) and EOI (`0xFF 0xD9`) frame boundaries.
 - **`crates/store/`**: Structured JSON Lines append-only persistence layer supporting date partitioning and daily detection aggregation.
-- **`ui/`**: Hardware-accelerated cybernetic web interface featuring Mazzaroth design themes (Midnight Gold, Synth Magenta, Obsidian Mono, Technical Paper), 3D face mesh wiring that follows head movement, live JSL gesture menu, and SLM console.
+- **`ui/`**: Hardware-accelerated cybernetic web interface featuring Mazzaroth design themes (Midnight Gold, Synth Magenta, Obsidian Mono, Technical Paper), 3D face mesh wiring that follows head movement, live JSL gesture menu, interactive touchless 3D CAD viewer, and SLM console.
 
 ---
 
 ## 2. Key Features
 
-- **Pathfinder EYE Rebranding & Unified HUD**: Modern industrial HUD with fixed-width telemetry counters, jitter-free latency badges, and clean mode navigation (`OBJECT_RECOGNITION`, `FACIAL_RECOGNITION`, `HAND_GESTURES`).
+- **Pathfinder EYE Rebranding & Unified HUD**: Modern industrial HUD with fixed-width telemetry counters, jitter-free latency badges, and clean mode navigation (`OBJECT_RECOGNITION`, `FACIAL_RECOGNITION`, `HAND_GESTURES`, `INTERACTIVE_3D`).
+- **Interactive 3D Holographic CAD Viewport**: Real-time WebGL Three.js multi-component exploded jet engine CAD model directly manipulated via touchless hand gestures (direct orbit rotation, fist-to-palm component disassembly explosion from 0% to 100%, and two-hand distance scaling from 0.5x to 2.5x).
 - **Mazzaroth Color Themes**: Instant palette switching across canvas wireframes, anchor crosshairs, typography, and controls with full persistence.
 - **3D Biometric Facial Mesh Reticle**: 468-point 3D facial wireframe mesh tracking head movement and angular pitch/yaw in real time.
 - **Japanese Sign Language (JSL) & Hand CV Dictionary**: Real-time 21-joint skeletal rendering with an interactive sidebar dictionary indicating active and ready gestures.

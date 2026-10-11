@@ -532,6 +532,7 @@
       faceMesh: null,
       detectedHandLandmarks: null,
       detectedFaceLandmarks: null,
+      lastHandDetectedTime: 0,
       lastGestureTriggerTime: 0
     };
 
@@ -614,6 +615,9 @@
 
     // 3. CONTINUOUS LIVE CAMERA FEED INGEST
     liveImg.crossOrigin = "anonymous";
+    let isProcessingHands = false;
+    let isProcessingFace = false;
+
     function loopLiveFeed() {
       const nextImg = new Image();
       nextImg.crossOrigin = "anonymous";
@@ -622,10 +626,16 @@
         liveImg.src = nextImg.src;
 
         // Process frames through active client-side MediaPipe detector
-        if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D') && AppState.hands) {
-          AppState.hands.send({ image: liveImg }).catch(() => {});
-        } else if (AppState.currentMode === 'FACE_BIOMETRIC' && AppState.faceMesh) {
-          AppState.faceMesh.send({ image: liveImg }).catch(() => {});
+        if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D') && AppState.hands && !isProcessingHands) {
+          isProcessingHands = true;
+          AppState.hands.send({ image: liveImg })
+            .catch((err) => { console.warn("MediaPipe Hands inference error:", err); })
+            .finally(() => { isProcessingHands = false; });
+        } else if (AppState.currentMode === 'FACE_BIOMETRIC' && AppState.faceMesh && !isProcessingFace) {
+          isProcessingFace = true;
+          AppState.faceMesh.send({ image: liveImg })
+            .catch((err) => { console.warn("MediaPipe FaceMesh inference error:", err); })
+            .finally(() => { isProcessingFace = false; });
         }
 
         requestAnimationFrame(() => setTimeout(loopLiveFeed, 33));
@@ -645,11 +655,17 @@
           AppState.hands.setOptions({
             maxNumHands: 2,
             modelComplexity: 1,
-            minDetectionConfidence: 0.45,
-            minTrackingConfidence: 0.45
+            minDetectionConfidence: 0.40,
+            minTrackingConfidence: 0.40
           });
           AppState.hands.onResults(onHandResults);
-        } catch (e) {}
+          console.log("MediaPipe Hands pipeline successfully initialized");
+        } catch (e) {
+          console.error("Failed to initialize MediaPipe Hands:", e);
+        }
+      } else {
+        console.warn("Hands CDN script not loaded yet, retrying in 1s...");
+        setTimeout(initMediaPipe, 1000);
       }
 
       // Face Mesh (468 landmarks for lively 3D face wiring that follows your head!)
@@ -661,11 +677,14 @@
           AppState.faceMesh.setOptions({
             maxNumFaces: 1,
             refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
+            minDetectionConfidence: 0.45,
+            minTrackingConfidence: 0.45
           });
           AppState.faceMesh.onResults(onFaceMeshResults);
-        } catch (e) {}
+          console.log("MediaPipe FaceMesh pipeline successfully initialized");
+        } catch (e) {
+          console.error("Failed to initialize MediaPipe FaceMesh:", e);
+        }
       }
     }
 
@@ -677,20 +696,31 @@
         document.getElementById('peaceState').className = 'font-bold text-slate-500';
         document.getElementById('palmState').innerText = 'READY';
         document.getElementById('palmState').className = 'font-bold text-slate-500';
+        if (AppState.currentMode === 'INTERACTIVE_3D') {
+          processInteractive3DLandmarks(null);
+        }
         return;
       }
 
       const lm = results.multiHandLandmarks[0];
       AppState.detectedHandLandmarks = lm;
+      AppState.lastHandDetectedTime = Date.now();
 
       const wrist = lm[0];
+      // Accurate Euclidean distance-ratio extension check:
+      // A finger is extended when tip is significantly farther from wrist than PIP & MCP
       function isExtended(tipIdx, pipIdx, mcpIdx) {
         const dTip = Math.hypot(lm[tipIdx].x - wrist.x, lm[tipIdx].y - wrist.y);
+        const dPip = Math.hypot(lm[pipIdx].x - wrist.x, lm[pipIdx].y - wrist.y);
         const dMcp = Math.hypot(lm[mcpIdx].x - wrist.x, lm[mcpIdx].y - wrist.y);
-        return (dTip > dMcp * 1.15) || (lm[tipIdx].y < lm[pipIdx].y);
+        return (dTip > dPip * 1.12) && (dTip > dMcp * 1.22);
       }
 
-      const thumbUp = Math.hypot(lm[4].x - wrist.x, lm[4].y - wrist.y) > Math.hypot(lm[2].x - wrist.x, lm[2].y - wrist.y) * 1.25;
+      // Check thumb extension away from MCP (Landmark 4 vs Landmark 2)
+      const dThbTip = Math.hypot(lm[4].x - wrist.x, lm[4].y - wrist.y);
+      const dThbMcp = Math.hypot(lm[2].x - wrist.x, lm[2].y - wrist.y);
+      const thumbUp = dThbTip > (dThbMcp * 1.25);
+
       const indexUp = isExtended(8, 6, 5);
       const middleUp = isExtended(12, 10, 9);
       const ringUp = isExtended(16, 14, 13);
@@ -717,17 +747,20 @@
         detected = 'call';
       } else if (indexUp && pinkyUp && !middleUp && !ringUp) {
         detected = 'rock';
+      } else if (indexUp && middleUp && !ringUp && !pinkyUp) {
+        // Peace / JSL 2: Index and middle extended, ring and pinky folded
+        detected = 'peace';
+      } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+        // Pointing / JSL 1: Index extended only
+        detected = 'pointing';
       } else if (indexUp && middleUp && ringUp && pinkyUp && !thumbUp) {
         detected = 'four';
       } else if (indexUp && middleUp && ringUp && !pinkyUp) {
         detected = 'three';
-      } else if (indexUp && middleUp && !ringUp && !pinkyUp) {
-        detected = 'peace';
-      } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
-        detected = 'pointing';
       } else if (thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp) {
         detected = 'thumbs_up';
       } else if (indexUp && middleUp && ringUp && pinkyUp) {
+        // Open Palm / JSL 5: All 4 fingers extended
         detected = 'palm';
       } else if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbUp) {
         detected = 'fist';
@@ -867,10 +900,15 @@
       });
     }
 
+    let threeIsRotating = false;
+    let threeLastTrackPos = null;
+
     function processInteractive3DLandmarks(multiHands) {
       if (!multiHands || multiHands.length === 0) {
         threeIsPinching = false;
+        threeIsRotating = false;
         threeLastPinchPos = null;
+        threeLastTrackPos = null;
         return;
       }
 
@@ -884,20 +922,25 @@
       const pinchDist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
       const handScale = Math.max(0.01, Math.hypot(mcpMiddle.x - wrist.x, mcpMiddle.y - wrist.y));
       const normalizedPinch = pinchDist / handScale;
-      threeIsPinching = normalizedPinch < 0.32;
+      // Forgiving pinch threshold (< 0.52)
+      threeIsPinching = normalizedPinch < 0.52;
 
-      // 2. HAND TRANSLATION & ROTATION (Delta tracking of MCP #9 while pinching)
-      if (threeIsPinching) {
-        if (threeLastPinchPos) {
-          const dx = mcpMiddle.x - threeLastPinchPos.x;
-          const dy = mcpMiddle.y - threeLastPinchPos.y;
-          threeTargetRotY += dx * Math.PI * 4.0;
-          threeTargetRotX += dy * Math.PI * 4.0;
+      // 2. TOUCHLESS ROTATION (Direct natural orbit manipulation)
+      // Mirroring: in front-facing webcam mode, moving hand right moves trackAnchor.x right (+dx).
+      // We invert dx so moving hand to user's right rotates 3D model right naturally.
+      const trackAnchor = threeIsPinching ? { x: (thumbTip.x + indexTip.x) / 2, y: (thumbTip.y + indexTip.y) / 2 } : { x: mcpMiddle.x, y: mcpMiddle.y };
+      threeIsRotating = true;
+
+      if (threeLastTrackPos) {
+        const dx = trackAnchor.x - threeLastTrackPos.x;
+        const dy = trackAnchor.y - threeLastTrackPos.y;
+        // Check for sudden teleporting/jumps to prevent camera flinging
+        if (Math.abs(dx) < 0.35 && Math.abs(dy) < 0.35) {
+          threeTargetRotY += -dx * Math.PI * 4.0;
+          threeTargetRotX += dy * Math.PI * 3.5;
         }
-        threeLastPinchPos = { x: mcpMiddle.x, y: mcpMiddle.y };
-      } else {
-        threeLastPinchPos = null;
       }
+      threeLastTrackPos = { x: trackAnchor.x, y: trackAnchor.y };
 
       // 3. OPEN PALM VS FIST -> EXPLODED COMPONENT DISASSEMBLY
       // Measure average distance of all 5 fingertips to wrist Landmark 0
@@ -909,19 +952,46 @@
       avgTipDist /= tips.length;
       const normalizedExtension = avgTipDist / handScale;
 
-      // Closed fist (< 1.25) = compacted (0.0); Spread palm (> 1.65) = fully exploded (1.0)
-      const explodeFactor = Math.min(1.0, Math.max(0.0, (normalizedExtension - 1.25) / 0.55));
+      // Closed fist (< 1.10) = compacted (0.0); Spread palm (> 1.55) = fully exploded (1.0)
+      const explodeFactor = Math.min(1.0, Math.max(0.0, (normalizedExtension - 1.10) / 0.45));
       threeTargetExplode = explodeFactor;
 
       // 4. TWO-HAND DISTANCE -> ZOOM / SCALE
       if (multiHands.length >= 2) {
         const h2 = multiHands[1];
         const twoHandDist = Math.hypot(h1[0].x - h2[0].x, h1[0].y - h2[0].y);
-        // Map two-hand wrist distance to model scale (0.5x to 2.2x)
+        // Map two-hand wrist distance to model scale (0.5x to 2.5x)
         threeTargetScale = Math.min(2.5, Math.max(0.5, twoHandDist * 3.0));
       } else if (!threeIsPinching) {
-        // Single hand extension slightly influences baseline scale
-        threeTargetScale = Math.min(1.8, Math.max(0.7, 0.7 + explodeFactor * 0.6));
+        // Single hand extension smoothly scales model
+        threeTargetScale = Math.min(1.8, Math.max(0.7, 0.85 + explodeFactor * 0.4));
+      }
+    }
+
+    function processBackendGestureFor3D(bg) {
+      if (!bg || !bg.landmarks || bg.landmarks.length < 21) {
+        threeIsPinching = false;
+        threeIsRotating = false;
+        threeLastPinchPos = null;
+        threeLastTrackPos = null;
+        return;
+      }
+
+      // Convert backend 640x480 pixel coordinates into normalized [0..1] points
+      const normLm = bg.landmarks.map(pt => ({
+        x: pt[0] / 640.0,
+        y: pt[1] / 480.0
+      }));
+
+      // Apply backend landmarks
+      AppState.detectedHandLandmarks = normLm;
+      processInteractive3DLandmarks([normLm]);
+
+      // Direct gesture semantic override: if gesture is explicitly classified
+      if (bg.gesture === 'fist') {
+        threeTargetExplode = 0.0;
+      } else if (bg.gesture === 'palm') {
+        threeTargetExplode = 1.0;
       }
     }
 
@@ -1066,15 +1136,25 @@
           }
 
           // Backend Hand Gesture Telemetry Sync
+          const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
           if (data.gesture) {
             AppState.backendGesture = data.gesture;
             const gName = data.gesture.gesture;
-            if (!AppState.detectedHandLandmarks) {
+            if (!clientHandFresh) {
               updateGestureMenuUI(gName);
+              if (AppState.currentMode === 'INTERACTIVE_3D') {
+                processBackendGestureFor3D(data.gesture);
+              }
             }
-          } else if (!AppState.detectedHandLandmarks) {
+          } else {
             AppState.backendGesture = null;
-            updateGestureMenuUI(null);
+            if (!clientHandFresh) {
+              AppState.detectedHandLandmarks = null;
+              updateGestureMenuUI(null);
+              if (AppState.currentMode === 'INTERACTIVE_3D') {
+                processBackendGestureFor3D(null);
+              }
+            }
           }
 
           // Backend Real-time Face Tracking Sync
@@ -1669,8 +1749,8 @@
         threeEngineGroup.rotation.y = THREE.MathUtils.lerp(threeEngineGroup.rotation.y, threeTargetRotY, 0.12);
         threeEngineGroup.rotation.x = THREE.MathUtils.lerp(threeEngineGroup.rotation.x, threeTargetRotX, 0.12);
 
-        // Slow auto idle drift when not pinching
-        if (!threeIsPinching) {
+        // Slow auto idle drift only when no hand is detected in viewport
+        if (!AppState.detectedHandLandmarks && !threeIsRotating && !threeIsPinching) {
           threeTargetRotY += 0.003;
         }
 
@@ -1755,10 +1835,19 @@
 
       ctx.fillStyle = colors.secondary;
       ctx.font = '9px "Share Tech Mono", monospace';
-      const pinchStatus = threeIsPinching ? 'PINCH ACTIVE [ROTATING]' : 'STANDBY [OPEN]';
+      let manipStatus = 'STANDBY [AWAITING HAND]';
+      if (AppState.detectedHandLandmarks) {
+        if (threeIsPinching) {
+          manipStatus = 'PINCH [ROTATING / LOCKED]';
+        } else if (threeIsRotating) {
+          manipStatus = 'HAND TRACK [ROTATING]';
+        } else {
+          manipStatus = 'ACTIVE [TRACKING]';
+        }
+      }
       const explodePct = Math.round(threeTargetExplode * 100);
       const scaleVal = (threeTargetScale).toFixed(2);
-      ctx.fillText(`GESTURE: ${pinchStatus}`, hudX + 10, hudY + 32);
+      ctx.fillText(`GESTURE: ${manipStatus}`, hudX + 10, hudY + 32);
       ctx.fillText(`EXPLODED VIEW: ${explodePct}% // SCALE: ${scaleVal}x`, hudX + 10, hudY + 46);
 
       ctx.fillStyle = colors.text;

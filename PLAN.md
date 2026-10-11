@@ -12,3 +12,4 @@
 - [x] Stage 10: Cyber Hand Gesture Control Console (OWNS: crates/hand_detector.py, crates/hubd/src/main.rs, ui/index.html) [G10]
 - [x] Stage 11: Decoupled 30 FPS Ingest, Mazzaroth Multi-Theme Engine & 3D Facial Reticle [G11]
 - [x] Stage 12: Pathfinder EYE Rebranding, Tabular Metrics, & Japanese Sign Language (JSL) Dictionary [G12]
+- [x] Stage 13: Interactive 3D Holographic CAD Viewport & Touchless Control (OWNS: ui/index.html, crates/hand_detector.py, crates/detect_service.py) [G13]

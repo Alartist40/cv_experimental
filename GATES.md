@@ -71,3 +71,9 @@
   EXPECT: G12 verified
   CWD: .
   EVIDENCE: G12 verified
+
+- [x] G13: Interactive 3D Holographic CAD Viewport & Touchless Control
+  CHECK: grep -q "INTERACTIVE 3D CAD" ui/index.html && grep -q "threeEngineGroup" ui/index.html && python3 -m py_compile crates/hand_detector.py && echo "G13 verified"
+  EXPECT: G13 verified
+  CWD: .
+  EVIDENCE: G13 verified

@@ -218,23 +218,23 @@ while True:
                 detections = list(yolo_last_results)
                 last_latency = yolo_last_latency or 18.0
 
-        elif current_mode == "HAND_GESTURE":
-            # Mode 3: Hand Pose CV ONLY (YOLO is paused, saving RAM & compute)
+        elif current_mode in ("HAND_GESTURE", "INTERACTIVE_3D"):
+            # Hand Pose CV: runs 21-joint tracking (YOLO paused, low compute)
             t0 = time.time()
             try:
                 current_g = detect_hand_gesture(frame, None)
                 if current_g:
                     last_gesture = current_g
                     last_gesture_time = time.time()
+                    active_gesture_out = current_g
+                else:
+                    active_gesture_out = None
+                    last_gesture = None
             except Exception:
-                pass
-
-            last_latency = round((time.time() - t0) * 1000, 1)
-            if last_gesture and (time.time() - last_gesture_time < 1.5):
-                active_gesture_out = last_gesture
-            else:
                 active_gesture_out = None
                 last_gesture = None
+
+            last_latency = round((time.time() - t0) * 1000, 1)
 
         elif current_mode == "FACE_BIOMETRIC":
             # Mode 2: Biometric Face Tracking (Tracks face bounding box and facial points in real-time)
@@ -254,10 +254,6 @@ while True:
             except Exception:
                 pass
             last_latency = round((time.time() - t0) * 1000, 1)
-
-        elif current_mode == "INTERACTIVE_3D":
-            # Mode 4: Interactive 3D Hologram CAD Viewport (Client MediaPipe runs at 60 FPS, server idles at 0% CPU)
-            last_latency = 1.2
 
         telemetry = {
             "timestamp": datetime.now().strftime("%H:%M:%S"),
