@@ -18,6 +18,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  <!-- Three.js for Interactive 3D Holographic CAD Viewport -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
   <style>
     /* =========================================================================
@@ -146,19 +148,24 @@
 
     <!-- PRIMARY SYSTEM MODE SWITCHER -->
     <div class="flex items-center bg-black/60 border rounded-lg p-1 gap-1" style="border-color: var(--panel-border);">
-      <button id="modeBtnObject" onclick="switchSystemMode('OBJECT_DETECT')" class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all border shadow-sm" style="border-color: var(--accent-primary); color: var(--accent-primary); background-color: rgba(0,0,0,0.4);">
+      <button id="modeBtnObject" onclick="switchSystemMode('OBJECT_DETECT')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all border shadow-sm" style="border-color: var(--accent-primary); color: var(--accent-primary); background-color: rgba(0,0,0,0.4);">
         <i data-lucide="scan" class="w-3.5 h-3.5"></i>
         <span>OBJECT_RECOGNITION</span>
       </button>
 
-      <button id="modeBtnFace" onclick="switchSystemMode('FACE_BIOMETRIC')" class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
+      <button id="modeBtnFace" onclick="switchSystemMode('FACE_BIOMETRIC')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
         <i data-lucide="scan-face" class="w-3.5 h-3.5"></i>
         <span>FACIAL_RECOGNITION</span>
       </button>
 
-      <button id="modeBtnHand" onclick="switchSystemMode('HAND_GESTURE')" class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
+      <button id="modeBtnHand" onclick="switchSystemMode('HAND_GESTURE')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
         <i data-lucide="hand" class="w-3.5 h-3.5"></i>
         <span>HAND_GESTURES</span>
+      </button>
+
+      <button id="modeBtnInteractive" onclick="switchSystemMode('INTERACTIVE_3D')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="Gesture-Controlled 3D Web Viewer & Exploded CAD Matrix">
+        <i data-lucide="box" class="w-3.5 h-3.5"></i>
+        <span class="flex items-center gap-1">INTERACTIVE <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-mono">3D</span></span>
       </button>
     </div>
 
@@ -283,6 +290,7 @@
         <!-- Live Video Element for Camera feed & MediaPipe -->
         <img id="liveFeedImg" class="hidden" alt="Live Camera Feed">
         <canvas id="viewCanvas" class="w-full h-full object-contain block"></canvas>
+        <canvas id="threeCanvas" class="hidden absolute inset-0 w-full h-full object-contain"></canvas>
 
         <!-- Fixed Tactical Bezel Frame -->
         <div class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
@@ -559,6 +567,9 @@
       document.getElementById('activeThemeLabel').innerText = THEME_NAMES[theme] || theme.toUpperCase();
       document.getElementById('footerThemeName').innerText = THEME_NAMES[theme] || theme.toUpperCase();
       document.getElementById('themeMenu').classList.add('hidden');
+      if (typeof updateThreeThemeColors === 'function') {
+        updateThreeThemeColors();
+      }
     }
 
     function toggleThemeMenu() {
@@ -611,7 +622,7 @@
         liveImg.src = nextImg.src;
 
         // Process frames through active client-side MediaPipe detector
-        if (AppState.currentMode === 'HAND_GESTURE' && AppState.hands) {
+        if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D') && AppState.hands) {
           AppState.hands.send({ image: liveImg }).catch(() => {});
         } else if (AppState.currentMode === 'FACE_BIOMETRIC' && AppState.faceMesh) {
           AppState.faceMesh.send({ image: liveImg }).catch(() => {});
@@ -632,7 +643,7 @@
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
           });
           AppState.hands.setOptions({
-            maxNumHands: 1,
+            maxNumHands: 2,
             modelComplexity: 1,
             minDetectionConfidence: 0.45,
             minTrackingConfidence: 0.45
@@ -723,6 +734,195 @@
       }
 
       updateGestureMenuUI(detected);
+
+      // Feed detected landmarks to Interactive 3D Holographic CAD Viewport
+      if (AppState.currentMode === 'INTERACTIVE_3D') {
+        processInteractive3DLandmarks(results.multiHandLandmarks);
+      }
+    }
+
+    /*
+     * =========================================================================
+     * INTERACTIVE 3D HOLOGRAPHIC CAD VIEWER & GESTURE CONTROLLER (THREE.JS)
+     * =========================================================================
+     */
+    let threeScene, threeCamera, threeRenderer, threeEngineGroup;
+    let threeExplodedMeshes = [];
+    let threeTargetRotX = 0, threeTargetRotY = 0;
+    let threeTargetScale = 1.0;
+    let threeTargetExplode = 0.0;
+    let threeIsPinching = false;
+    let threeLastPinchPos = null;
+
+    function initInteractive3D() {
+      if (threeRenderer) return;
+      const tCanvas = document.getElementById('threeCanvas');
+      if (!tCanvas || typeof THREE === 'undefined') return;
+
+      threeScene = new THREE.Scene();
+      threeCamera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 100);
+      threeCamera.position.set(0, 0, 4.5);
+
+      threeRenderer = new THREE.WebGLRenderer({ canvas: tCanvas, alpha: true, antialias: true });
+      threeRenderer.setSize(tCanvas.clientWidth || 800, tCanvas.clientHeight || 450);
+      threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Lighting
+      const amb = new THREE.AmbientLight(0xffffff, 0.85);
+      threeScene.add(amb);
+      const dir = new THREE.DirectionalLight(0xffffff, 2.0);
+      dir.position.set(4, 5, 5);
+      threeScene.add(dir);
+
+      const rim = new THREE.DirectionalLight(0x38bdf8, 1.5);
+      rim.position.set(-4, -3, -2);
+      threeScene.add(rim);
+
+      // Build Multi-Component Exploded CAD Jet Engine Model
+      threeEngineGroup = new THREE.Group();
+      threeExplodedMeshes = [];
+
+      const colors = getThemeColors();
+      const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0xf59e0b;
+      const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
+      const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
+
+      // 1. Central Core Shaft
+      const shaftGeo = new THREE.CylinderGeometry(0.18, 0.18, 2.8, 32);
+      const shaftMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.85, roughness: 0.25, wireframe: false });
+      const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+      shaft.rotation.z = Math.PI / 2;
+      threeEngineGroup.add(shaft);
+      threeExplodedMeshes.push({ mesh: shaft, origX: 0, dirX: 0 });
+
+      // 2. High-Pressure Compressor Discs
+      for (let i = -2; i <= 2; i++) {
+        const discGeo = new THREE.CylinderGeometry(0.65 - Math.abs(i) * 0.08, 0.65 - Math.abs(i) * 0.08, 0.1, 32);
+        const discMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.7, roughness: 0.3, wireframe: true });
+        const disc = new THREE.Mesh(discGeo, discMat);
+        disc.rotation.z = Math.PI / 2;
+        disc.position.x = i * 0.22;
+        threeEngineGroup.add(disc);
+        threeExplodedMeshes.push({ mesh: disc, origX: disc.position.x, dirX: i * 0.35 });
+      }
+
+      // 3. Front Turbofan Blade Assembly
+      const fanGeo = new THREE.TorusGeometry(1.05, 0.08, 16, 64);
+      const fanMat = new THREE.MeshStandardMaterial({ color: altHex, wireframe: false, metalness: 0.9, roughness: 0.1 });
+      const fanRing = new THREE.Mesh(fanGeo, fanMat);
+      fanRing.rotation.y = Math.PI / 2;
+      fanRing.position.x = -1.1;
+      threeEngineGroup.add(fanRing);
+      threeExplodedMeshes.push({ mesh: fanRing, origX: -1.1, dirX: -0.9 });
+
+      // Turbofan Blades array
+      for (let b = 0; b < 16; b++) {
+        const bladeGeo = new THREE.BoxGeometry(0.04, 0.75, 0.12);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: secondaryHex, wireframe: true });
+        const blade = new THREE.Mesh(bladeGeo, bladeMat);
+        const angle = (b / 16) * Math.PI * 2;
+        blade.position.set(-1.1, Math.cos(angle) * 0.5, Math.sin(angle) * 0.5);
+        blade.rotation.x = angle;
+        blade.rotation.z = 0.3;
+        threeEngineGroup.add(blade);
+        threeExplodedMeshes.push({ mesh: blade, origX: -1.1, dirX: -0.9 });
+      }
+
+      // 4. Outer Nacelle Cowling (Explodable outer rings)
+      const cowlGeo = new THREE.CylinderGeometry(1.2, 1.25, 1.2, 32, 1, true);
+      const cowlMat = new THREE.MeshStandardMaterial({ color: primaryHex, wireframe: true, transparent: true, opacity: 0.65 });
+      const cowl = new THREE.Mesh(cowlGeo, cowlMat);
+      cowl.rotation.z = Math.PI / 2;
+      cowl.position.x = 0.2;
+      threeEngineGroup.add(cowl);
+      threeExplodedMeshes.push({ mesh: cowl, origX: 0.2, dirX: 0.8 });
+
+      // 5. Exhaust Nozzle Cone
+      const coneGeo = new THREE.ConeGeometry(0.45, 0.9, 32, 1, true);
+      const coneMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.95, roughness: 0.15, wireframe: false });
+      const cone = new THREE.Mesh(coneGeo, coneMat);
+      cone.rotation.z = -Math.PI / 2;
+      cone.position.x = 1.35;
+      threeEngineGroup.add(cone);
+      threeExplodedMeshes.push({ mesh: cone, origX: 1.35, dirX: 1.2 });
+
+      threeScene.add(threeEngineGroup);
+    }
+
+    function updateThreeThemeColors() {
+      if (!threeEngineGroup) return;
+      const colors = getThemeColors();
+      const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0xf59e0b;
+      const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
+      const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
+
+      threeEngineGroup.traverse((child) => {
+        if (child.isMesh && child.material) {
+          if (child.material.wireframe) {
+            child.material.color.setHex(primaryHex);
+          } else {
+            child.material.color.setHex(secondaryHex);
+          }
+        }
+      });
+    }
+
+    function processInteractive3DLandmarks(multiHands) {
+      if (!multiHands || multiHands.length === 0) {
+        threeIsPinching = false;
+        threeLastPinchPos = null;
+        return;
+      }
+
+      const h1 = multiHands[0];
+      const wrist = h1[0];
+      const thumbTip = h1[4];
+      const indexTip = h1[8];
+      const mcpMiddle = h1[9];
+
+      // 1. PINCH DETECTION (Thumb Tip #4 to Index Tip #8)
+      const pinchDist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+      const handScale = Math.max(0.01, Math.hypot(mcpMiddle.x - wrist.x, mcpMiddle.y - wrist.y));
+      const normalizedPinch = pinchDist / handScale;
+      threeIsPinching = normalizedPinch < 0.32;
+
+      // 2. HAND TRANSLATION & ROTATION (Delta tracking of MCP #9 while pinching)
+      if (threeIsPinching) {
+        if (threeLastPinchPos) {
+          const dx = mcpMiddle.x - threeLastPinchPos.x;
+          const dy = mcpMiddle.y - threeLastPinchPos.y;
+          threeTargetRotY += dx * Math.PI * 4.0;
+          threeTargetRotX += dy * Math.PI * 4.0;
+        }
+        threeLastPinchPos = { x: mcpMiddle.x, y: mcpMiddle.y };
+      } else {
+        threeLastPinchPos = null;
+      }
+
+      // 3. OPEN PALM VS FIST -> EXPLODED COMPONENT DISASSEMBLY
+      // Measure average distance of all 5 fingertips to wrist Landmark 0
+      const tips = [4, 8, 12, 16, 20];
+      let avgTipDist = 0;
+      tips.forEach(tIdx => {
+        avgTipDist += Math.hypot(h1[tIdx].x - wrist.x, h1[tIdx].y - wrist.y);
+      });
+      avgTipDist /= tips.length;
+      const normalizedExtension = avgTipDist / handScale;
+
+      // Closed fist (< 1.25) = compacted (0.0); Spread palm (> 1.65) = fully exploded (1.0)
+      const explodeFactor = Math.min(1.0, Math.max(0.0, (normalizedExtension - 1.25) / 0.55));
+      threeTargetExplode = explodeFactor;
+
+      // 4. TWO-HAND DISTANCE -> ZOOM / SCALE
+      if (multiHands.length >= 2) {
+        const h2 = multiHands[1];
+        const twoHandDist = Math.hypot(h1[0].x - h2[0].x, h1[0].y - h2[0].y);
+        // Map two-hand wrist distance to model scale (0.5x to 2.2x)
+        threeTargetScale = Math.min(2.5, Math.max(0.5, twoHandDist * 3.0));
+      } else if (!threeIsPinching) {
+        // Single hand extension slightly influences baseline scale
+        threeTargetScale = Math.min(1.8, Math.max(0.7, 0.7 + explodeFactor * 0.6));
+      }
     }
 
     const ALL_GESTURE_KEYS = ['peace', 'palm', 'pointing', 'three', 'four', 'thumbs_up', 'ok', 'kitsune', 'pinky_promise', 'call', 'rock', 'fist'];
@@ -796,11 +996,12 @@
         });
       } catch (e) {}
 
-      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'HAND_GESTURE'];
-      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnHand'];
+      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'HAND_GESTURE', 'INTERACTIVE_3D'];
+      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnHand', 'modeBtnInteractive'];
 
       modes.forEach((m, idx) => {
         const btn = document.getElementById(btnIds[idx]);
+        if (!btn) return;
         if (m === newMode) {
           btn.style.borderColor = 'var(--accent-primary)';
           btn.style.color = 'var(--accent-primary)';
@@ -812,24 +1013,38 @@
         }
       });
 
+      const threeC = document.getElementById('threeCanvas');
+
       if (newMode === 'OBJECT_DETECT') {
+        if (threeC) threeC.classList.add('hidden');
         document.getElementById('activeModeBadge').innerText = 'OBJECT RECOGNITION';
         document.getElementById('trackerDetailText').innerText = 'NESTED SUB-FRAMES • ANCHOR MATRIX • OPT-X';
         document.getElementById('modeCardTitle').innerText = 'OBJECT RECOGNITION MATRIX';
         document.getElementById('modeCardDesc').innerText = 'Aesthetic multi-nested boxes with outer alignment ticks, floating + anchor glyphs, and optical guides matching Image 2.';
         document.getElementById('modePipeline').innerText = 'YOLOv11M ONNX';
       } else if (newMode === 'FACE_BIOMETRIC') {
+        if (threeC) threeC.classList.add('hidden');
         document.getElementById('activeModeBadge').innerText = 'FACIAL RECOGNITION';
         document.getElementById('trackerDetailText').innerText = 'REAL-TIME 3D FACIAL POLAR WIRING';
         document.getElementById('modeCardTitle').innerText = '3D BIOMETRIC MESH RETICLE';
         document.getElementById('modeCardDesc').innerText = 'Lively 3D facial wireframe matrix tracking your head in real-time as you move, with biometric lock telemetry.';
         document.getElementById('modePipeline').innerText = 'MEDIAPIPE 3D MESH';
       } else if (newMode === 'HAND_GESTURE') {
+        if (threeC) threeC.classList.add('hidden');
         document.getElementById('activeModeBadge').innerText = 'HAND GESTURES';
         document.getElementById('trackerDetailText').innerText = 'MEDIAPIPE 21-JOINT 60FPS TRACKER';
         document.getElementById('modeCardTitle').innerText = 'JSL & HAND GESTURE CV';
         document.getElementById('modeCardDesc').innerText = 'Client-side 21-joint skeletal wireframe and JSL gestures running at 60 FPS in your active theme.';
         document.getElementById('modePipeline').innerText = 'MEDIAPIPE WASM';
+      } else if (newMode === 'INTERACTIVE_3D') {
+        if (threeC) threeC.classList.remove('hidden');
+        initInteractive3D();
+        updateThreeThemeColors();
+        document.getElementById('activeModeBadge').innerText = 'INTERACTIVE 3D CAD';
+        document.getElementById('trackerDetailText').innerText = 'PINCH: ROTATE • PALM: EXPLODE • TWO-HAND: ZOOM';
+        document.getElementById('modeCardTitle').innerText = 'GESTURE 3D HOLOGRAPHIC CAD';
+        document.getElementById('modeCardDesc').innerText = 'Direct manipulation of exploded turbofan jet engine: Pinch to rotate, Fist-to-Palm to explode parts, Two hands to zoom.';
+        document.getElementById('modePipeline').innerText = 'THREE.JS + MEDIAPIPE';
       }
 
       lucide.createIcons();
@@ -1013,6 +1228,16 @@
       const rect = canvas.parentElement.getBoundingClientRect();
       canvas.width = rect.width;
       canvas.height = rect.height;
+      if (threeRenderer && threeCamera) {
+        const tCanvas = document.getElementById('threeCanvas');
+        if (tCanvas) {
+          tCanvas.width = rect.width;
+          tCanvas.height = rect.height;
+          threeCamera.aspect = rect.width / rect.height;
+          threeCamera.updateProjectionMatrix();
+          threeRenderer.setSize(rect.width, rect.height);
+        }
+      }
     }
     window.addEventListener('resize', resizeCanvas);
 
@@ -1430,6 +1655,118 @@
       ctx.restore();
     }
 
+    /*
+     * =================================================================================
+     * RENDER PASS 4: INTERACTIVE 3D CAD GESTURE HUD & HOLOGRAM OVERLAY
+     * =================================================================================
+     */
+    function renderInteractive3DMode(ctx) {
+      const colors = getThemeColors();
+
+      // 1. Advance Three.js Physics & Lerp Transforms
+      if (threeRenderer && threeScene && threeCamera && threeEngineGroup) {
+        // Smooth lerping on rotation
+        threeEngineGroup.rotation.y = THREE.MathUtils.lerp(threeEngineGroup.rotation.y, threeTargetRotY, 0.12);
+        threeEngineGroup.rotation.x = THREE.MathUtils.lerp(threeEngineGroup.rotation.x, threeTargetRotX, 0.12);
+
+        // Slow auto idle drift when not pinching
+        if (!threeIsPinching) {
+          threeTargetRotY += 0.003;
+        }
+
+        // Smooth lerping on scale
+        const curScale = threeEngineGroup.scale.x;
+        const newScale = THREE.MathUtils.lerp(curScale, threeTargetScale, 0.12);
+        threeEngineGroup.scale.set(newScale, newScale, newScale);
+
+        // Smooth exploded view displacement along component axes
+        threeExplodedMeshes.forEach(item => {
+          const targetX = item.origX + item.dirX * threeTargetExplode * 1.4;
+          item.mesh.position.x = THREE.MathUtils.lerp(item.mesh.position.x, targetX, 0.15);
+        });
+
+        threeRenderer.render(threeScene, threeCamera);
+      }
+
+      // 2. Render lightweight 2D Hand Landmark Skeleton Over the Viewport
+      if (AppState.detectedHandLandmarks) {
+        ctx.save();
+        const lm = AppState.detectedHandLandmarks;
+        const connections = [
+          [0,1],[1,2],[2,3],[3,4],
+          [0,5],[5,6],[6,7],[7,8],
+          [5,9],[9,10],[10,11],[11,12],
+          [9,13],[13,14],[14,15],[15,16],
+          [13,17],[17,18],[18,19],[19,20],[0,17]
+        ];
+
+        // Skeletal struts
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 1.8;
+        connections.forEach(([i, j]) => {
+          ctx.beginPath();
+          ctx.moveTo(lm[i].x * canvas.width, lm[i].y * canvas.height);
+          ctx.lineTo(lm[j].x * canvas.width, lm[j].y * canvas.height);
+          ctx.stroke();
+        });
+
+        // Key Nodes
+        lm.forEach((p, idx) => {
+          const px = p.x * canvas.width;
+          const py = p.y * canvas.height;
+          ctx.fillStyle = (idx === 4 || idx === 8) ? (threeIsPinching ? '#10b981' : colors.primary) : colors.alt;
+          ctx.beginPath();
+          ctx.arc(px, py, (idx === 4 || idx === 8) ? 5.5 : 3.0, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Highlight pinch line between thumb tip #4 and index tip #8
+        const p4x = lm[4].x * canvas.width;
+        const p4y = lm[4].y * canvas.height;
+        const p8x = lm[8].x * canvas.width;
+        const p8y = lm[8].y * canvas.height;
+
+        ctx.strokeStyle = threeIsPinching ? '#10b981' : colors.primary;
+        ctx.lineWidth = threeIsPinching ? 3.0 : 1.2;
+        ctx.beginPath();
+        ctx.moveTo(p4x, p4y);
+        ctx.lineTo(p8x, p8y);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      // 3. Holographic Tactical CAD Telemetry Callout Box
+      ctx.save();
+      const hudW = 260;
+      const hudH = 75;
+      const hudX = canvas.width - hudW - 16;
+      const hudY = 16;
+
+      ctx.fillStyle = 'rgba(7, 12, 20, 0.88)';
+      ctx.fillRect(hudX, hudY, hudW, hudH);
+      ctx.strokeStyle = colors.primary;
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(hudX, hudY, hudW, hudH);
+
+      ctx.fillStyle = colors.primary;
+      ctx.font = '10px "Share Tech Mono", monospace';
+      ctx.fillText('HOLOGRAPHIC CAD // JET ENGINE MATRIX', hudX + 10, hudY + 16);
+
+      ctx.fillStyle = colors.secondary;
+      ctx.font = '9px "Share Tech Mono", monospace';
+      const pinchStatus = threeIsPinching ? 'PINCH ACTIVE [ROTATING]' : 'STANDBY [OPEN]';
+      const explodePct = Math.round(threeTargetExplode * 100);
+      const scaleVal = (threeTargetScale).toFixed(2);
+      ctx.fillText(`GESTURE: ${pinchStatus}`, hudX + 10, hudY + 32);
+      ctx.fillText(`EXPLODED VIEW: ${explodePct}% // SCALE: ${scaleVal}x`, hudX + 10, hudY + 46);
+
+      ctx.fillStyle = colors.text;
+      ctx.fillText('TOUCHLESS 3D MODEL MANIPULATION', hudX + 10, hudY + 62);
+
+      ctx.restore();
+    }
+
     let lastTime = performance.now();
     let frameCounter = 0;
 
@@ -1460,6 +1797,8 @@
         render3DFaceWiring(ctx);
       } else if (AppState.currentMode === 'HAND_GESTURE') {
         renderHandGestureMode(ctx);
+      } else if (AppState.currentMode === 'INTERACTIVE_3D') {
+        renderInteractive3DMode(ctx);
       }
 
       requestAnimationFrame(renderEngine);

@@ -6,6 +6,7 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "2"
 os.environ["NUMEXPR_NUM_THREADS"] = "2"
 
 import cv2
+cv2.utils.logging.setLogLevel(cv2.utils.logging.LOG_LEVEL_ERROR)
 import numpy as np
 import json
 import time
@@ -47,12 +48,13 @@ yolo_last_latency = 0.0
 yolo_running = True
 
 def yolo_worker():
-    global yolo_last_results, yolo_last_latency
+    global yolo_last_results, yolo_last_latency, yolo_frame_to_process
     while yolo_running:
         frame_copy = None
         with yolo_lock:
             if yolo_frame_to_process is not None:
                 frame_copy = yolo_frame_to_process.copy()
+                yolo_frame_to_process = None  # Reset so we don't re-infer identical frames
         if frame_copy is not None:
             t0 = time.time()
             try:
@@ -112,9 +114,9 @@ def yolo_worker():
                     yolo_last_latency = round((time.time() - t0) * 1000, 1)
             except Exception:
                 pass
-            time.sleep(0.01)
+            time.sleep(0.06)  # Paced cooling delay prevents 100% continuous CPU burn
         else:
-            time.sleep(0.03)
+            time.sleep(0.05)
 
 yolo_thread = threading.Thread(target=yolo_worker, daemon=True)
 yolo_thread.start()
