@@ -20,6 +20,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <!-- Three.js for Interactive 3D Holographic CAD Viewport -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/STLLoader.js"></script>
 
   <style>
     /* =========================================================================
@@ -307,6 +309,12 @@
               <div id="activeModeBadge" class="px-2.5 py-0.5 border rounded text-xs font-bold uppercase tracking-wider font-industrial" style="background-color: rgba(0,0,0,0.8); border-color: var(--accent-primary); color: var(--accent-primary);">
                 IMAGE 2 MATRIX
               </div>
+              <!-- CAD Upload Button (Direct File Ingest) -->
+              <label id="cadUploadBtn" class="hidden pointer-events-auto cursor-pointer px-2.5 py-0.5 border rounded text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 transition" style="background-color: rgba(56, 189, 248, 0.15); border-color: var(--accent-secondary); color: var(--accent-secondary);">
+                <i data-lucide="upload" class="w-3 h-3"></i>
+                <span>LOAD CAD (.GLB/.STL)</span>
+                <input type="file" id="cadFileInput" accept=".glb,.gltf,.stl" class="hidden" onchange="handleCadFileUpload(event)">
+              </label>
             </div>
 
             <div class="flex items-center gap-1.5">
@@ -531,9 +539,12 @@
       hands: null,
       faceMesh: null,
       detectedHandLandmarks: null,
+      detectedHands: [],
       detectedFaceLandmarks: null,
       lastHandDetectedTime: 0,
-      lastGestureTriggerTime: 0
+      lastGestureTriggerTime: 0,
+      customModelLoaded: false,
+      customModelName: null
     };
 
     const canvas = document.getElementById('viewCanvas');
@@ -688,27 +699,9 @@
       }
     }
 
-    function onHandResults(results) {
-      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-        AppState.detectedHandLandmarks = null;
-        document.getElementById('detectedGestureText').innerText = 'AWAITING HAND';
-        document.getElementById('peaceState').innerText = 'READY';
-        document.getElementById('peaceState').className = 'font-bold text-slate-500';
-        document.getElementById('palmState').innerText = 'READY';
-        document.getElementById('palmState').className = 'font-bold text-slate-500';
-        if (AppState.currentMode === 'INTERACTIVE_3D') {
-          processInteractive3DLandmarks(null);
-        }
-        return;
-      }
-
-      const lm = results.multiHandLandmarks[0];
-      AppState.detectedHandLandmarks = lm;
-      AppState.lastHandDetectedTime = Date.now();
-
+    function classifySingleHandLandmarks(lm) {
+      if (!lm || lm.length < 21) return null;
       const wrist = lm[0];
-      // Accurate Euclidean distance-ratio extension check:
-      // A finger is extended when tip is significantly farther from wrist than PIP & MCP
       function isExtended(tipIdx, pipIdx, mcpIdx) {
         const dTip = Math.hypot(lm[tipIdx].x - wrist.x, lm[tipIdx].y - wrist.y);
         const dPip = Math.hypot(lm[pipIdx].x - wrist.x, lm[pipIdx].y - wrist.y);
@@ -716,7 +709,6 @@
         return (dTip > dPip * 1.12) && (dTip > dMcp * 1.22);
       }
 
-      // Check thumb extension away from MCP (Landmark 4 vs Landmark 2)
       const dThbTip = Math.hypot(lm[4].x - wrist.x, lm[4].y - wrist.y);
       const dThbMcp = Math.hypot(lm[2].x - wrist.x, lm[2].y - wrist.y);
       const thumbUp = dThbTip > (dThbMcp * 1.25);
@@ -726,12 +718,10 @@
       const ringUp = isExtended(16, 14, 13);
       const pinkyUp = isExtended(20, 18, 17);
 
-      // Distance between thumb tip and index tip for OK / pinch
       const dThbIdx = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
       const handScale = Math.max(0.01, Math.hypot(lm[9].x - wrist.x, lm[9].y - wrist.y));
       const isOkCircle = (dThbIdx / handScale) < 0.28;
 
-      // Kitsune test
       const dMidThb = Math.hypot(lm[4].x - lm[12].x, lm[4].y - lm[12].y);
       const dRngThb = Math.hypot(lm[4].x - lm[16].x, lm[4].y - lm[16].y);
       const isSnoutClosed = (dMidThb / handScale < 0.38) && (dRngThb / handScale < 0.38);
@@ -748,10 +738,8 @@
       } else if (indexUp && pinkyUp && !middleUp && !ringUp) {
         detected = 'rock';
       } else if (indexUp && middleUp && !ringUp && !pinkyUp) {
-        // Peace / JSL 2: Index and middle extended, ring and pinky folded
         detected = 'peace';
       } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
-        // Pointing / JSL 1: Index extended only
         detected = 'pointing';
       } else if (indexUp && middleUp && ringUp && pinkyUp && !thumbUp) {
         detected = 'four';
@@ -760,17 +748,57 @@
       } else if (thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp) {
         detected = 'thumbs_up';
       } else if (indexUp && middleUp && ringUp && pinkyUp) {
-        // Open Palm / JSL 5: All 4 fingers extended
         detected = 'palm';
       } else if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbUp) {
         detected = 'fist';
       }
+      return detected;
+    }
 
-      updateGestureMenuUI(detected);
+    function onHandResults(results) {
+      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        AppState.detectedHandLandmarks = null;
+        AppState.detectedHands = [];
+        document.getElementById('detectedGestureText').innerText = 'AWAITING HAND';
+        document.getElementById('peaceState').innerText = 'READY';
+        document.getElementById('peaceState').className = 'font-bold text-slate-500';
+        document.getElementById('palmState').innerText = 'READY';
+        document.getElementById('palmState').className = 'font-bold text-slate-500';
+        if (AppState.currentMode === 'INTERACTIVE_3D') {
+          processInteractive3DLandmarks(null);
+        }
+        return;
+      }
+
+      AppState.lastHandDetectedTime = Date.now();
+      const handsList = [];
+      const multiLms = results.multiHandLandmarks;
+      const multiHandedness = results.multiHandedness || [];
+
+      multiLms.forEach((lm, idx) => {
+        const hInfo = multiHandedness[idx];
+        const label = hInfo ? hInfo.label : (idx === 0 ? 'Right' : 'Left');
+        const gesture = classifySingleHandLandmarks(lm);
+        handsList.push({
+          landmarks: lm,
+          label: label,
+          gesture: gesture
+        });
+      });
+
+      AppState.detectedHands = handsList;
+      AppState.detectedHandLandmarks = handsList[0].landmarks;
+
+      // Update gesture dictionary UI with multi-hand readout
+      if (handsList.length === 1) {
+        updateGestureMenuUI(handsList[0].gesture);
+      } else if (handsList.length >= 2) {
+        updateDualGestureMenuUI(handsList[0], handsList[1]);
+      }
 
       // Feed detected landmarks to Interactive 3D Holographic CAD Viewport
       if (AppState.currentMode === 'INTERACTIVE_3D') {
-        processInteractive3DLandmarks(results.multiHandLandmarks);
+        processInteractive3DLandmarks(multiLms);
       }
     }
 
@@ -811,8 +839,16 @@
       rim.position.set(-4, -3, -2);
       threeScene.add(rim);
 
-      // Build Multi-Component Exploded CAD Jet Engine Model
-      threeEngineGroup = new THREE.Group();
+      buildDefaultJetEngine();
+      threeScene.add(threeEngineGroup);
+    }
+
+    function buildDefaultJetEngine() {
+      if (!threeEngineGroup) return;
+      // Clear previous children
+      while (threeEngineGroup.children.length > 0) {
+        threeEngineGroup.remove(threeEngineGroup.children[0]);
+      }
       threeExplodedMeshes = [];
 
       const colors = getThemeColors();
@@ -826,7 +862,7 @@
       const shaft = new THREE.Mesh(shaftGeo, shaftMat);
       shaft.rotation.z = Math.PI / 2;
       threeEngineGroup.add(shaft);
-      threeExplodedMeshes.push({ mesh: shaft, origX: 0, dirX: 0 });
+      threeExplodedMeshes.push({ mesh: shaft, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: 0 });
 
       // 2. High-Pressure Compressor Discs
       for (let i = -2; i <= 2; i++) {
@@ -836,7 +872,7 @@
         disc.rotation.z = Math.PI / 2;
         disc.position.x = i * 0.22;
         threeEngineGroup.add(disc);
-        threeExplodedMeshes.push({ mesh: disc, origX: disc.position.x, dirX: i * 0.35 });
+        threeExplodedMeshes.push({ mesh: disc, origX: disc.position.x, origY: 0, origZ: 0, dirX: i * 0.35, dirY: 0, dirZ: 0 });
       }
 
       // 3. Front Turbofan Blade Assembly
@@ -846,7 +882,7 @@
       fanRing.rotation.y = Math.PI / 2;
       fanRing.position.x = -1.1;
       threeEngineGroup.add(fanRing);
-      threeExplodedMeshes.push({ mesh: fanRing, origX: -1.1, dirX: -0.9 });
+      threeExplodedMeshes.push({ mesh: fanRing, origX: -1.1, origY: 0, origZ: 0, dirX: -0.9, dirY: 0, dirZ: 0 });
 
       // Turbofan Blades array
       for (let b = 0; b < 16; b++) {
@@ -858,7 +894,7 @@
         blade.rotation.x = angle;
         blade.rotation.z = 0.3;
         threeEngineGroup.add(blade);
-        threeExplodedMeshes.push({ mesh: blade, origX: -1.1, dirX: -0.9 });
+        threeExplodedMeshes.push({ mesh: blade, origX: -1.1, origY: blade.position.y, origZ: blade.position.z, dirX: -0.9, dirY: 0, dirZ: 0 });
       }
 
       // 4. Outer Nacelle Cowling (Explodable outer rings)
@@ -868,7 +904,7 @@
       cowl.rotation.z = Math.PI / 2;
       cowl.position.x = 0.2;
       threeEngineGroup.add(cowl);
-      threeExplodedMeshes.push({ mesh: cowl, origX: 0.2, dirX: 0.8 });
+      threeExplodedMeshes.push({ mesh: cowl, origX: 0.2, origY: 0, origZ: 0, dirX: 0.8, dirY: 0, dirZ: 0 });
 
       // 5. Exhaust Nozzle Cone
       const coneGeo = new THREE.ConeGeometry(0.45, 0.9, 32, 1, true);
@@ -877,9 +913,118 @@
       cone.rotation.z = -Math.PI / 2;
       cone.position.x = 1.35;
       threeEngineGroup.add(cone);
-      threeExplodedMeshes.push({ mesh: cone, origX: 1.35, dirX: 1.2 });
+      threeExplodedMeshes.push({ mesh: cone, origX: 1.35, origY: 0, origZ: 0, dirX: 1.2, dirY: 0, dirZ: 0 });
 
-      threeScene.add(threeEngineGroup);
+      AppState.customModelLoaded = false;
+      AppState.customModelName = null;
+    }
+
+    function loadCadModelFromBuffer(buffer, fileName, ext) {
+      if (!threeEngineGroup || !threeScene) initInteractive3D();
+      while (threeEngineGroup.children.length > 0) {
+        threeEngineGroup.remove(threeEngineGroup.children[0]);
+      }
+      threeExplodedMeshes = [];
+
+      const colors = getThemeColors();
+      const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0xf59e0b;
+      const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
+      const cleanExt = (ext || '').toLowerCase().replace('.', '');
+
+      function setupLoadedObject(rootObj) {
+        // Compute bounding box and center root
+        const box = new THREE.Box3().setFromObject(rootObj);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        rootObj.position.sub(center);
+
+        // Scale to normalized viewport size
+        const sphere = new THREE.Sphere();
+        box.getBoundingSphere(sphere);
+        const maxDim = sphere.radius * 2 || 2.0;
+        const normScale = 2.4 / maxDim;
+        rootObj.scale.set(normScale, normScale, normScale);
+
+        // Register meshes for theme sync and radial explosion
+        let meshIdx = 0;
+        rootObj.traverse((child) => {
+          if (child.isMesh) {
+            meshIdx++;
+            if (!child.material || !child.material.isMaterial) {
+              child.material = new THREE.MeshStandardMaterial({
+                color: meshIdx % 2 === 0 ? primaryHex : secondaryHex,
+                metalness: 0.7,
+                roughness: 0.3,
+                wireframe: meshIdx % 3 === 0
+              });
+            }
+            const worldPos = new THREE.Vector3();
+            child.getWorldPosition(worldPos);
+            const dist = worldPos.length();
+            const dir = dist > 0.001 ? worldPos.clone().normalize() : new THREE.Vector3((meshIdx % 2 ? 1 : -1) * 0.5, 0, 0);
+
+            threeExplodedMeshes.push({
+              mesh: child,
+              origX: child.position.x,
+              origY: child.position.y,
+              origZ: child.position.z,
+              dirX: dir.x * 0.8,
+              dirY: dir.y * 0.8,
+              dirZ: dir.z * 0.8
+            });
+          }
+        });
+
+        threeEngineGroup.add(rootObj);
+        AppState.customModelLoaded = true;
+        AppState.customModelName = fileName;
+        updateThreeThemeColors();
+        console.log(`Successfully ingested CAD model: ${fileName} (${threeExplodedMeshes.length} meshes)`);
+      }
+
+      if (cleanExt === 'stl') {
+        if (typeof THREE.STLLoader === 'undefined') {
+          console.error("STLLoader not loaded");
+          return;
+        }
+        const loader = new THREE.STLLoader();
+        const geometry = loader.parse(buffer);
+        geometry.computeVertexNormals();
+        const material = new THREE.MeshStandardMaterial({
+          color: secondaryHex,
+          metalness: 0.8,
+          roughness: 0.25,
+          wireframe: false
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        const group = new THREE.Group();
+        group.add(mesh);
+        setupLoadedObject(group);
+      } else if (cleanExt === 'glb' || cleanExt === 'gltf') {
+        if (typeof THREE.GLTFLoader === 'undefined') {
+          console.error("GLTFLoader not loaded");
+          return;
+        }
+        const loader = new THREE.GLTFLoader();
+        loader.parse(buffer, '', (gltf) => {
+          setupLoadedObject(gltf.scene || gltf.scenes[0]);
+        }, (err) => {
+          console.error("Failed to parse GLTF/GLB CAD model:", err);
+        });
+      } else {
+        console.warn("Unsupported CAD model format:", cleanExt);
+      }
+    }
+
+    function handleCadFileUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      const ext = file.name.split('.').pop();
+      reader.onload = (e) => {
+        loadCadModelFromBuffer(e.target.result, file.name, ext);
+      };
+      reader.readAsArrayBuffer(file);
     }
 
     function updateThreeThemeColors() {
@@ -900,8 +1045,8 @@
       });
     }
 
-    let threeIsRotating = false;
-    let threeLastTrackPos = null;
+    let threeLastTwoHandAngle = null;
+    let threeLastTwoHandDist = null;
 
     function processInteractive3DLandmarks(multiHands) {
       if (!multiHands || multiHands.length === 0) {
@@ -909,32 +1054,105 @@
         threeIsRotating = false;
         threeLastPinchPos = null;
         threeLastTrackPos = null;
+        threeLastTwoHandAngle = null;
+        threeLastTwoHandDist = null;
         return;
       }
 
       const h1 = multiHands[0];
-      const wrist = h1[0];
-      const thumbTip = h1[4];
-      const indexTip = h1[8];
-      const mcpMiddle = h1[9];
+      const wrist1 = h1[0];
+      const thumbTip1 = h1[4];
+      const indexTip1 = h1[8];
+      const mcpMiddle1 = h1[9];
 
-      // 1. PINCH DETECTION (Thumb Tip #4 to Index Tip #8)
-      const pinchDist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
-      const handScale = Math.max(0.01, Math.hypot(mcpMiddle.x - wrist.x, mcpMiddle.y - wrist.y));
-      const normalizedPinch = pinchDist / handScale;
-      // Forgiving pinch threshold (< 0.52)
-      threeIsPinching = normalizedPinch < 0.52;
+      // Hand 1 pinch check
+      const pinchDist1 = Math.hypot(thumbTip1.x - indexTip1.x, thumbTip1.y - indexTip1.y);
+      const handScale1 = Math.max(0.01, Math.hypot(mcpMiddle1.x - wrist1.x, mcpMiddle1.y - wrist1.y));
+      const normalizedPinch1 = pinchDist1 / handScale1;
+      const isPinch1 = normalizedPinch1 < 0.52;
 
-      // 2. TOUCHLESS ROTATION (Direct natural orbit manipulation)
-      // Mirroring: in front-facing webcam mode, moving hand right moves trackAnchor.x right (+dx).
-      // We invert dx so moving hand to user's right rotates 3D model right naturally.
-      const trackAnchor = threeIsPinching ? { x: (thumbTip.x + indexTip.x) / 2, y: (thumbTip.y + indexTip.y) / 2 } : { x: mcpMiddle.x, y: mcpMiddle.y };
+      // 1. DUAL-HAND BIMANUAL MANIPULATION (TWO HANDS ACTIVE)
+      if (multiHands.length >= 2) {
+        const h2 = multiHands[1];
+        const wrist2 = h2[0];
+        const thumbTip2 = h2[4];
+        const indexTip2 = h2[8];
+        const mcpMiddle2 = h2[9];
+
+        const pinchDist2 = Math.hypot(thumbTip2.x - indexTip2.x, thumbTip2.y - indexTip2.y);
+        const handScale2 = Math.max(0.01, Math.hypot(mcpMiddle2.x - wrist2.x, mcpMiddle2.y - wrist2.y));
+        const isPinch2 = (pinchDist2 / handScale2) < 0.52;
+
+        threeIsPinching = isPinch1 || isPinch2;
+        threeIsRotating = true;
+
+        // Centroid of both hands (midpoint between wrists)
+        const midX = (wrist1.x + wrist2.x) / 2;
+        const midY = (wrist1.y + wrist2.y) / 2;
+
+        // Track translational orbit of the two-hand frame
+        if (threeLastTrackPos) {
+          const dx = midX - threeLastTrackPos.x;
+          const dy = midY - threeLastTrackPos.y;
+          if (Math.abs(dx) < 0.35 && Math.abs(dy) < 0.35) {
+            threeTargetRotY += -dx * Math.PI * 4.0;
+            threeTargetRotX += dy * Math.PI * 3.5;
+          }
+        }
+        threeLastTrackPos = { x: midX, y: midY };
+
+        // Two-hand angular twist / roll (Z-axis rotation)
+        const curAngle = Math.atan2(wrist2.y - wrist1.y, wrist2.x - wrist1.x);
+        if (threeLastTwoHandAngle !== null) {
+          let dAngle = curAngle - threeLastTwoHandAngle;
+          // Wrap angle between -PI and +PI
+          if (dAngle > Math.PI) dAngle -= Math.PI * 2;
+          if (dAngle < -Math.PI) dAngle += Math.PI * 2;
+          if (Math.abs(dAngle) < 0.5) {
+            if (threeEngineGroup) {
+              threeEngineGroup.rotation.z += dAngle * 1.5;
+            }
+          }
+        }
+        threeLastTwoHandAngle = curAngle;
+
+        // Two-hand distance -> Zoom/Scale & Component Stretch
+        const twoHandDist = Math.hypot(wrist1.x - wrist2.x, wrist1.y - wrist2.y);
+        if (threeLastTwoHandDist !== null) {
+          const dDist = twoHandDist - threeLastTwoHandDist;
+          if (Math.abs(dDist) < 0.25) {
+            threeTargetScale = Math.min(3.0, Math.max(0.4, threeTargetScale + dDist * 2.5));
+          }
+        }
+        threeLastTwoHandDist = twoHandDist;
+
+        // Calculate combined extension for component explosion
+        const tips = [4, 8, 12, 16, 20];
+        let ext1 = 0, ext2 = 0;
+        tips.forEach(t => {
+          ext1 += Math.hypot(h1[t].x - wrist1.x, h1[t].y - wrist1.y);
+          ext2 += Math.hypot(h2[t].x - wrist2.x, h2[t].y - wrist2.y);
+        });
+        const normExt1 = (ext1 / 5) / handScale1;
+        const normExt2 = (ext2 / 5) / handScale2;
+        const avgExt = (normExt1 + normExt2) / 2;
+        threeTargetExplode = Math.min(1.0, Math.max(0.0, (avgExt - 1.10) / 0.45));
+        return;
+      }
+
+      // Reset two-hand roll / dist tracking when single-handed
+      threeLastTwoHandAngle = null;
+      threeLastTwoHandDist = null;
+
+      // 2. SINGLE-HAND MANIPULATION
+      threeIsPinching = isPinch1;
       threeIsRotating = true;
+
+      const trackAnchor = threeIsPinching ? { x: (thumbTip1.x + indexTip1.x) / 2, y: (thumbTip1.y + indexTip1.y) / 2 } : { x: mcpMiddle1.x, y: mcpMiddle1.y };
 
       if (threeLastTrackPos) {
         const dx = trackAnchor.x - threeLastTrackPos.x;
         const dy = trackAnchor.y - threeLastTrackPos.y;
-        // Check for sudden teleporting/jumps to prevent camera flinging
         if (Math.abs(dx) < 0.35 && Math.abs(dy) < 0.35) {
           threeTargetRotY += -dx * Math.PI * 4.0;
           threeTargetRotX += dy * Math.PI * 3.5;
@@ -942,34 +1160,48 @@
       }
       threeLastTrackPos = { x: trackAnchor.x, y: trackAnchor.y };
 
-      // 3. OPEN PALM VS FIST -> EXPLODED COMPONENT DISASSEMBLY
-      // Measure average distance of all 5 fingertips to wrist Landmark 0
+      // Single-hand open palm vs fist component explosion
       const tips = [4, 8, 12, 16, 20];
       let avgTipDist = 0;
       tips.forEach(tIdx => {
-        avgTipDist += Math.hypot(h1[tIdx].x - wrist.x, h1[tIdx].y - wrist.y);
+        avgTipDist += Math.hypot(h1[tIdx].x - wrist1.x, h1[tIdx].y - wrist1.y);
       });
       avgTipDist /= tips.length;
-      const normalizedExtension = avgTipDist / handScale;
+      const normalizedExtension = avgTipDist / handScale1;
+      threeTargetExplode = Math.min(1.0, Math.max(0.0, (normalizedExtension - 1.10) / 0.45));
 
-      // Closed fist (< 1.10) = compacted (0.0); Spread palm (> 1.55) = fully exploded (1.0)
-      const explodeFactor = Math.min(1.0, Math.max(0.0, (normalizedExtension - 1.10) / 0.45));
-      threeTargetExplode = explodeFactor;
-
-      // 4. TWO-HAND DISTANCE -> ZOOM / SCALE
-      if (multiHands.length >= 2) {
-        const h2 = multiHands[1];
-        const twoHandDist = Math.hypot(h1[0].x - h2[0].x, h1[0].y - h2[0].y);
-        // Map two-hand wrist distance to model scale (0.5x to 2.5x)
-        threeTargetScale = Math.min(2.5, Math.max(0.5, twoHandDist * 3.0));
-      } else if (!threeIsPinching) {
-        // Single hand extension smoothly scales model
-        threeTargetScale = Math.min(1.8, Math.max(0.7, 0.85 + explodeFactor * 0.4));
+      if (!threeIsPinching) {
+        threeTargetScale = Math.min(1.8, Math.max(0.7, 0.85 + threeTargetExplode * 0.4));
       }
     }
 
     function processBackendGestureFor3D(bg) {
-      if (!bg || !bg.landmarks || bg.landmarks.length < 21) {
+      if (!bg) {
+        threeIsPinching = false;
+        threeIsRotating = false;
+        threeLastPinchPos = null;
+        threeLastTrackPos = null;
+        threeLastTwoHandAngle = null;
+        threeLastTwoHandDist = null;
+        return;
+      }
+
+      if (bg.hands && Array.isArray(bg.hands) && bg.hands.length > 0) {
+        const multiLms = bg.hands.map(h => h.landmarks.map(pt => ({
+          x: pt[0] / 640.0,
+          y: pt[1] / 480.0
+        })));
+        AppState.detectedHandLandmarks = multiLms[0];
+        AppState.detectedHands = bg.hands.map((h, i) => ({
+          landmarks: multiLms[i],
+          label: h.handedness || (i === 0 ? 'Right' : 'Left'),
+          gesture: h.gesture
+        }));
+        processInteractive3DLandmarks(multiLms);
+        return;
+      }
+
+      if (!bg.landmarks || bg.landmarks.length < 21) {
         threeIsPinching = false;
         threeIsRotating = false;
         threeLastPinchPos = null;
@@ -985,6 +1217,7 @@
 
       // Apply backend landmarks
       AppState.detectedHandLandmarks = normLm;
+      AppState.detectedHands = [{ landmarks: normLm, label: 'Right', gesture: bg.gesture }];
       processInteractive3DLandmarks([normLm]);
 
       // Direct gesture semantic override: if gesture is explicitly classified
@@ -1043,6 +1276,37 @@
       } else if (!activeKey) {
         txtElem.innerText = 'AWAITING HAND';
       }
+    }
+
+    function updateDualGestureMenuUI(h1, h2) {
+      const txtElem = document.getElementById('detectedGestureText');
+      const g1 = h1.gesture;
+      const g2 = h2.gesture;
+      const l1 = h1.label || 'R';
+      const l2 = h2.label || 'L';
+
+      const desc1 = g1 ? (GESTURE_LABELS[g1] ? GESTURE_LABELS[g1].split('/')[0].trim() : g1.toUpperCase()) : 'IDLE';
+      const desc2 = g2 ? (GESTURE_LABELS[g2] ? GESTURE_LABELS[g2].split('/')[0].trim() : g2.toUpperCase()) : 'IDLE';
+
+      txtElem.innerText = `[${l1.charAt(0)}] ${desc1} • [${l2.charAt(0)}] ${desc2}`;
+
+      ALL_GESTURE_KEYS.forEach(k => {
+        const row = document.getElementById(`row_${k}`);
+        const badge = document.getElementById(`badge_${k}`);
+        if (!row || !badge) return;
+
+        if (k === g1 || k === g2) {
+          row.style.backgroundColor = 'rgba(236, 72, 153, 0.2)';
+          row.style.borderColor = 'var(--accent-primary)';
+          badge.innerText = (k === g1 && k === g2) ? 'BOTH ACTIVE' : (k === g1 ? `${l1.toUpperCase()}` : `${l2.toUpperCase()}`);
+          badge.className = 'font-bold text-[10px] text-emerald-400 animate-pulse';
+        } else {
+          row.style.backgroundColor = 'rgba(0,0,0,0.4)';
+          row.style.borderColor = 'transparent';
+          badge.innerText = 'READY';
+          badge.className = 'font-bold text-[10px] text-slate-500';
+        }
+      });
     }
 
     function onFaceMeshResults(results) {
@@ -1106,15 +1370,20 @@
         document.getElementById('modeCardTitle').innerText = 'JSL & HAND GESTURE CV';
         document.getElementById('modeCardDesc').innerText = 'Client-side 21-joint skeletal wireframe and JSL gestures running at 60 FPS in your active theme.';
         document.getElementById('modePipeline').innerText = 'MEDIAPIPE WASM';
-      } else if (newMode === 'INTERACTIVE_3D') {
+      const cadBtn = document.getElementById('cadUploadBtn');
+      if (newMode === 'INTERACTIVE_3D') {
         if (threeC) threeC.classList.remove('hidden');
+        if (cadBtn) cadBtn.classList.remove('hidden');
         initInteractive3D();
         updateThreeThemeColors();
         document.getElementById('activeModeBadge').innerText = 'INTERACTIVE 3D CAD';
-        document.getElementById('trackerDetailText').innerText = 'PINCH: ROTATE • PALM: EXPLODE • TWO-HAND: ZOOM';
+        document.getElementById('trackerDetailText').innerText = 'DUAL-HAND: ROTATE/ROLL/STRETCH • PALM: EXPLODE';
         document.getElementById('modeCardTitle').innerText = 'GESTURE 3D HOLOGRAPHIC CAD';
-        document.getElementById('modeCardDesc').innerText = 'Direct manipulation of exploded turbofan jet engine: Pinch to rotate, Fist-to-Palm to explode parts, Two hands to zoom.';
+        document.getElementById('modeCardDesc').innerText = 'Bimanual manipulation of 3D CAD models: 2-Hand Grab & Roll, Stretch Zoom, and Drag & Drop custom .GLB/.STL models.';
         document.getElementById('modePipeline').innerText = 'THREE.JS + MEDIAPIPE';
+      } else {
+        if (threeC) threeC.classList.add('hidden');
+        if (cadBtn) cadBtn.classList.add('hidden');
       }
 
       lucide.createIcons();
@@ -1139,9 +1408,12 @@
           const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
           if (data.gesture) {
             AppState.backendGesture = data.gesture;
-            const gName = data.gesture.gesture;
             if (!clientHandFresh) {
-              updateGestureMenuUI(gName);
+              if (data.gesture.hands && data.gesture.hands.length >= 2) {
+                updateDualGestureMenuUI(data.gesture.hands[0], data.gesture.hands[1]);
+              } else {
+                updateGestureMenuUI(data.gesture.gesture);
+              }
               if (AppState.currentMode === 'INTERACTIVE_3D') {
                 processBackendGestureFor3D(data.gesture);
               }
@@ -1150,6 +1422,7 @@
             AppState.backendGesture = null;
             if (!clientHandFresh) {
               AppState.detectedHandLandmarks = null;
+              AppState.detectedHands = [];
               updateGestureMenuUI(null);
               if (AppState.currentMode === 'INTERACTIVE_3D') {
                 processBackendGestureFor3D(null);
@@ -1642,82 +1915,111 @@
      * RENDER PASS 3: HAND SKELETON CV (THEME SYNCHRONIZED)
      * =================================================================================
      */
+    function renderHandSkeletonOnCanvas(ctx, lm, handedness, colors, isPinch) {
+      const connections = [
+        [0,1],[1,2],[2,3],[3,4],
+        [0,5],[5,6],[6,7],[7,8],
+        [5,9],[9,10],[10,11],[11,12],
+        [9,13],[13,14],[14,15],[15,16],
+        [13,17],[17,18],[18,19],[19,20],[0,17]
+      ];
+
+      // Draw Skeletal Struts in Theme Secondary
+      ctx.strokeStyle = colors.secondary;
+      ctx.lineWidth = 2.2;
+      connections.forEach(([i, j]) => {
+        ctx.beginPath();
+        ctx.moveTo(lm[i].x * canvas.width, lm[i].y * canvas.height);
+        ctx.lineTo(lm[j].x * canvas.width, lm[j].y * canvas.height);
+        ctx.stroke();
+      });
+
+      // Draw Joint Nodes in Theme Primary
+      lm.forEach((p, idx) => {
+        const px = p.x * canvas.width;
+        const py = p.y * canvas.height;
+        ctx.fillStyle = (idx === 8 || idx === 12 || idx === 4) ? (isPinch ? '#10b981' : colors.primary) : colors.alt;
+        ctx.beginPath();
+        ctx.arc(px, py, (idx === 8 || idx === 12 || idx === 4) ? 5.5 : 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Handedness Badge at Wrist
+      const wx = lm[0].x * canvas.width;
+      const wy = lm[0].y * canvas.height;
+      ctx.fillStyle = 'rgba(7, 12, 20, 0.88)';
+      ctx.fillRect(wx - 26, wy + 10, 52, 18);
+      ctx.strokeStyle = colors.primary;
+      ctx.lineWidth = 1.0;
+      ctx.strokeRect(wx - 26, wy + 10, 52, 18);
+      ctx.fillStyle = colors.primary;
+      ctx.font = 'bold 9px "Share Tech Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(handedness ? handedness.toUpperCase() : 'HAND', wx, wy + 22);
+      ctx.textAlign = 'left';
+    }
+
     function renderHandGestureMode(ctx) {
       const colors = getThemeColors();
       ctx.save();
 
-      if (AppState.detectedHandLandmarks) {
-        const lm = AppState.detectedHandLandmarks;
-        const connections = [
-          [0,1],[1,2],[2,3],[3,4],
-          [0,5],[5,6],[6,7],[7,8],
-          [5,9],[9,10],[10,11],[11,12],
-          [9,13],[13,14],[14,15],[15,16],
-          [13,17],[17,18],[18,19],[19,20],[0,17]
-        ];
+      const activeHands = (AppState.detectedHands && AppState.detectedHands.length > 0)
+        ? AppState.detectedHands
+        : (AppState.detectedHandLandmarks ? [{ landmarks: AppState.detectedHandLandmarks, label: 'Right' }] : []);
 
-        // Draw Skeletal Struts in Theme Secondary
-        ctx.strokeStyle = colors.secondary;
-        ctx.lineWidth = 2.2;
-        connections.forEach(([i, j]) => {
-          ctx.beginPath();
-          ctx.moveTo(lm[i].x * canvas.width, lm[i].y * canvas.height);
-          ctx.lineTo(lm[j].x * canvas.width, lm[j].y * canvas.height);
-          ctx.stroke();
-        });
-
-        // Draw Joint Nodes in Theme Primary
-        lm.forEach((p, idx) => {
-          const px = p.x * canvas.width;
-          const py = p.y * canvas.height;
-          ctx.fillStyle = (idx === 8 || idx === 12 || idx === 4) ? colors.primary : colors.alt;
-          ctx.beginPath();
-          ctx.arc(px, py, (idx === 8 || idx === 12) ? 6 : 3.5, 0, Math.PI * 2);
-          ctx.fill();
+      if (activeHands.length > 0) {
+        activeHands.forEach(h => {
+          renderHandSkeletonOnCanvas(ctx, h.landmarks, h.label || 'Hand', colors, false);
         });
       } else if (AppState.backendGesture && AppState.backendGesture.box) {
         // Backend gesture bounding box and finger tip anchors
         const bg = AppState.backendGesture;
         const scaleX = canvas.width / 640;
         const scaleY = canvas.height / 480;
-        const [x1, y1, x2, y2] = bg.box;
-        const bx = x1 * scaleX;
-        const by = y1 * scaleY;
-        const bw = (x2 - x1) * scaleX;
-        const bh = (y2 - y1) * scaleY;
 
-        ctx.strokeStyle = colors.primary;
-        ctx.lineWidth = 1.8;
-        ctx.strokeRect(bx, by, bw, bh);
+        // Render each hand reported by backend if multi-hand telemetry exists
+        const handsToDraw = (bg.hands && bg.hands.length > 0) ? bg.hands : [bg];
+        handsToDraw.forEach(h => {
+          const [x1, y1, x2, y2] = h.box;
+          const bx = x1 * scaleX;
+          const by = y1 * scaleY;
+          const bw = (x2 - x1) * scaleX;
+          const bh = (y2 - y1) * scaleY;
 
-        // Sub-box inside
-        ctx.strokeStyle = colors.secondary;
-        ctx.lineWidth = 1.0;
-        ctx.strokeRect(bx + 4, by + 4, Math.max(10, bw - 8), Math.max(10, bh - 8));
+          ctx.strokeStyle = colors.primary;
+          ctx.lineWidth = 1.8;
+          ctx.strokeRect(bx, by, bw, bh);
 
-        // Finger tips
-        if (bg.tips && bg.tips.length > 0) {
-          bg.tips.forEach(([tx, ty]) => {
-            const px = tx * scaleX;
-            const py = ty * scaleY;
-            ctx.fillStyle = colors.alt;
-            ctx.beginPath();
-            ctx.arc(px, py, 6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = colors.primary;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.arc(px, py, 9, 0, Math.PI * 2);
-            ctx.stroke();
-          });
-        }
+          // Sub-box inside
+          ctx.strokeStyle = colors.secondary;
+          ctx.lineWidth = 1.0;
+          ctx.strokeRect(bx + 4, by + 4, Math.max(10, bw - 8), Math.max(10, bh - 8));
 
-        // Label
-        ctx.fillStyle = 'rgba(7, 12, 20, 0.9)';
-        ctx.fillRect(bx, by - 22, 160, 20);
-        ctx.fillStyle = colors.primary;
-        ctx.font = '10px "Share Tech Mono", monospace';
-        ctx.fillText(`GESTURE: ${bg.gesture.toUpperCase()}`, bx + 6, by - 8);
+          // Finger tips
+          if (h.tips && h.tips.length > 0) {
+            h.tips.forEach(([tx, ty]) => {
+              const px = tx * scaleX;
+              const py = ty * scaleY;
+              ctx.fillStyle = colors.alt;
+              ctx.beginPath();
+              ctx.arc(px, py, 6, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = colors.primary;
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.arc(px, py, 9, 0, Math.PI * 2);
+              ctx.stroke();
+            });
+          }
+
+          // Label
+          ctx.fillStyle = 'rgba(7, 12, 20, 0.9)';
+          ctx.fillRect(bx, by - 22, 160, 20);
+          ctx.fillStyle = colors.primary;
+          ctx.font = '10px "Share Tech Mono", monospace';
+          const hLabel = h.handedness ? `[${h.handedness.toUpperCase()}] ` : '';
+          ctx.fillText(`${hLabel}GESTURE: ${(h.gesture || '').toUpperCase()}`, bx + 6, by - 8);
+        });
       } else {
         const cx = canvas.width * 0.5;
         const cy = canvas.height * 0.5;
@@ -1729,7 +2031,7 @@
         ctx.fillStyle = colors.primary;
         ctx.font = '11px "Share Tech Mono", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('PRESENT HANDS', cx, cy);
+        ctx.fillText('PRESENT HANDS (1 OR 2)', cx, cy);
       }
 
       ctx.restore();
@@ -1759,67 +2061,50 @@
         const newScale = THREE.MathUtils.lerp(curScale, threeTargetScale, 0.12);
         threeEngineGroup.scale.set(newScale, newScale, newScale);
 
-        // Smooth exploded view displacement along component axes
+        // Smooth exploded view displacement along component axes (3D radial)
         threeExplodedMeshes.forEach(item => {
           const targetX = item.origX + item.dirX * threeTargetExplode * 1.4;
+          const targetY = item.origY + (item.dirY || 0) * threeTargetExplode * 1.4;
+          const targetZ = item.origZ + (item.dirZ || 0) * threeTargetExplode * 1.4;
           item.mesh.position.x = THREE.MathUtils.lerp(item.mesh.position.x, targetX, 0.15);
+          item.mesh.position.y = THREE.MathUtils.lerp(item.mesh.position.y, targetY, 0.15);
+          item.mesh.position.z = THREE.MathUtils.lerp(item.mesh.position.z, targetZ, 0.15);
         });
 
         threeRenderer.render(threeScene, threeCamera);
       }
 
-      // 2. Render lightweight 2D Hand Landmark Skeleton Over the Viewport
-      if (AppState.detectedHandLandmarks) {
-        ctx.save();
-        const lm = AppState.detectedHandLandmarks;
-        const connections = [
-          [0,1],[1,2],[2,3],[3,4],
-          [0,5],[5,6],[6,7],[7,8],
-          [5,9],[9,10],[10,11],[11,12],
-          [9,13],[13,14],[14,15],[15,16],
-          [13,17],[17,18],[18,19],[19,20],[0,17]
-        ];
+      // 2. Render lightweight 2D Hand Landmark Skeleton Over the Viewport (Multi-Hand)
+      const activeHands = (AppState.detectedHands && AppState.detectedHands.length > 0)
+        ? AppState.detectedHands
+        : (AppState.detectedHandLandmarks ? [{ landmarks: AppState.detectedHandLandmarks, label: 'Right' }] : []);
 
-        // Skeletal struts
-        ctx.strokeStyle = colors.secondary;
-        ctx.lineWidth = 1.8;
-        connections.forEach(([i, j]) => {
+      if (activeHands.length > 0) {
+        ctx.save();
+        activeHands.forEach(h => {
+          const lm = h.landmarks;
+          renderHandSkeletonOnCanvas(ctx, lm, h.label || 'Hand', colors, threeIsPinching);
+
+          // Highlight pinch indicator line between thumb tip #4 and index tip #8
+          const p4x = lm[4].x * canvas.width;
+          const p4y = lm[4].y * canvas.height;
+          const p8x = lm[8].x * canvas.width;
+          const p8y = lm[8].y * canvas.height;
+
+          ctx.strokeStyle = threeIsPinching ? '#10b981' : colors.primary;
+          ctx.lineWidth = threeIsPinching ? 3.0 : 1.2;
           ctx.beginPath();
-          ctx.moveTo(lm[i].x * canvas.width, lm[i].y * canvas.height);
-          ctx.lineTo(lm[j].x * canvas.width, lm[j].y * canvas.height);
+          ctx.moveTo(p4x, p4y);
+          ctx.lineTo(p8x, p8y);
           ctx.stroke();
         });
-
-        // Key Nodes
-        lm.forEach((p, idx) => {
-          const px = p.x * canvas.width;
-          const py = p.y * canvas.height;
-          ctx.fillStyle = (idx === 4 || idx === 8) ? (threeIsPinching ? '#10b981' : colors.primary) : colors.alt;
-          ctx.beginPath();
-          ctx.arc(px, py, (idx === 4 || idx === 8) ? 5.5 : 3.0, 0, Math.PI * 2);
-          ctx.fill();
-        });
-
-        // Highlight pinch line between thumb tip #4 and index tip #8
-        const p4x = lm[4].x * canvas.width;
-        const p4y = lm[4].y * canvas.height;
-        const p8x = lm[8].x * canvas.width;
-        const p8y = lm[8].y * canvas.height;
-
-        ctx.strokeStyle = threeIsPinching ? '#10b981' : colors.primary;
-        ctx.lineWidth = threeIsPinching ? 3.0 : 1.2;
-        ctx.beginPath();
-        ctx.moveTo(p4x, p4y);
-        ctx.lineTo(p8x, p8y);
-        ctx.stroke();
-
         ctx.restore();
       }
 
       // 3. Holographic Tactical CAD Telemetry Callout Box
       ctx.save();
-      const hudW = 260;
-      const hudH = 75;
+      const hudW = 280;
+      const hudH = 80;
       const hudX = canvas.width - hudW - 16;
       const hudY = 16;
 
@@ -1831,27 +2116,31 @@
 
       ctx.fillStyle = colors.primary;
       ctx.font = '10px "Share Tech Mono", monospace';
-      ctx.fillText('HOLOGRAPHIC CAD // JET ENGINE MATRIX', hudX + 10, hudY + 16);
+      const modelTitle = AppState.customModelLoaded ? `CAD // ${AppState.customModelName.toUpperCase()}` : 'HOLOGRAPHIC CAD // JET ENGINE MATRIX';
+      ctx.fillText(modelTitle, hudX + 10, hudY + 16);
 
       ctx.fillStyle = colors.secondary;
       ctx.font = '9px "Share Tech Mono", monospace';
       let manipStatus = 'STANDBY [AWAITING HAND]';
-      if (AppState.detectedHandLandmarks) {
+      if (activeHands.length >= 2) {
+        manipStatus = `DUAL-HAND [${activeHands.length} ACTIVE • ROLL/STRETCH]`;
+      } else if (activeHands.length === 1) {
         if (threeIsPinching) {
-          manipStatus = 'PINCH [ROTATING / LOCKED]';
+          manipStatus = 'SINGLE-HAND [PINCH ROTATE]';
         } else if (threeIsRotating) {
-          manipStatus = 'HAND TRACK [ROTATING]';
+          manipStatus = 'SINGLE-HAND [TRACKING ROTATE]';
         } else {
-          manipStatus = 'ACTIVE [TRACKING]';
+          manipStatus = 'SINGLE-HAND [TRACKING]';
         }
       }
       const explodePct = Math.round(threeTargetExplode * 100);
       const scaleVal = (threeTargetScale).toFixed(2);
       ctx.fillText(`GESTURE: ${manipStatus}`, hudX + 10, hudY + 32);
-      ctx.fillText(`EXPLODED VIEW: ${explodePct}% // SCALE: ${scaleVal}x`, hudX + 10, hudY + 46);
+      ctx.fillText(`EXPLODED: ${explodePct}% // SCALE: ${scaleVal}x`, hudX + 10, hudY + 46);
 
       ctx.fillStyle = colors.text;
-      ctx.fillText('TOUCHLESS 3D MODEL MANIPULATION', hudX + 10, hudY + 62);
+      ctx.fillText(activeHands.length >= 2 ? 'BIMANUAL 2-HAND 3D CAD CONTROL' : 'TOUCHLESS 3D MODEL MANIPULATION', hudX + 10, hudY + 62);
+      ctx.fillText('DRAG & DROP .GLB / .STL INTO VIEW', hudX + 10, hudY + 74);
 
       ctx.restore();
     }
@@ -1921,6 +2210,38 @@
       setTheme(savedTheme);
       initMediaPipe();
       switchSystemMode('OBJECT_DETECT');
+
+      // Drag and Drop CAD Model Ingest (.glb / .gltf / .stl)
+      const viewportContainer = canvas.parentElement;
+      if (viewportContainer) {
+        viewportContainer.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          viewportContainer.style.borderColor = 'var(--accent-secondary)';
+        });
+        viewportContainer.addEventListener('dragleave', (e) => {
+          e.preventDefault();
+          viewportContainer.style.borderColor = 'var(--panel-border)';
+        });
+        viewportContainer.addEventListener('drop', (e) => {
+          e.preventDefault();
+          viewportContainer.style.borderColor = 'var(--panel-border)';
+          const file = e.dataTransfer.files && e.dataTransfer.files[0];
+          if (!file) return;
+          const ext = file.name.split('.').pop().toLowerCase();
+          if (['glb', 'gltf', 'stl'].includes(ext)) {
+            if (AppState.currentMode !== 'INTERACTIVE_3D') {
+              switchSystemMode('INTERACTIVE_3D');
+            }
+            const reader = new FileReader();
+            reader.onload = (re) => {
+              loadCadModelFromBuffer(re.target.result, file.name, ext);
+            };
+            reader.readAsArrayBuffer(file);
+          }
+        });
+      }
+
       requestAnimationFrame(renderEngine);
     });
   </script>
