@@ -2611,17 +2611,14 @@
         document.getElementById('telemetryFps').innerText = Math.round(1000 / (dt || 16.6));
       }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const activeFrame = (currentFrameImg && currentFrameImg.complete && currentFrameImg.naturalWidth > 0)
-        ? currentFrameImg
-        : ((liveImg && liveImg.complete && liveImg.naturalWidth > 0) ? liveImg : null);
-
-      if (activeFrame) {
-        ctx.drawImage(activeFrame, 0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'rgba(7, 10, 15, 0.30)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Keep canvas resolution synced to its actual display dimensions
+      if (canvas.clientWidth > 0 && canvas.clientHeight > 0) {
+        if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+          resizeCanvas();
+        }
       }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (AppState.currentMode === 'OBJECT_DETECT') {
         renderImage2MultiSquareDesign(ctx, AppState.liveDetections);
@@ -2657,13 +2654,22 @@
       }
     }, 900);
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       lucide.createIcons();
       resizeCanvas();
       const savedTheme = localStorage.getItem('aeris-vision-theme') || 'midnight-gold';
       setTheme(savedTheme);
       initMediaPipe();
-      switchSystemMode('OBJECT_DETECT');
+      
+      // Sync initial mode with backend state or default to OBJECT_DETECT
+      try {
+        const modeRes = await fetch('/api/mode');
+        const modeData = await modeRes.json();
+        switchSystemMode(modeData.mode || 'OBJECT_DETECT');
+      } catch (e) {
+        switchSystemMode('OBJECT_DETECT');
+      }
+
       loadTrainedJslModel();
       refreshJslDatasetList();
 
