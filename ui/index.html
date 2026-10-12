@@ -289,10 +289,10 @@
     <section class="col-span-12 lg:col-span-6 flex flex-col items-center justify-center relative">
       <div class="relative w-full h-full max-h-[740px] aspect-[16/9] border-2 rounded-xl bg-black overflow-hidden shadow-2xl flex items-center justify-center" style="border-color: var(--panel-border);">
         
-        <!-- Live Video Element for Camera feed & MediaPipe -->
-        <img id="liveFeedImg" class="hidden" alt="Live Camera Feed">
-        <canvas id="viewCanvas" class="w-full h-full object-contain block"></canvas>
-        <canvas id="threeCanvas" class="hidden absolute inset-0 w-full h-full object-contain"></canvas>
+        <!-- Live Video Element for Camera feed & MediaPipe fallback -->
+        <img id="liveFeedImg" class="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="Live Camera Feed">
+        <canvas id="viewCanvas" class="relative z-10 w-full h-full object-contain block"></canvas>
+        <canvas id="threeCanvas" class="hidden absolute inset-0 z-20 w-full h-full object-contain"></canvas>
 
         <!-- Fixed Tactical Bezel Frame -->
         <div class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
@@ -722,10 +722,11 @@
 
     function loopLiveFeed() {
       const nextImg = new Image();
-      nextImg.crossOrigin = "anonymous";
       nextImg.onload = () => {
         currentFrameImg = nextImg;
-        if (liveImg) liveImg.src = nextImg.src;
+        if (liveImg) {
+          liveImg.src = nextImg.src;
+        }
 
         // Process frames through active client-side MediaPipe detector
         if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D') && AppState.hands && !isProcessingHands) {
@@ -2614,15 +2615,11 @@
 
       const activeFrame = (currentFrameImg && currentFrameImg.complete && currentFrameImg.naturalWidth > 0)
         ? currentFrameImg
-        : ((liveImg && liveImg.naturalWidth > 0) ? liveImg : null);
+        : ((liveImg && liveImg.complete && liveImg.naturalWidth > 0) ? liveImg : null);
 
       if (activeFrame) {
         ctx.drawImage(activeFrame, 0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'rgba(7, 10, 15, 0.30)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      } else {
-        const colors = getThemeColors();
-        ctx.fillStyle = colors.panelBg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
