@@ -2025,17 +2025,17 @@
 
     function resizeCanvas() {
       const parent = canvas.parentElement;
-      const rect = parent ? parent.getBoundingClientRect() : { width: 0, height: 0 };
-      const w = Math.round(rect.width || parent?.clientWidth || 800);
-      const h = Math.round(rect.height || parent?.clientHeight || Math.round(w * 9 / 16) || 450);
+      const rect = parent ? parent.getBoundingClientRect() : null;
+      const w = Math.round((rect && rect.width) || parent?.clientWidth || canvas.clientWidth || 800);
+      const h = Math.round((rect && rect.height) || parent?.clientHeight || canvas.clientHeight || Math.round(w * 9 / 16) || 450);
 
-      if (canvas.width !== w || canvas.height !== h) {
+      if (w > 0 && h > 0 && (canvas.width !== w || canvas.height !== h)) {
         canvas.width = w;
         canvas.height = h;
       }
 
       const tCanvas = document.getElementById('threeCanvas');
-      if (tCanvas && (tCanvas.width !== w || tCanvas.height !== h)) {
+      if (tCanvas && w > 0 && h > 0 && (tCanvas.width !== w || tCanvas.height !== h)) {
         tCanvas.width = w;
         tCanvas.height = h;
       }
@@ -2609,13 +2609,6 @@
 
       if (frameCounter % 15 === 0) {
         document.getElementById('telemetryFps').innerText = Math.round(1000 / (dt || 16.6));
-      }
-
-      // Keep canvas resolution synced to its actual display dimensions
-      if (canvas.clientWidth > 0 && canvas.clientHeight > 0) {
-        if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
-          resizeCanvas();
-        }
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
