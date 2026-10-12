@@ -641,6 +641,7 @@
     const canvas = document.getElementById('viewCanvas');
     const ctx = canvas.getContext('2d');
     const liveImg = document.getElementById('liveFeedImg');
+    let currentFrameImg = null;
 
     const THEME_NAMES = {
       'midnight-gold': 'MIDNIGHT GOLD',
@@ -716,33 +717,35 @@
     }
 
     // 3. CONTINUOUS LIVE CAMERA FEED INGEST
-    liveImg.crossOrigin = "anonymous";
     let isProcessingHands = false;
     let isProcessingFace = false;
 
     function loopLiveFeed() {
       const nextImg = new Image();
       nextImg.crossOrigin = "anonymous";
-      nextImg.src = '/frame.jpg?r=' + Math.random();
       nextImg.onload = () => {
-        liveImg.src = nextImg.src;
+        currentFrameImg = nextImg;
+        if (liveImg) liveImg.src = nextImg.src;
 
         // Process frames through active client-side MediaPipe detector
         if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D') && AppState.hands && !isProcessingHands) {
           isProcessingHands = true;
-          AppState.hands.send({ image: liveImg })
+          AppState.hands.send({ image: nextImg })
             .catch((err) => { console.warn("MediaPipe Hands inference error:", err); })
             .finally(() => { isProcessingHands = false; });
         } else if (AppState.currentMode === 'FACE_BIOMETRIC' && AppState.faceMesh && !isProcessingFace) {
           isProcessingFace = true;
-          AppState.faceMesh.send({ image: liveImg })
+          AppState.faceMesh.send({ image: nextImg })
             .catch((err) => { console.warn("MediaPipe FaceMesh inference error:", err); })
             .finally(() => { isProcessingFace = false; });
         }
 
-        requestAnimationFrame(() => setTimeout(loopLiveFeed, 33));
+        setTimeout(loopLiveFeed, 33);
       };
-      nextImg.onerror = () => setTimeout(loopLiveFeed, 100);
+      nextImg.onerror = () => {
+        setTimeout(loopLiveFeed, 100);
+      };
+      nextImg.src = '/frame.jpg?t=' + performance.now();
     }
     loopLiveFeed();
 
@@ -2020,18 +2023,26 @@
     };
 
     function resizeCanvas() {
-      const rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      const parent = canvas.parentElement;
+      const rect = parent ? parent.getBoundingClientRect() : { width: 0, height: 0 };
+      const w = Math.round(rect.width || parent?.clientWidth || 800);
+      const h = Math.round(rect.height || parent?.clientHeight || Math.round(w * 9 / 16) || 450);
+
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+
+      const tCanvas = document.getElementById('threeCanvas');
+      if (tCanvas && (tCanvas.width !== w || tCanvas.height !== h)) {
+        tCanvas.width = w;
+        tCanvas.height = h;
+      }
+
       if (threeRenderer && threeCamera) {
-        const tCanvas = document.getElementById('threeCanvas');
-        if (tCanvas) {
-          tCanvas.width = rect.width;
-          tCanvas.height = rect.height;
-          threeCamera.aspect = rect.width / rect.height;
-          threeCamera.updateProjectionMatrix();
-          threeRenderer.setSize(rect.width, rect.height);
-        }
+        threeCamera.aspect = w / h;
+        threeCamera.updateProjectionMatrix();
+        threeRenderer.setSize(w, h);
       }
     }
     window.addEventListener('resize', resizeCanvas);
@@ -2601,8 +2612,12 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (liveImg && liveImg.naturalWidth > 0) {
-        ctx.drawImage(liveImg, 0, 0, canvas.width, canvas.height);
+      const activeFrame = (currentFrameImg && currentFrameImg.complete && currentFrameImg.naturalWidth > 0)
+        ? currentFrameImg
+        : ((liveImg && liveImg.naturalWidth > 0) ? liveImg : null);
+
+      if (activeFrame) {
+        ctx.drawImage(activeFrame, 0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'rgba(7, 10, 15, 0.30)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       } else {
