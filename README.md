@@ -40,6 +40,11 @@ graph TD
 - **Mazzaroth Color Themes**: Instant palette switching across canvas wireframes, anchor crosshairs, typography, and controls with full persistence.
 - **3D Biometric Facial Mesh Reticle**: 468-point 3D facial wireframe mesh tracking head movement and angular pitch/yaw in real time.
 - **Japanese Sign Language (JSL) & Hand CV Dictionary**: Real-time dual-hand 21-joint skeletal rendering with an interactive sidebar dictionary indicating active gestures on both hands (`BOTH ACTIVE`, `[R]`, `[L]`).
+- **JSL Studio, Dataset Recorder & Speech Engine**:
+  - **In-App JSL Recording Console**: Rapidly record custom JSL single-hand and dual-hand conversational gestures with your reviewer directly in the UI.
+  - **Real-Time Geometric Prototype Engine**: Instant centroid training computing scale/rotation-invariant feature vectors with sub-millisecond similarity inference on both client and backend.
+  - **Web Speech Text-to-Speech (TTS)**: Vocalizes detected signs aloud in natural Japanese (`ja-JP`) or English with mute control.
+  - **Speech-to-Text (STT) Sign Prompter**: Speak words into your microphone to prompt corresponding signs for review and practice sessions.
 - **Decoupled 30 FPS Video Pipeline**: Asynchronous background YOLO inference ensures smooth, lag-free camera playback without video stalls.
 - **Dynamic Lighting Compensation**: Quick-toggle exposure controls (`DARK [▲]`, `NORM`, `BRIGHT [▼]`) to instantly balance challenging indoor or outdoor lighting.
 - **Local Timeline Interrogation**: Natural language timeline querying powered by local Ollama (`qwen2.5:3b-instruct`).

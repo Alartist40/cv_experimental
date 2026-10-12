@@ -8,6 +8,7 @@ Pathfinder EYE (ESP32-S3 Vision Hub): Local camera feed ingest over USB NCM / UV
 - `crates/detect_service.py`: Decoupled multi-threaded camera ingest, YOLOv11M background inference, YuNet 3D face tracking, and MediaPipe hand gesture pipeline.
 - `crates/face_service.py`: YuNet face detection & SFace 128-d biometric enrollment registry.
 - `crates/hand_detector.py`: MediaPipe 21-landmark neural hand geometry & Japanese Sign Language (JSL) gesture classifier.
+- `crates/jsl_service.py`: Japanese Sign Language (JSL) dataset recorder, geometric prototype training engine, and class registry.
 - `crates/vision`: MJPEG reader & frame boundary extraction.
 - `crates/detect`: ONNX YOLO inference & temporal debounce filtering.
 - `crates/store`: JSONL persistence & daily aggregation.
