@@ -75,6 +75,11 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/face/delete", post(face_delete_handler))
         .route("/api/gesture/toggle", post(gesture_toggle_handler))
         .route("/api/gesture/status", get(gesture_status_handler))
+        .route("/api/jsl/dataset", get(jsl_dataset_handler))
+        .route("/api/jsl/record", post(jsl_record_handler))
+        .route("/api/jsl/train", post(jsl_train_handler))
+        .route("/api/jsl/model", get(jsl_model_handler))
+        .route("/api/jsl/delete", post(jsl_delete_handler))
         .route("/api/mode", get(mode_get_handler).post(mode_set_handler))
         .route("/api/filter", get(filter_get_handler).post(filter_set_handler))
         .nest_service("/", ServeDir::new("ui"))
@@ -323,6 +328,102 @@ async fn filter_set_handler(Json(payload): Json<FilterRequest>) -> Response {
         .header(header::CONTENT_TYPE, "application/json")
         .header("Access-Control-Allow-Origin", "*")
         .body(axum::body::Body::from(format!("{{\"status\": \"ok\", \"filter\": \"{}\"}}", filter)))
+        .unwrap()
+}
+
+// =========================================================================
+// JSL STUDIO HANDLERS
+// =========================================================================
+
+async fn run_jsl_cli(args: &[&str], stdin_data: Option<&str>) -> String {
+    let python_bin = ".venv/bin/python3";
+    let script = "crates/jsl_service.py";
+    let mut cmd = Command::new(python_bin);
+    cmd.arg(script);
+    for arg in args {
+        cmd.arg(arg);
+    }
+    if stdin_data.is_some() {
+        cmd.stdin(Stdio::piped());
+    }
+
+    match cmd.spawn() {
+        Ok(mut child) => {
+            if let Some(data) = stdin_data {
+                if let Some(mut stdin) = child.stdin.take() {
+                    use tokio::io::AsyncWriteExt;
+                    let _ = stdin.write_all(data.as_bytes()).await;
+                }
+            }
+            match child.wait_with_output().await {
+                Ok(out) => {
+                    let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    if stdout.is_empty() {
+                        "{}".to_string()
+                    } else {
+                        stdout
+                    }
+                }
+                Err(e) => serde_json::json!({"status": "error", "message": e.to_string()}).to_string(),
+            }
+        }
+        Err(e) => serde_json::json!({"status": "error", "message": e.to_string()}).to_string(),
+    }
+}
+
+async fn jsl_dataset_handler() -> Response {
+    let output = run_jsl_cli(&["summary"], None).await;
+    Response::builder()
+        .header(header::CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
+        .body(axum::body::Body::from(output))
+        .unwrap()
+}
+
+async fn jsl_record_handler(body: String) -> Response {
+    let output = run_jsl_cli(&["record"], Some(&body)).await;
+    Response::builder()
+        .header(header::CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
+        .body(axum::body::Body::from(output))
+        .unwrap()
+}
+
+async fn jsl_train_handler() -> Response {
+    let output = run_jsl_cli(&["train"], None).await;
+    Response::builder()
+        .header(header::CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
+        .body(axum::body::Body::from(output))
+        .unwrap()
+}
+
+async fn jsl_model_handler() -> Response {
+    match tokio::fs::read_to_string("data/jsl_model.json").await {
+        Ok(content) => Response::builder()
+            .header(header::CONTENT_TYPE, "application/json")
+            .header("Access-Control-Allow-Origin", "*")
+            .body(axum::body::Body::from(content))
+            .unwrap(),
+        Err(_) => Response::builder()
+            .header(header::CONTENT_TYPE, "application/json")
+            .header("Access-Control-Allow-Origin", "*")
+            .body(axum::body::Body::from("{\"version\": \"1.0\", \"prototypes\": {}, \"class_count\": 0}"))
+            .unwrap(),
+    }
+}
+
+#[derive(Deserialize)]
+struct JslDeleteRequest {
+    clean_label: String,
+}
+
+async fn jsl_delete_handler(Json(payload): Json<JslDeleteRequest>) -> Response {
+    let output = run_jsl_cli(&["delete", &payload.clean_label], None).await;
+    Response::builder()
+        .header(header::CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
+        .body(axum::body::Body::from(output))
         .unwrap()
 }
 
