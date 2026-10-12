@@ -2278,6 +2278,7 @@
         const bh = fh * scaleY;
 
         // Animated rotating biometric targeting ring
+        ctx.save();
         const cx = bx + bw / 2;
         const cy = by + bh / 2;
         const rad = Math.max(bw, bh) * 0.65;
@@ -2345,7 +2346,8 @@
         ctx.font = '10px "Share Tech Mono", monospace';
         ctx.fillText(`BIOMETRIC TRACK // CONF ${(bf.score * 100).toFixed(0)}%`, bx + 6, by - 10);
 
-        ctx.restore();
+        ctx.restore(); // restores bounding box save
+        ctx.restore(); // restores outer backendFace save
       } else {
         // Subtle standby reticle in theme color
         const cx = canvas.width * 0.5;
@@ -2647,13 +2649,15 @@
     ];
 
     setInterval(() => {
+      const streamEl = document.getElementById('dmesgStream');
+      if (!streamEl) return;
       const line = kernelLines[Math.floor(Math.random() * kernelLines.length)];
       const el = document.createElement('div');
       el.className = 'truncate opacity-80';
       el.innerText = line;
-      dmesgStream.appendChild(el);
-      if (dmesgStream.children.length > 8) {
-        dmesgStream.removeChild(dmesgStream.children[0]);
+      streamEl.appendChild(el);
+      if (streamEl.children.length > 8) {
+        streamEl.removeChild(streamEl.children[0]);
       }
     }, 900);
 
