@@ -290,9 +290,9 @@
       <div class="relative w-full h-full max-h-[740px] aspect-[16/9] border-2 rounded-xl bg-black overflow-hidden shadow-2xl flex items-center justify-center" style="border-color: var(--panel-border);">
         
         <!-- Live Video Element for Camera feed & MediaPipe fallback -->
-        <img id="liveFeedImg" class="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="Live Camera Feed">
-        <canvas id="viewCanvas" class="absolute inset-0 z-10 w-full h-full pointer-events-none block"></canvas>
-        <canvas id="threeCanvas" class="hidden absolute inset-0 z-20 w-full h-full pointer-events-none"></canvas>
+        <img id="liveFeedImg" class="hidden" alt="Live Camera Feed">
+        <canvas id="viewCanvas" class="w-full h-full object-contain block"></canvas>
+        <canvas id="threeCanvas" class="hidden absolute inset-0 w-full h-full object-contain"></canvas>
 
         <!-- Fixed Tactical Bezel Frame -->
         <div class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
@@ -521,6 +521,12 @@
       <div class="text-cyan-400/80">✦ AERIS Timeline Memory ready. Ask what was seen today.</div>
     </div>
 
+    <form id="chatForm" class="mt-2.5 pt-2 border-t flex gap-1" style="border-color: var(--panel-border);">
+      <input id="chatInput" type="text" placeholder="e.g. When did you see a person?" class="flex-1 bg-black/80 border rounded px-2 py-1 text-[11px] text-purple-200 outline-none" style="border-color: var(--panel-border);">
+      <button type="submit" class="px-3 py-1 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-200 rounded font-bold">ASK</button>
+    </form>
+  </div>
+
   <!-- JSL TRAINING STUDIO & DATASET RECORDER MODAL -->
   <div id="jslStudioModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
     <div class="relative w-full max-w-2xl bg-black/95 border rounded-xl p-5 shadow-2xl flex flex-col space-y-4 max-h-[90vh] overflow-y-auto" style="border-color: var(--panel-border);">
@@ -613,7 +619,7 @@
      */
 
     const AppState = {
-      currentMode: 'OBJECT_DETECT',
+      currentMode: null,
       currentTheme: 'midnight-gold',
       currentFilter: 'NORMAL',
       authorityLevel: 'admin',
@@ -722,6 +728,7 @@
 
     function loopLiveFeed() {
       const nextImg = new Image();
+      nextImg.crossOrigin = "anonymous";
       nextImg.onload = () => {
         currentFrameImg = nextImg;
         if (liveImg) {
@@ -1977,41 +1984,50 @@
 
     // 9. SLM TIMELINE INTERROGATION DRAWER
     function toggleSlmDrawer() {
-      const isOpen = slmDrawer.style.transform === 'translateX(0px)';
-      slmDrawer.style.transform = isOpen ? 'translateX(-450px)' : 'translateX(0px)';
+      const drawer = document.getElementById('slmDrawer');
+      if (!drawer) return;
+      const isOpen = drawer.style.transform === 'translateX(0px)';
+      drawer.style.transform = isOpen ? 'translateX(-450px)' : 'translateX(0px)';
     }
 
-    document.getElementById('chatForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
+    const chatFormEl = document.getElementById('chatForm');
+    if (chatFormEl) {
+      chatFormEl.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chatInput');
+        if (!input) return;
+        const text = input.value.trim();
+        if (!text) return;
 
-      const chatBox = document.getElementById('chatBox');
-      chatBox.innerHTML += `<div class="text-right"><span class="bg-black/60 border px-2.5 py-1 rounded" style="border-color: var(--panel-border); color: var(--accent-secondary);">${text}</span></div>`;
-      input.value = '';
+        const chatBox = document.getElementById('chatBox');
+        if (chatBox) {
+          chatBox.innerHTML += `<div class="text-right"><span class="bg-black/60 border px-2.5 py-1 rounded" style="border-color: var(--panel-border); color: var(--accent-secondary);">${text}</span></div>`;
+        }
+        input.value = '';
 
-      const waitDiv = document.createElement('div');
-      waitDiv.className = 'text-purple-300/80 italic';
-      waitDiv.innerText = 'Interrogating timeline with Qwen2.5...';
-      chatBox.appendChild(waitDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
+        const waitDiv = document.createElement('div');
+        waitDiv.className = 'text-purple-300/80 italic';
+        waitDiv.innerText = 'Interrogating timeline with Qwen2.5...';
+        if (chatBox) {
+          chatBox.appendChild(waitDiv);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
 
-      try {
-        const res = await fetch('/api/ask', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ prompt: text })
-        });
-        const data = await res.json();
-        waitDiv.className = 'text-purple-300';
-        waitDiv.innerText = `✦ ${data.response}`;
-      } catch (err) {
-        waitDiv.className = 'text-red-400';
-        waitDiv.innerText = 'Error interrogating SLM model.';
-      }
-      chatBox.scrollTop = chatBox.scrollHeight;
-    });
+        try {
+          const res = await fetch('/api/ask', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ prompt: text })
+          });
+          const data = await res.json();
+          waitDiv.className = 'text-purple-300';
+          waitDiv.innerText = `✦ ${data.response}`;
+        } catch (err) {
+          waitDiv.className = 'text-red-400';
+          waitDiv.innerText = `Offline: ${err.message}`;
+        }
+      });
+    }
 
     window.downloadJsonFile = function() {
       const blob = new Blob([JSON.stringify(AppState.jsonTelemetryBuffer, null, 2)], { type: 'application/json' });
@@ -2054,9 +2070,38 @@
      * =================================================================================
      */
     function renderImage2MultiSquareDesign(ctx, dets) {
-      if (!dets || dets.length === 0) return;
-
       const colors = getThemeColors();
+      if (!dets || dets.length === 0) {
+        const cx = canvas.width * 0.5;
+        const cy = canvas.height * 0.5;
+        ctx.save();
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([8, 8]);
+        ctx.strokeRect(cx - 120, cy - 70, 240, 140);
+        ctx.setLineDash([]);
+
+        // Tactical corner brackets
+        const bLen = 16;
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        ctx.moveTo(cx - 120, cy - 70 + bLen); ctx.lineTo(cx - 120, cy - 70); ctx.lineTo(cx - 120 + bLen, cy - 70);
+        ctx.moveTo(cx + 120 - bLen, cy - 70); ctx.lineTo(cx + 120, cy - 70); ctx.lineTo(cx + 120, cy - 70 + bLen);
+        ctx.moveTo(cx - 120, cy + 70 - bLen); ctx.lineTo(cx - 120, cy + 70); ctx.lineTo(cx - 120 + bLen, cy + 70);
+        ctx.moveTo(cx + 120 - bLen, cy + 70); ctx.lineTo(cx + 120, cy + 70); ctx.lineTo(cx + 120, cy + 70 - bLen);
+        ctx.stroke();
+
+        ctx.fillStyle = colors.primary;
+        ctx.font = '11px "Share Tech Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('SCANNING FOR TARGET OBJECTS', cx, cy - 6);
+        ctx.fillStyle = colors.secondary;
+        ctx.font = '9px "Share Tech Mono", monospace';
+        ctx.fillText('YOLOV11M ONNX GRAPH ACTIVE // 20.1M PARAMS', cx, cy + 12);
+        ctx.restore();
+        return;
+      }
       const scaleX = canvas.width / 640;
       const scaleY = canvas.height / 480;
 
@@ -2562,7 +2607,7 @@
       const hudW = 280;
       const hudH = 80;
       const hudX = canvas.width - hudW - 16;
-      const hudY = 16;
+      const hudY = 52;
 
       ctx.fillStyle = 'rgba(7, 12, 20, 0.88)';
       ctx.fillRect(hudX, hudY, hudW, hudH);
@@ -2615,12 +2660,28 @@
           if (fpsEl) fpsEl.innerText = Math.round(1000 / (dt || 16.6));
         }
 
-        // Ensure canvas matches its visible element dimensions
-        if (canvas.width === 0 || canvas.height === 0) {
-          resizeCanvas();
+        // Keep canvas resolution synced to visible dimensions
+        if (canvas.clientWidth > 0 && canvas.clientHeight > 0) {
+          if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+            resizeCanvas();
+          }
         }
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const activeFrame = (currentFrameImg && currentFrameImg.complete && currentFrameImg.naturalWidth > 0)
+          ? currentFrameImg
+          : ((liveImg && liveImg.complete && liveImg.naturalWidth > 0) ? liveImg : null);
+
+        if (activeFrame) {
+          ctx.drawImage(activeFrame, 0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = 'rgba(7, 10, 15, 0.22)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else {
+          const colors = getThemeColors();
+          ctx.fillStyle = colors.panelBg;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
         if (AppState.currentMode === 'OBJECT_DETECT') {
           renderImage2MultiSquareDesign(ctx, AppState.liveDetections);
