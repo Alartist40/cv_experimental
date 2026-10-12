@@ -33,10 +33,13 @@ graph TD
 ## 2. Key Features
 
 - **Pathfinder EYE Rebranding & Unified HUD**: Modern industrial HUD with fixed-width telemetry counters, jitter-free latency badges, and clean mode navigation (`OBJECT_RECOGNITION`, `FACIAL_RECOGNITION`, `HAND_GESTURES`, `INTERACTIVE_3D`).
-- **Interactive 3D Holographic CAD Viewport**: Real-time WebGL Three.js multi-component exploded jet engine CAD model directly manipulated via touchless hand gestures (direct orbit rotation, fist-to-palm component disassembly explosion from 0% to 100%, and two-hand distance scaling from 0.5x to 2.5x).
+- **Interactive 3D Holographic CAD Viewport**: Real-time WebGL Three.js multi-component CAD viewport with touchless single-hand and bimanual dual-hand controls:
+  - **Bimanual Dual-Hand Tracking**: Detects both hands simultaneously (`[R]` and `[L]`). Use midpoint tracking for orbit, differential hand angles for continuous Z-axis roll/twist, and inter-wrist distance for intuitive stretch zoom (0.4x to 3.0x).
+  - **Component Explosion & Disassembly**: Smooth radial explosion from 0% to 100% driven by finger extension (fist to open palm).
+  - **Custom CAD Model Ingestion**: Native drag-and-drop or file picker loading of custom `.glb`, `.gltf`, and `.stl` files directly into the holographic viewport with automatic viewport normalization and theme-synchronized wireframe shaders.
 - **Mazzaroth Color Themes**: Instant palette switching across canvas wireframes, anchor crosshairs, typography, and controls with full persistence.
 - **3D Biometric Facial Mesh Reticle**: 468-point 3D facial wireframe mesh tracking head movement and angular pitch/yaw in real time.
-- **Japanese Sign Language (JSL) & Hand CV Dictionary**: Real-time 21-joint skeletal rendering with an interactive sidebar dictionary indicating active and ready gestures.
+- **Japanese Sign Language (JSL) & Hand CV Dictionary**: Real-time dual-hand 21-joint skeletal rendering with an interactive sidebar dictionary indicating active gestures on both hands (`BOTH ACTIVE`, `[R]`, `[L]`).
 - **Decoupled 30 FPS Video Pipeline**: Asynchronous background YOLO inference ensures smooth, lag-free camera playback without video stalls.
 - **Dynamic Lighting Compensation**: Quick-toggle exposure controls (`DARK [▲]`, `NORM`, `BRIGHT [▼]`) to instantly balance challenging indoor or outdoor lighting.
 - **Local Timeline Interrogation**: Natural language timeline querying powered by local Ollama (`qwen2.5:3b-instruct`).
