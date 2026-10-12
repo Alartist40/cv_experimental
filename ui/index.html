@@ -291,8 +291,8 @@
         
         <!-- Live Video Element for Camera feed & MediaPipe fallback -->
         <img id="liveFeedImg" class="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="Live Camera Feed">
-        <canvas id="viewCanvas" class="relative z-10 w-full h-full object-contain block"></canvas>
-        <canvas id="threeCanvas" class="hidden absolute inset-0 z-20 w-full h-full object-contain"></canvas>
+        <canvas id="viewCanvas" class="absolute inset-0 z-10 w-full h-full pointer-events-none block"></canvas>
+        <canvas id="threeCanvas" class="hidden absolute inset-0 z-20 w-full h-full pointer-events-none"></canvas>
 
         <!-- Fixed Tactical Bezel Frame -->
         <div class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
@@ -2603,24 +2603,34 @@
     let frameCounter = 0;
 
     function renderEngine(now) {
-      const dt = now - lastTime;
-      lastTime = now;
-      frameCounter++;
+      try {
+        const dt = now - lastTime;
+        lastTime = now;
+        frameCounter++;
 
-      if (frameCounter % 15 === 0) {
-        document.getElementById('telemetryFps').innerText = Math.round(1000 / (dt || 16.6));
-      }
+        if (frameCounter % 15 === 0) {
+          const fpsEl = document.getElementById('telemetryFps');
+          if (fpsEl) fpsEl.innerText = Math.round(1000 / (dt || 16.6));
+        }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Ensure canvas matches its visible element dimensions
+        if (canvas.width === 0 || canvas.height === 0) {
+          resizeCanvas();
+        }
 
-      if (AppState.currentMode === 'OBJECT_DETECT') {
-        renderImage2MultiSquareDesign(ctx, AppState.liveDetections);
-      } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
-        render3DFaceWiring(ctx);
-      } else if (AppState.currentMode === 'HAND_GESTURE') {
-        renderHandGestureMode(ctx);
-      } else if (AppState.currentMode === 'INTERACTIVE_3D') {
-        renderInteractive3DMode(ctx);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (AppState.currentMode === 'OBJECT_DETECT') {
+          renderImage2MultiSquareDesign(ctx, AppState.liveDetections);
+        } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
+          render3DFaceWiring(ctx);
+        } else if (AppState.currentMode === 'HAND_GESTURE') {
+          renderHandGestureMode(ctx);
+        } else if (AppState.currentMode === 'INTERACTIVE_3D') {
+          renderInteractive3DMode(ctx);
+        }
+      } catch (err) {
+        console.error("RenderEngine loop error:", err);
       }
 
       requestAnimationFrame(renderEngine);
@@ -2647,8 +2657,12 @@
       }
     }, 900);
 
-    window.addEventListener('DOMContentLoaded', async () => {
-      lucide.createIcons();
+    async function initApp() {
+      try {
+        if (window.lucide) lucide.createIcons();
+      } catch (e) {
+        console.warn("Lucide icons init warning:", e);
+      }
       resizeCanvas();
       const savedTheme = localStorage.getItem('aeris-vision-theme') || 'midnight-gold';
       setTheme(savedTheme);
@@ -2696,9 +2710,16 @@
           }
         });
       }
+    }
 
-      requestAnimationFrame(renderEngine);
-    });
+    // Always start renderEngine loop immediately
+    requestAnimationFrame(renderEngine);
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
   </script>
 </body>
 </html>
