@@ -46,11 +46,13 @@ yolo_frame_to_process = None
 yolo_last_results = []
 yolo_last_latency = 0.0
 yolo_running = True
+yolo_target_mode = "OBJECT_DETECT"
 
 def yolo_worker():
-    global yolo_last_results, yolo_last_latency, yolo_frame_to_process
+    global yolo_last_results, yolo_last_latency, yolo_frame_to_process, yolo_target_mode
     while yolo_running:
         frame_copy = None
+        current_target_mode = yolo_target_mode
         with yolo_lock:
             if yolo_frame_to_process is not None:
                 frame_copy = yolo_frame_to_process.copy()
@@ -58,7 +60,13 @@ def yolo_worker():
         if frame_copy is not None:
             t0 = time.time()
             try:
-                results = model(frame_copy, verbose=False, conf=0.45)
+                # Mode-adaptive classes and confidence:
+                # In BIRD_DETECT mode: target specifically class 14 ('bird') with high sensitivity (conf=0.28)
+                # In OBJECT_DETECT mode: general detection with conf=0.45
+                if current_target_mode == "BIRD_DETECT":
+                    results = model(frame_copy, verbose=False, conf=0.28, classes=[14])
+                else:
+                    results = model(frame_copy, verbose=False, conf=0.45)
                 raw_boxes = []
                 raw_confs = []
                 raw_cids = []
@@ -159,7 +167,11 @@ while True:
                 current_mode = new_mode
                 last_gesture = None
                 with yolo_lock:
+                    yolo_target_mode = new_mode
                     yolo_last_results = []
+            else:
+                with yolo_lock:
+                    yolo_target_mode = current_mode
 
         # Read active lighting filter / exposure bias setting from data/lighting_filter.txt
         lighting_mode = "NORMAL"
@@ -215,9 +227,10 @@ while True:
         # TASK ISOLATION: Run ONLY the model selected by the user to save RAM & CPU
         # =========================================================================
 
-        if current_mode == "OBJECT_DETECT":
-            # Mode 1: Real-time Decoupled YOLO (Camera streams at full 30 FPS, worker infers async)
+        if current_mode in ("OBJECT_DETECT", "BIRD_DETECT"):
+            # Real-time Decoupled YOLO (Object Matrix or Avian Bird Detection)
             with yolo_lock:
+                yolo_target_mode = current_mode
                 yolo_frame_to_process = frame
                 detections = list(yolo_last_results)
                 last_latency = yolo_last_latency or 18.0

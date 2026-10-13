@@ -169,6 +169,11 @@
         <i data-lucide="box" class="w-3.5 h-3.5"></i>
         <span class="flex items-center gap-1">INTERACTIVE <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-mono">3D</span></span>
       </button>
+
+      <button id="modeBtnBird" onclick="switchSystemMode('BIRD_DETECT')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="Avian Robotics Tracking & Flight Vector Analysis">
+        <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+        <span class="flex items-center gap-1">BIRD_DETECT <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 font-mono">ROBOT</span></span>
+      </button>
     </div>
 
     <!-- LIGHTING BUTTONS & THEME SELECTOR -->
@@ -602,6 +607,57 @@
           <button onclick="toggleJslStudioModal()" class="w-full py-1 border rounded text-[10px] font-bold flex items-center justify-center gap-1.5 transition hover:brightness-125" style="background-color: rgba(236, 72, 153, 0.15); border-color: var(--accent-primary); color: var(--accent-primary);">
             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
             <span>OPEN JSL TRAINING STUDIO & RECORDER</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 5. BIRD RADAR & ROBOTICS TRACKING CARD -->
+      <div id="birdRadarCard" class="hidden theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono">
+        <div>
+          <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
+            <div class="flex items-center gap-2 text-xs font-bold font-industrial text-amber-400">
+              <i data-lucide="crosshair" class="w-4 h-4"></i>
+              <span>AVIAN ROBOTICS TRACKER</span>
+            </div>
+            <span id="birdCountBadge" class="text-[10px] text-amber-400 font-bold">0 BIRDS</span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div class="p-2 bg-black/60 border rounded flex items-center justify-between" style="border-color: var(--panel-border);">
+              <div>
+                <div class="text-[9px] opacity-70">ROBOTICS CV ENGINE:</div>
+                <div class="font-bold text-xs text-amber-400">YOLOv11 AVIAN SLICE</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[9px] opacity-70">PERIMETER LOCK:</div>
+                <div id="birdPerimeterStatus" class="font-bold text-xs text-emerald-400">CLEAR ZONE</div>
+              </div>
+            </div>
+
+            <!-- Avian Telemetry Matrix -->
+            <div class="text-[10px] opacity-70 font-semibold pt-1">AVIAN TARGET TRACKS:</div>
+            <div id="birdInventoryList" class="space-y-1 text-[11px] max-h-48 overflow-y-auto pr-1" style="color: var(--text-secondary);">
+              <div class="p-2 text-center text-slate-500 italic text-[10px]">Scanning airspace / perimeter for birds...</div>
+            </div>
+
+            <!-- Flight Vector Diagnostics -->
+            <div class="p-2 bg-black/50 border rounded text-[10px] space-y-1" style="border-color: var(--panel-border);">
+              <div class="flex justify-between items-center">
+                <span class="text-slate-300">FLIGHT VECTOR DYNAMICS:</span>
+                <span id="birdVectorMode" class="font-bold text-sky-400">MONITORING</span>
+              </div>
+              <div class="flex justify-between items-center text-slate-400">
+                <span>ESTIMATED PROXIMITY:</span>
+                <span id="birdProximityDist" class="font-bold text-emerald-400 font-mono">SAFE (&gt;5m)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t flex gap-1" style="border-color: var(--panel-border);">
+          <button onclick="toggleBirdDeterrentSimulation()" id="birdDeterrentBtn" class="flex-1 py-1.5 border rounded text-[10px] font-bold text-amber-400 hover:bg-amber-500/20 transition flex items-center justify-center gap-1" style="border-color: var(--accent-primary);">
+            <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+            <span>SIMULATE DETERRENT ACTUATION</span>
           </button>
         </div>
       </div>
@@ -2101,8 +2157,8 @@
         });
       } catch (e) {}
 
-      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'HAND_GESTURE', 'INTERACTIVE_3D'];
-      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnHand', 'modeBtnInteractive'];
+      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'HAND_GESTURE', 'INTERACTIVE_3D', 'BIRD_DETECT'];
+      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnBird'];
 
       modes.forEach((m, idx) => {
         const btn = document.getElementById(btnIds[idx]);
@@ -2123,11 +2179,13 @@
       const bioCard = document.getElementById('biometricSecurityCard');
       const gestCard = document.getElementById('gestureMonitorCard');
       const cadCard = document.getElementById('cadHierarchyCard');
+      const birdCard = document.getElementById('birdRadarCard');
 
       if (objCard) objCard.classList.toggle('hidden', newMode !== 'OBJECT_DETECT');
       if (bioCard) bioCard.classList.toggle('hidden', newMode !== 'FACE_BIOMETRIC');
       if (gestCard) gestCard.classList.toggle('hidden', newMode !== 'HAND_GESTURE');
       if (cadCard) cadCard.classList.toggle('hidden', newMode !== 'INTERACTIVE_3D');
+      if (birdCard) birdCard.classList.toggle('hidden', newMode !== 'BIRD_DETECT');
 
       const threeC = document.getElementById('threeCanvas');
       const cadBtn = document.getElementById('cadUploadBtn');
@@ -2144,6 +2202,16 @@
         document.getElementById('modeCardTitle').innerText = 'OBJECT RECOGNITION MATRIX';
         document.getElementById('modeCardDesc').innerText = 'Aesthetic multi-nested boxes with outer alignment ticks, floating + anchor glyphs, and optical guides matching Image 2.';
         document.getElementById('modePipeline').innerText = 'YOLOv11M ONNX';
+      } else if (newMode === 'BIRD_DETECT') {
+        if (threeC) threeC.classList.add('hidden');
+        if (cadBtn) cadBtn.classList.add('hidden');
+        if (cadSelector) cadSelector.classList.add('hidden');
+        if (cadExplodeBtn) cadExplodeBtn.classList.add('hidden');
+        document.getElementById('activeModeBadge').innerText = 'AVIAN ROBOTICS CV';
+        document.getElementById('trackerDetailText').innerText = 'AVIAN FLIGHT VECTORS • PERIMETER RADAR • DETERRING';
+        document.getElementById('modeCardTitle').innerText = 'AVIAN ROBOTICS DETECTION';
+        document.getElementById('modeCardDesc').innerText = 'Real-time bird detection, flight vector velocity tracking, and robotics perimeter zone defense with automated deterrent actuation.';
+        document.getElementById('modePipeline').innerText = 'YOLOv11 AVIAN SLICE';
       } else if (newMode === 'FACE_BIOMETRIC') {
         if (threeC) threeC.classList.add('hidden');
         if (cadBtn) cadBtn.classList.add('hidden');
@@ -2218,6 +2286,89 @@
       }).join('');
     }
 
+    // Helper: Update Bird Radar & Avian Robotics Telemetry
+    function updateBirdRadarUI(detections) {
+      const birdCount = document.getElementById('birdCountBadge');
+      const listEl = document.getElementById('birdInventoryList');
+      const perimEl = document.getElementById('birdPerimeterStatus');
+      const vectorEl = document.getElementById('birdVectorMode');
+      const distEl = document.getElementById('birdProximityDist');
+
+      const birdDets = (detections || []).filter(d => (d.class || '').toLowerCase() === 'bird');
+      if (birdCount) {
+        birdCount.innerText = `${birdDets.length} BIRD${birdDets.length === 1 ? '' : 'S'}`;
+        birdCount.className = birdDets.length > 0 ? 'text-[10px] text-amber-400 font-bold' : 'text-[10px] text-slate-500 font-bold';
+      }
+
+      if (perimEl) {
+        if (birdDets.length > 0) {
+          perimEl.innerText = 'ALERT: PERIMETER BREACH';
+          perimEl.className = 'font-bold text-xs text-rose-400 animate-pulse';
+        } else {
+          perimEl.innerText = 'CLEAR ZONE';
+          perimEl.className = 'font-bold text-xs text-emerald-400';
+        }
+      }
+
+      if (vectorEl) {
+        vectorEl.innerText = birdDets.length > 0 ? 'CALCULATING FLIGHT HEADING' : 'STANDBY SCAN';
+      }
+
+      if (distEl) {
+        if (birdDets.length > 0) {
+          // Estimate proximity from bounding box height
+          const maxH = Math.max(...birdDets.map(d => Math.abs(d.box[3] - d.box[1])));
+          const estDist = Math.max(0.5, (180.0 / (maxH + 10))).toFixed(1);
+          distEl.innerText = `${estDist}m [PROXIMITY WARNING]`;
+          distEl.className = 'font-bold text-rose-400 font-mono animate-pulse';
+        } else {
+          distEl.innerText = 'SAFE (>5m)';
+          distEl.className = 'font-bold text-emerald-400 font-mono';
+        }
+      }
+
+      if (!listEl) return;
+      if (birdDets.length === 0) {
+        listEl.innerHTML = '<div class="p-2 text-center text-slate-500 italic text-[10px]">Scanning airspace / perimeter for birds...</div>';
+        return;
+      }
+
+      listEl.innerHTML = birdDets.slice(0, 6).map((b, idx) => {
+        const conf = Math.round((b.confidence || 0.85) * 100);
+        const tid = b.track_id !== undefined ? `#B${b.track_id}` : `#B0${idx+1}`;
+        return `
+          <div class="p-1.5 bg-black/60 border rounded flex items-center justify-between" style="border-color: rgba(245, 158, 11, 0.4);">
+            <div class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+              <span class="font-bold text-amber-300 tracking-wide font-mono">${tid}</span>
+              <span class="text-[9px] text-slate-300">AVIAN TARGET</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[9px] text-emerald-400 font-mono font-bold">TRACKED</span>
+              <span class="font-bold text-amber-400 font-mono text-[10px]">${conf}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    let isDeterrentActuated = false;
+    function toggleBirdDeterrentSimulation() {
+      isDeterrentActuated = !isDeterrentActuated;
+      const btn = document.getElementById('birdDeterrentBtn');
+      if (btn) {
+        if (isDeterrentActuated) {
+          btn.innerHTML = '<i data-lucide="volume-2" class="w-3.5 h-3.5"></i><span>ACTUATING: ULTRASONIC + STROBE</span>';
+          btn.className = 'flex-1 py-1.5 border rounded text-[10px] font-bold text-rose-400 bg-rose-500/20 border-rose-400 transition animate-pulse flex items-center justify-center gap-1';
+        } else {
+          btn.innerHTML = '<i data-lucide="bell" class="w-3.5 h-3.5"></i><span>SIMULATE DETERRENT ACTUATION</span>';
+          btn.className = 'flex-1 py-1.5 border rounded text-[10px] font-bold text-amber-400 hover:bg-amber-500/20 transition flex items-center justify-center gap-1';
+          btn.style.borderColor = 'var(--accent-primary)';
+        }
+        lucide.createIcons();
+      }
+    }
+
     // 6. TELEMETRY POLLING LOOP WITH STRICT MODE SEGREGATION
     async function fetchTelemetry() {
       try {
@@ -2232,6 +2383,11 @@
           if (AppState.currentMode === 'OBJECT_DETECT') {
             AppState.liveDetections = data.detections || [];
             updateObjectInventoryUI(AppState.liveDetections);
+            AppState.backendGesture = null;
+            AppState.backendFace = null;
+          } else if (AppState.currentMode === 'BIRD_DETECT') {
+            AppState.liveDetections = data.detections || [];
+            updateBirdRadarUI(AppState.liveDetections);
             AppState.backendGesture = null;
             AppState.backendFace = null;
           } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
@@ -2849,6 +3005,149 @@
 
     /*
      * =================================================================================
+     * RENDER PASS 1B: AVIAN ROBOTICS BIRD RADAR RETICLE & FLIGHT VECTORS
+     * =================================================================================
+     */
+    function renderBirdRadarAndTracks(ctx, dets) {
+      const colors = getThemeColors();
+      const birdDets = (dets || []).filter(d => (d.class || '').toLowerCase() === 'bird');
+
+      if (!birdDets || birdDets.length === 0) {
+        const cx = canvas.width * 0.5;
+        const cy = canvas.height * 0.5;
+        ctx.save();
+
+        // Outer circular perimeter radar ring
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Crosshairs
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - 160, cy); ctx.lineTo(cx + 160, cy);
+        ctx.moveTo(cx, cy - 160); ctx.lineTo(cx, cy + 160);
+        ctx.stroke();
+
+        // Rotating radar sweep line
+        const sweepAngle = (performance.now() * 0.002) % (Math.PI * 2);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(sweepAngle) * 140, cy + Math.sin(sweepAngle) * 140);
+        ctx.stroke();
+
+        ctx.fillStyle = colors.primary;
+        ctx.font = '11px "Share Tech Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('AVIAN ROBOTICS RADAR ACTIVE', cx, cy - 10);
+        ctx.fillStyle = colors.secondary;
+        ctx.font = '9px "Share Tech Mono", monospace';
+        ctx.fillText('SCANNING AIRSPACE // PERIMETER CLEAR', cx, cy + 14);
+
+        ctx.restore();
+        return;
+      }
+
+      const scaleX = canvas.width / 640;
+      const scaleY = canvas.height / 480;
+
+      birdDets.forEach((d, idx) => {
+        const [rawX1, rawY1, rawX2, rawY2] = d.box;
+        const x1 = rawX1 * scaleX;
+        const y1 = rawY1 * scaleY;
+        const x2 = rawX2 * scaleX;
+        const y2 = rawY2 * scaleY;
+        const w = x2 - x1;
+        const h = y2 - y1;
+        const cx = x1 + w * 0.5;
+        const cy = y1 + h * 0.5;
+        const confPercent = Math.round((d.confidence || 0.85) * 100);
+        const tid = d.track_id !== undefined ? `#B${d.track_id}` : `#B0${idx+1}`;
+
+        ctx.save();
+
+        // 1. Tactical Circular Tracking Reticle
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.9)';
+        ctx.lineWidth = 1.6;
+        const r = Math.max(22, Math.max(w, h) * 0.6);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Outer segmented brackets
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 6, -Math.PI * 0.25, Math.PI * 0.25);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 6, Math.PI * 0.75, Math.PI * 1.25);
+        ctx.stroke();
+
+        // 2. Flight Vector Trajectory Arrow (projecting heading)
+        const vectorLen = Math.min(60, r * 1.8);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx, cy - vectorLen);
+        ctx.stroke();
+
+        // Arrow head
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - vectorLen - 6);
+        ctx.lineTo(cx - 5, cy - vectorLen + 2);
+        ctx.lineTo(cx + 5, cy - vectorLen + 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // 3. Avian Identification HUD Pill
+        ctx.font = '10px "Share Tech Mono", monospace';
+        const labelText = `AVIAN LOCK ${tid}`;
+        const confText = `${confPercent}%`;
+        const labelW = ctx.measureText(labelText).width;
+        const confW = ctx.measureText(confText).width;
+        const badgeW = labelW + confW + 20;
+        const badgeH = 18;
+
+        const badgeX = Math.max(4, Math.min(canvas.width - badgeW - 4, cx - badgeW * 0.5));
+        const badgeY = y1 >= badgeH + 12 ? y1 - badgeH - 8 : y2 + 10;
+
+        ctx.fillStyle = 'rgba(10, 15, 25, 0.92)';
+        ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillText(labelText, badgeX + 6, badgeY + 12);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText(confText, badgeX + labelW + 12, badgeY + 12);
+
+        // Velocity telemetry
+        ctx.font = '8px "Share Tech Mono", monospace';
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText(`HEADING: N-32° // VEL: ACTIVE`, badgeX + 6, badgeY + badgeH + 10);
+
+        ctx.restore();
+      });
+    }
+
+    /*
+     * =================================================================================
      * RENDER PASS 2: 3D FACE MESH WIRING (Lively 3D Facial Reticle Following Movement)
      * =================================================================================
      */
@@ -3319,6 +3618,8 @@
 
         if (AppState.currentMode === 'OBJECT_DETECT') {
           renderImage2MultiSquareDesign(ctx, AppState.liveDetections);
+        } else if (AppState.currentMode === 'BIRD_DETECT') {
+          renderBirdRadarAndTracks(ctx, AppState.liveDetections);
         } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
           render3DFaceWiring(ctx);
         } else if (AppState.currentMode === 'HAND_GESTURE') {
