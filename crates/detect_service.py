@@ -145,17 +145,21 @@ while True:
         frame_count += 1
         now = time.time()
 
-        # Check operating mode from data/current_mode.txt every 0.5s
-        if now - last_mode_read_time > 0.5:
+        # Check operating mode from data/current_mode.txt every 0.1s
+        if now - last_mode_read_time > 0.1:
             last_mode_read_time = now
+            new_mode = "OBJECT_DETECT"
             if os.path.exists("data/current_mode.txt"):
                 try:
                     with open("data/current_mode.txt", "r") as mf:
-                        current_mode = mf.read().strip().upper()
+                        new_mode = mf.read().strip().upper()
                 except Exception:
                     pass
-            else:
-                current_mode = "OBJECT_DETECT"
+            if new_mode != current_mode:
+                current_mode = new_mode
+                last_gesture = None
+                with yolo_lock:
+                    yolo_last_results = []
 
         # Read active lighting filter / exposure bias setting from data/lighting_filter.txt
         lighting_mode = "NORMAL"

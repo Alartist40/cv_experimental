@@ -19,9 +19,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <!-- Three.js for Interactive 3D Holographic CAD Viewport -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/STLLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
 
   <style>
     /* =========================================================================
@@ -292,7 +292,7 @@
         <!-- Live Video Element for Camera feed & MediaPipe fallback -->
         <img id="liveFeedImg" class="hidden" alt="Live Camera Feed">
         <canvas id="viewCanvas" class="w-full h-full object-contain block"></canvas>
-        <canvas id="threeCanvas" class="hidden absolute inset-0 w-full h-full object-contain"></canvas>
+        <canvas id="threeCanvas" class="hidden absolute inset-0 w-full h-full object-contain pointer-events-auto cursor-grab active:cursor-grabbing"></canvas>
 
         <!-- Fixed Tactical Bezel Frame -->
         <div class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
@@ -309,12 +309,31 @@
               <div id="activeModeBadge" class="px-2.5 py-0.5 border rounded text-xs font-bold uppercase tracking-wider font-industrial" style="background-color: rgba(0,0,0,0.8); border-color: var(--accent-primary); color: var(--accent-primary);">
                 IMAGE 2 MATRIX
               </div>
+
+              <!-- CAD Model Preset Selector (only in 3D mode) -->
+              <div id="cadModelSelector" class="hidden pointer-events-auto flex items-center bg-black/80 border rounded px-1.5 py-0.5 gap-1.5 text-[11px] font-mono" style="border-color: var(--panel-border);">
+                <i data-lucide="box" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <select id="cadPresetSelect" onchange="selectCadPreset(this.value)" class="bg-black/90 border border-slate-700 rounded px-1 py-0.5 text-[10px] font-bold text-white outline-none cursor-pointer hover:border-amber-400 transition" title="Choose 3D CAD Test Model">
+                  <option value="JET_ENGINE">✈️ TURBOFAN ENGINE</option>
+                  <option value="DRONE">🚁 CYBER DRONE</option>
+                  <option value="ROBOTIC_ARM">🤖 ROBOT ARM</option>
+                  <option value="SATELLITE">🛰️ SATELLITE</option>
+                  <option value="GEARBOX">⚙️ PLANETARY GEARS</option>
+                </select>
+              </div>
+
               <!-- CAD Upload Button (Direct File Ingest) -->
-              <label id="cadUploadBtn" class="hidden pointer-events-auto cursor-pointer px-2.5 py-0.5 border rounded text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 transition" style="background-color: rgba(56, 189, 248, 0.15); border-color: var(--accent-secondary); color: var(--accent-secondary);">
+              <label id="cadUploadBtn" class="hidden pointer-events-auto cursor-pointer px-2 py-0.5 border rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition hover:bg-sky-500/20" style="background-color: rgba(56, 189, 248, 0.15); border-color: var(--accent-secondary); color: var(--accent-secondary);" title="Load custom .glb, .gltf, or .stl CAD model">
                 <i data-lucide="upload" class="w-3 h-3"></i>
-                <span>LOAD CAD (.GLB/.STL)</span>
+                <span>LOAD CAD</span>
                 <input type="file" id="cadFileInput" accept=".glb,.gltf,.stl" class="hidden" onchange="handleCadFileUpload(event)">
               </label>
+
+              <!-- Exploded Disassembly Toggle Button -->
+              <button id="cadExplodeToggleBtn" onclick="toggleCadExplode()" class="hidden pointer-events-auto px-2 py-0.5 border rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition hover:bg-amber-500/20" style="background-color: rgba(245, 158, 11, 0.15); border-color: var(--accent-primary); color: var(--accent-primary);" title="Toggle Exploded Assembly">
+                <i data-lucide="layers" class="w-3 h-3"></i>
+                <span id="cadExplodeBtnText">EXPLODE</span>
+              </button>
             </div>
 
             <div class="flex items-center gap-1.5">
@@ -347,25 +366,63 @@
     <!-- RIGHT SIDEBAR: BIOMETRIC CLEARANCE & GESTURE STATUS -->
     <aside class="col-span-12 lg:col-span-3 flex flex-col justify-between space-y-2.5 overflow-hidden">
       
-      <!-- Biometric Security Authority Clearance Card -->
-      <div class="theme-card p-3 rounded-lg space-y-2.5">
-        <div class="flex items-center justify-between border-b pb-1.5" style="border-color: var(--panel-border);">
-          <div class="flex items-center gap-2 text-xs font-bold font-industrial" style="color: var(--accent-primary);">
-            <i data-lucide="shield-check" class="w-4 h-4"></i>
-            <span>3D BIOMETRIC LOCK</span>
+      <!-- 1. OBJECT RECOGNITION INVENTORY CARD -->
+      <div id="objectDetectionCard" class="theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono">
+        <div>
+          <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
+            <div class="flex items-center gap-2 text-xs font-bold font-industrial" style="color: var(--accent-primary);">
+              <i data-lucide="scan" class="w-4 h-4"></i>
+              <span>OBJECT INVENTORY & TRACKS</span>
+            </div>
+            <span id="objectCountBadge" class="text-[10px] text-emerald-400 font-bold">0 TARGETS</span>
           </div>
-          <span id="authStatusPill" class="text-xs font-bold font-mono text-emerald-400">STANDBY</span>
+
+          <div class="space-y-1.5">
+            <div class="p-2 bg-black/60 border rounded flex items-center justify-between text-xs" style="border-color: var(--panel-border);">
+              <div>
+                <div class="text-[9px] opacity-70">GRAPH STATUS:</div>
+                <div class="font-bold text-xs text-emerald-400">YOLOv11M ACTIVE</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[9px] opacity-70">TRACKER:</div>
+                <div class="font-bold text-xs" style="color: var(--accent-secondary);">BYTETRACK PERSISTENT</div>
+              </div>
+            </div>
+
+            <div class="text-[10px] opacity-70 font-semibold pt-1">LIVE DETECTIONS MATRIX:</div>
+            <div id="objectInventoryList" class="space-y-1 text-[11px] max-h-56 overflow-y-auto pr-1" style="color: var(--text-secondary);">
+              <div class="p-2 text-center text-slate-500 italic text-[10px]">Awaiting target objects in viewport...</div>
+            </div>
+          </div>
         </div>
 
-        <div class="flex items-center gap-3 pt-1">
-          <div class="relative w-12 h-12 border-2 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-[10px]" style="border-color: var(--accent-secondary); color: var(--accent-secondary); background-color: rgba(0,0,0,0.4);">
-            3D<br>MESH
+        <div class="p-2 bg-black/40 border rounded text-[10px] flex items-center justify-between" style="border-color: var(--panel-border); color: var(--text-muted);">
+          <span>CONFIDENCE THRESHOLD:</span>
+          <span class="font-bold text-amber-400">45% [ACTIVE]</span>
+        </div>
+      </div>
+
+      <!-- 2. BIOMETRIC SECURITY CLEARANCE CARD -->
+      <div id="biometricSecurityCard" class="hidden theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono space-y-2.5">
+        <div>
+          <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
+            <div class="flex items-center gap-2 text-xs font-bold font-industrial" style="color: var(--accent-primary);">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              <span>3D BIOMETRIC LOCK</span>
+            </div>
+            <span id="authStatusPill" class="text-xs font-bold font-mono text-emerald-400">STANDBY</span>
           </div>
 
-          <div class="space-y-0.5 text-xs font-mono leading-tight">
-            <div class="font-bold font-industrial" id="subjectName" style="color: var(--accent-secondary);">OPERATOR: STANDBY</div>
-            <div style="color: var(--text-secondary);">ID: <span id="subjectId">#WAITING_SCAN</span></div>
-            <div style="color: var(--text-muted);">ROLE: <span id="subjectStatus" class="font-bold text-amber-400">OPERATOR</span></div>
+          <div class="flex items-center gap-3 pt-1">
+            <div class="relative w-12 h-12 border-2 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-[10px]" style="border-color: var(--accent-secondary); color: var(--accent-secondary); background-color: rgba(0,0,0,0.4);">
+              3D<br>MESH
+            </div>
+
+            <div class="space-y-0.5 text-xs font-mono leading-tight">
+              <div class="font-bold font-industrial" id="subjectName" style="color: var(--accent-secondary);">OPERATOR: STANDBY</div>
+              <div style="color: var(--text-secondary);">ID: <span id="subjectId">#WAITING_SCAN</span></div>
+              <div style="color: var(--text-muted);">ROLE: <span id="subjectStatus" class="font-bold text-amber-400">OPERATOR</span></div>
+            </div>
           </div>
         </div>
 
@@ -389,8 +446,77 @@
         </div>
       </div>
 
-      <!-- Real-Time Tracker Output / Gesture Monitor -->
-      <div id="gestureMonitorCard" class="theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono">
+      <!-- 3. 3D CAD HOLOGRAPHIC HIERARCHY CARD -->
+      <div id="cadHierarchyCard" class="hidden theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono">
+        <div>
+          <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
+            <div class="flex items-center gap-2 text-xs font-bold font-industrial text-emerald-400">
+              <i data-lucide="box" class="w-4 h-4"></i>
+              <span>3D CAD HIERARCHY & CONTROLS</span>
+            </div>
+            <span id="cadPartsCountBadge" class="text-[10px] text-sky-400 font-bold">24 PARTS</span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <!-- Active Model Card -->
+            <div class="p-2 bg-black/60 border rounded flex items-center justify-between" style="border-color: var(--panel-border);">
+              <div>
+                <div class="text-[9px] opacity-70">LOADED 3D CAD MODEL:</div>
+                <div id="cadActiveModelName" class="font-bold text-xs" style="color: var(--accent-primary);">TURBOFAN JET ENGINE</div>
+              </div>
+              <div class="w-8 h-8 rounded border flex items-center justify-center text-emerald-400" style="border-color: var(--panel-border); background-color: rgba(16, 185, 129, 0.1);">
+                <i data-lucide="layers" class="w-4 h-4"></i>
+              </div>
+            </div>
+
+            <!-- Exploded View Slider -->
+            <div class="p-2 bg-black/60 border rounded space-y-1.5" style="border-color: var(--panel-border);">
+              <div class="flex justify-between items-center text-[10px]">
+                <span class="text-slate-300 font-bold">EXPLODED DISASSEMBLY:</span>
+                <span id="cadExplodePercentDisp" class="font-bold text-amber-400">0%</span>
+              </div>
+              <input type="range" id="cadExplodeSlider" min="0" max="100" value="0" oninput="setCadExplodeValue(this.value)" class="w-full h-1.5 bg-black/80 rounded appearance-none cursor-pointer accent-amber-400">
+            </div>
+
+            <!-- Gesture Control Guide -->
+            <div class="text-[10px] opacity-70 font-semibold pt-0.5">3D INTERACTION MODES:</div>
+            <div class="space-y-1 text-[10px]" style="color: var(--text-secondary);">
+              <div class="flex items-center justify-between p-1 bg-black/30 rounded border border-transparent">
+                <span>🤏 1-HAND PINCH / DRAG</span>
+                <span class="font-bold text-sky-400">3D ORBIT</span>
+              </div>
+              <div class="flex items-center justify-between p-1 bg-black/30 rounded border border-transparent">
+                <span>👐 2-HAND ROLL & TILT</span>
+                <span class="font-bold text-emerald-400">AXIAL ROLL</span>
+              </div>
+              <div class="flex items-center justify-between p-1 bg-black/30 rounded border border-transparent">
+                <span>📏 2-HAND STRETCH</span>
+                <span class="font-bold text-amber-400">SCALE ZOOM</span>
+              </div>
+              <div class="flex items-center justify-between p-1 bg-black/30 rounded border border-transparent">
+                <span>🖐️ OPEN PALM HOLD</span>
+                <span class="font-bold text-purple-400">EXPLODE</span>
+              </div>
+              <div class="flex items-center justify-between p-1 bg-black/30 rounded border border-transparent">
+                <span>🖱️ MOUSE DRAG / WHEEL</span>
+                <span class="font-bold text-slate-300">MANUAL</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t flex gap-1" style="border-color: var(--panel-border);">
+          <button onclick="toggleCadExplode()" class="flex-1 py-1 border rounded text-[10px] font-bold text-amber-400 hover:bg-amber-500/20 transition" style="border-color: var(--accent-primary);">
+            TOGGLE EXPLODE
+          </button>
+          <button onclick="resetCadView()" class="px-2.5 py-1 border rounded text-[10px] font-bold text-slate-300 hover:bg-white/10 transition" style="border-color: var(--panel-border);">
+            RESET
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. GESTURE DICTIONARY & TELEMETRY CARD -->
+      <div id="gestureMonitorCard" class="hidden theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono">
         <div>
           <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
             <div class="flex items-center gap-2 text-xs font-bold font-industrial" style="color: var(--accent-secondary);">
@@ -907,6 +1033,11 @@
     }
 
     function onHandResults(results) {
+      if (AppState.currentMode !== 'HAND_GESTURE' && AppState.currentMode !== 'INTERACTIVE_3D') {
+        AppState.detectedHandLandmarks = null;
+        AppState.detectedHands = [];
+        return;
+      }
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         AppState.detectedHandLandmarks = null;
         AppState.detectedHands = [];
@@ -965,6 +1096,9 @@
     let threeTargetExplode = 0.0;
     let threeIsPinching = false;
     let threeLastPinchPos = null;
+    let threeIsMouseDown = false;
+    let threeMouseLastX = 0, threeMouseLastY = 0;
+    let active3dModelTitle = "TURBOFAN JET ENGINE";
 
     function initInteractive3D() {
       if (threeRenderer) return;
@@ -980,23 +1114,141 @@
       threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
       // Lighting
-      const amb = new THREE.AmbientLight(0xffffff, 0.85);
+      const amb = new THREE.AmbientLight(0xffffff, 0.9);
       threeScene.add(amb);
-      const dir = new THREE.DirectionalLight(0xffffff, 2.0);
+      const dir = new THREE.DirectionalLight(0xffffff, 2.2);
       dir.position.set(4, 5, 5);
       threeScene.add(dir);
 
-      const rim = new THREE.DirectionalLight(0x38bdf8, 1.5);
+      const rim = new THREE.DirectionalLight(0x38bdf8, 1.8);
       rim.position.set(-4, -3, -2);
       threeScene.add(rim);
 
-      buildDefaultJetEngine();
+      const bottomLight = new THREE.DirectionalLight(0x10b981, 0.8);
+      bottomLight.position.set(0, -4, 2);
+      threeScene.add(bottomLight);
+
+      threeEngineGroup = new THREE.Group();
       threeScene.add(threeEngineGroup);
+
+      setupThreeMouseControls(tCanvas);
+      loadPresetModel(AppState.active3dPreset || 'JET_ENGINE');
+    }
+
+    function setupThreeMouseControls(c) {
+      if (!c) return;
+      c.addEventListener('pointerdown', (e) => {
+        threeIsMouseDown = true;
+        threeMouseLastX = e.clientX;
+        threeMouseLastY = e.clientY;
+      });
+      window.addEventListener('pointermove', (e) => {
+        if (!threeIsMouseDown) return;
+        const dx = e.clientX - threeMouseLastX;
+        const dy = e.clientY - threeMouseLastY;
+        threeMouseLastX = e.clientX;
+        threeMouseLastY = e.clientY;
+        threeTargetRotY += dx * 0.009;
+        threeTargetRotX += dy * 0.009;
+      });
+      window.addEventListener('pointerup', () => {
+        threeIsMouseDown = false;
+      });
+      c.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.08 : -0.08;
+        threeTargetScale = Math.max(0.3, Math.min(3.5, threeTargetScale + delta));
+      }, { passive: false });
+      c.addEventListener('dblclick', () => {
+        toggleCadExplode();
+      });
+    }
+
+    function toggleCadExplode() {
+      threeTargetExplode = threeTargetExplode > 0.4 ? 0.0 : 1.0;
+      const btn = document.getElementById('cadExplodeBtnText');
+      if (btn) btn.innerText = threeTargetExplode > 0.4 ? 'ASSEMBLE' : 'EXPLODE';
+      const slider = document.getElementById('cadExplodeSlider');
+      if (slider) slider.value = Math.round(threeTargetExplode * 100);
+      const disp = document.getElementById('cadExplodePercentDisp');
+      if (disp) disp.innerText = `${Math.round(threeTargetExplode * 100)}%`;
+    }
+
+    function setCadExplodeValue(val) {
+      const floatVal = Math.max(0, Math.min(100, parseFloat(val))) / 100.0;
+      threeTargetExplode = floatVal;
+      const disp = document.getElementById('cadExplodePercentDisp');
+      if (disp) disp.innerText = `${Math.round(floatVal * 100)}%`;
+      const btn = document.getElementById('cadExplodeBtnText');
+      if (btn) btn.innerText = floatVal > 0.4 ? 'ASSEMBLE' : 'EXPLODE';
+    }
+
+    function resetCadView() {
+      threeTargetRotX = 0;
+      threeTargetRotY = 0;
+      threeTargetScale = 1.0;
+      threeTargetExplode = 0.0;
+      const slider = document.getElementById('cadExplodeSlider');
+      if (slider) slider.value = 0;
+      const disp = document.getElementById('cadExplodePercentDisp');
+      if (disp) disp.innerText = '0%';
+      const btn = document.getElementById('cadExplodeBtnText');
+      if (btn) btn.innerText = 'EXPLODE';
+    }
+
+    function selectCadPreset(presetName) {
+      AppState.active3dPreset = presetName;
+      loadPresetModel(presetName);
+    }
+
+    function loadPresetModel(presetName) {
+      if (!threeEngineGroup || !threeScene) initInteractive3D();
+      while (threeEngineGroup.children.length > 0) {
+        threeEngineGroup.remove(threeEngineGroup.children[0]);
+      }
+      threeExplodedMeshes = [];
+      threeTargetRotX = 0;
+      threeTargetRotY = 0;
+      threeTargetScale = 1.0;
+      threeTargetExplode = 0.0;
+      AppState.customModelLoaded = false;
+      AppState.customModelName = null;
+
+      const btn = document.getElementById('cadExplodeBtnText');
+      if (btn) btn.innerText = 'EXPLODE';
+      const slider = document.getElementById('cadExplodeSlider');
+      if (slider) slider.value = 0;
+      const disp = document.getElementById('cadExplodePercentDisp');
+      if (disp) disp.innerText = '0%';
+      const sel = document.getElementById('cadPresetSelect');
+      if (sel && sel.value !== presetName) sel.value = presetName;
+
+      if (presetName === 'JET_ENGINE') {
+        buildDefaultJetEngine();
+        active3dModelTitle = "TURBOFAN JET ENGINE";
+      } else if (presetName === 'DRONE') {
+        buildCyberDrone();
+        active3dModelTitle = "CYBER QUADCOPTER DRONE";
+      } else if (presetName === 'ROBOTIC_ARM') {
+        buildRoboticArm();
+        active3dModelTitle = "6-DOF ROBOTIC MANIPULATOR";
+      } else if (presetName === 'SATELLITE') {
+        buildOrbitalSatellite();
+        active3dModelTitle = "ORBITAL COMMS SATELLITE";
+      } else if (presetName === 'GEARBOX') {
+        buildPlanetaryGearbox();
+        active3dModelTitle = "PLANETARY GEARBOX MATRIX";
+      }
+      updateThreeThemeColors();
+
+      const nameEl = document.getElementById('cadActiveModelName');
+      if (nameEl) nameEl.innerText = active3dModelTitle;
+      const partsEl = document.getElementById('cadPartsCountBadge');
+      if (partsEl) partsEl.innerText = `${threeExplodedMeshes.length} PARTS`;
     }
 
     function buildDefaultJetEngine() {
       if (!threeEngineGroup) return;
-      // Clear previous children
       while (threeEngineGroup.children.length > 0) {
         threeEngineGroup.remove(threeEngineGroup.children[0]);
       }
@@ -1065,9 +1317,311 @@
       cone.position.x = 1.35;
       threeEngineGroup.add(cone);
       threeExplodedMeshes.push({ mesh: cone, origX: 1.35, origY: 0, origZ: 0, dirX: 1.2, dirY: 0, dirZ: 0 });
+    }
 
-      AppState.customModelLoaded = false;
-      AppState.customModelName = null;
+    function buildCyberDrone() {
+      if (!threeEngineGroup) return;
+      while (threeEngineGroup.children.length > 0) {
+        threeEngineGroup.remove(threeEngineGroup.children[0]);
+      }
+      threeExplodedMeshes = [];
+
+      const colors = getThemeColors();
+      const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0xf59e0b;
+      const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
+      const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
+
+      // 1. Central Core Fuselage
+      const bodyGeo = new THREE.BoxGeometry(0.8, 0.22, 0.8);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.85, roughness: 0.25, wireframe: false });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      threeEngineGroup.add(body);
+      threeExplodedMeshes.push({ mesh: body, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: 0 });
+
+      // 2. Top Avionics Dome
+      const domeGeo = new THREE.CylinderGeometry(0.24, 0.32, 0.16, 16);
+      const domeMat = new THREE.MeshStandardMaterial({ color: primaryHex, wireframe: true });
+      const dome = new THREE.Mesh(domeGeo, domeMat);
+      dome.position.y = 0.19;
+      threeEngineGroup.add(dome);
+      threeExplodedMeshes.push({ mesh: dome, origX: 0, origY: 0.19, origZ: 0, dirX: 0, dirY: 0.8, dirZ: 0 });
+
+      // 3. Front Gimbal Camera Pod
+      const camGeo = new THREE.SphereGeometry(0.16, 16, 16);
+      const camMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.9, roughness: 0.1 });
+      const cam = new THREE.Mesh(camGeo, camMat);
+      cam.position.set(0, -0.12, 0.46);
+      threeEngineGroup.add(cam);
+      threeExplodedMeshes.push({ mesh: cam, origX: 0, origY: -0.12, origZ: 0.46, dirX: 0, dirY: -0.6, dirZ: 0.8 });
+
+      // 4. Four Diagonal Carbon Fiber Rotor Arms & Propellers
+      const armAngles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
+      armAngles.forEach((ang, idx) => {
+        const armLen = 1.15;
+        const armGeo = new THREE.CylinderGeometry(0.04, 0.04, armLen, 12);
+        const armMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.7, roughness: 0.3 });
+        const arm = new THREE.Mesh(armGeo, armMat);
+        const cosA = Math.cos(ang);
+        const sinA = Math.sin(ang);
+        const armDist = armLen * 0.5 + 0.15;
+        arm.position.set(cosA * armDist, 0, sinA * armDist);
+        arm.rotation.z = -Math.PI / 2;
+        arm.rotation.y = -ang;
+        threeEngineGroup.add(arm);
+        threeExplodedMeshes.push({ mesh: arm, origX: arm.position.x, origY: 0, origZ: arm.position.z, dirX: cosA * 0.7, dirY: 0, dirZ: sinA * 0.7 });
+
+        // Motor Bell
+        const motorGeo = new THREE.CylinderGeometry(0.13, 0.13, 0.14, 16);
+        const motorMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.9, roughness: 0.2 });
+        const motor = new THREE.Mesh(motorGeo, motorMat);
+        const tipX = cosA * (armLen + 0.15);
+        const tipZ = sinA * (armLen + 0.15);
+        motor.position.set(tipX, 0.08, tipZ);
+        threeEngineGroup.add(motor);
+        threeExplodedMeshes.push({ mesh: motor, origX: tipX, origY: 0.08, origZ: tipZ, dirX: cosA * 0.9, dirY: 0.2, dirZ: sinA * 0.9 });
+
+        // Aerodynamic Propeller
+        const propGeo = new THREE.BoxGeometry(0.68, 0.02, 0.08);
+        const propMat = new THREE.MeshStandardMaterial({ color: altHex, wireframe: true });
+        const prop = new THREE.Mesh(propGeo, propMat);
+        prop.position.set(tipX, 0.18, tipZ);
+        prop.rotation.y = idx * (Math.PI / 4);
+        threeEngineGroup.add(prop);
+        threeExplodedMeshes.push({ mesh: prop, origX: tipX, origY: 0.18, origZ: tipZ, dirX: cosA * 0.9, dirY: 0.8, dirZ: sinA * 0.9 });
+      });
+
+      // 5. Landing Skids
+      [-0.32, 0.32].forEach(sx => {
+        const skidGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.9, 12);
+        const skidMat = new THREE.MeshStandardMaterial({ color: primaryHex, wireframe: false });
+        const skid = new THREE.Mesh(skidGeo, skidMat);
+        skid.position.set(sx, -0.22, 0);
+        skid.rotation.x = Math.PI / 2;
+        threeEngineGroup.add(skid);
+        threeExplodedMeshes.push({ mesh: skid, origX: sx, origY: -0.22, origZ: 0, dirX: sx > 0 ? 0.5 : -0.5, dirY: -0.6, dirZ: 0 });
+      });
+    }
+
+    function buildRoboticArm() {
+      if (!threeEngineGroup) return;
+      while (threeEngineGroup.children.length > 0) {
+        threeEngineGroup.remove(threeEngineGroup.children[0]);
+      }
+      threeExplodedMeshes = [];
+
+      const colors = getThemeColors();
+      const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0xf59e0b;
+      const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
+      const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
+
+      // 1. Turntable Pedestal Base
+      const baseGeo = new THREE.CylinderGeometry(0.68, 0.78, 0.24, 32);
+      const baseMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.85, roughness: 0.25, wireframe: false });
+      const base = new THREE.Mesh(baseGeo, baseMat);
+      base.position.y = -0.9;
+      threeEngineGroup.add(base);
+      threeExplodedMeshes.push({ mesh: base, origX: 0, origY: -0.9, origZ: 0, dirX: 0, dirY: -0.4, dirZ: 0 });
+
+      // 2. Rotating Shoulder Turret
+      const turretGeo = new THREE.CylinderGeometry(0.42, 0.45, 0.34, 24);
+      const turretMat = new THREE.MeshStandardMaterial({ color: primaryHex, wireframe: true });
+      const turret = new THREE.Mesh(turretGeo, turretMat);
+      turret.position.y = -0.62;
+      threeEngineGroup.add(turret);
+      threeExplodedMeshes.push({ mesh: turret, origX: 0, origY: -0.62, origZ: 0, dirX: 0, dirY: -0.1, dirZ: 0 });
+
+      // 3. Lower Spar Arm (Angled)
+      const arm1Geo = new THREE.BoxGeometry(0.18, 1.1, 0.15);
+      const arm1Mat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.8, roughness: 0.3 });
+      const arm1 = new THREE.Mesh(arm1Geo, arm1Mat);
+      arm1.position.set(0.15, -0.05, 0.1);
+      arm1.rotation.z = -0.35;
+      threeEngineGroup.add(arm1);
+      threeExplodedMeshes.push({ mesh: arm1, origX: arm1.position.x, origY: -0.05, origZ: 0.1, dirX: 0.4, dirY: 0.2, dirZ: 0.2 });
+
+      // 4. Elbow Actuator Pivot
+      const elbowGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.36, 20);
+      const elbowMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.9, roughness: 0.15, wireframe: false });
+      const elbow = new THREE.Mesh(elbowGeo, elbowMat);
+      elbow.position.set(0.35, 0.45, 0.1);
+      elbow.rotation.x = Math.PI / 2;
+      threeEngineGroup.add(elbow);
+      threeExplodedMeshes.push({ mesh: elbow, origX: 0.35, origY: 0.45, origZ: 0.1, dirX: 0.6, dirY: 0.5, dirZ: 0 });
+
+      // 5. Forearm Spar
+      const arm2Geo = new THREE.CylinderGeometry(0.12, 0.15, 0.95, 16);
+      const arm2Mat = new THREE.MeshStandardMaterial({ color: primaryHex, wireframe: true });
+      const arm2 = new THREE.Mesh(arm2Geo, arm2Mat);
+      arm2.position.set(0.08, 0.88, 0.1);
+      arm2.rotation.z = 0.55;
+      threeEngineGroup.add(arm2);
+      threeExplodedMeshes.push({ mesh: arm2, origX: arm2.position.x, origY: 0.88, origZ: 0.1, dirX: 0.3, dirY: 0.8, dirZ: 0.2 });
+
+      // 6. Wrist Swivel Assembly
+      const wristGeo = new THREE.SphereGeometry(0.16, 16, 16);
+      const wristMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.85, roughness: 0.2 });
+      const wrist = new THREE.Mesh(wristGeo, wristMat);
+      wrist.position.set(-0.25, 1.25, 0.1);
+      threeEngineGroup.add(wrist);
+      threeExplodedMeshes.push({ mesh: wrist, origX: -0.25, origY: 1.25, origZ: 0.1, dirX: -0.3, dirY: 1.1, dirZ: 0.2 });
+
+      // 7. Gripper Tool Flange & Claws
+      const clawBaseGeo = new THREE.BoxGeometry(0.28, 0.08, 0.14);
+      const clawBaseMat = new THREE.MeshStandardMaterial({ color: altHex, wireframe: false });
+      const clawBase = new THREE.Mesh(clawBaseGeo, clawBaseMat);
+      clawBase.position.set(-0.35, 1.42, 0.1);
+      threeEngineGroup.add(clawBase);
+      threeExplodedMeshes.push({ mesh: clawBase, origX: -0.35, origY: 1.42, origZ: 0.1, dirX: -0.5, dirY: 1.3, dirZ: 0 });
+
+      // Left & Right Gripper Fingers
+      [-0.1, 0.1].forEach(gx => {
+        const fingerGeo = new THREE.BoxGeometry(0.05, 0.25, 0.08);
+        const fingerMat = new THREE.MeshStandardMaterial({ color: primaryHex, wireframe: true });
+        const finger = new THREE.Mesh(fingerGeo, fingerMat);
+        const fx = -0.35 + gx;
+        finger.position.set(fx, 1.56, 0.1);
+        threeEngineGroup.add(finger);
+        threeExplodedMeshes.push({ mesh: finger, origX: fx, origY: 1.56, origZ: 0.1, dirX: gx > 0 ? 0.3 : -0.8, dirY: 1.5, dirZ: 0 });
+      });
+    }
+
+    function buildOrbitalSatellite() {
+      if (!threeEngineGroup) return;
+      while (threeEngineGroup.children.length > 0) {
+        threeEngineGroup.remove(threeEngineGroup.children[0]);
+      }
+      threeExplodedMeshes = [];
+
+      const colors = getThemeColors();
+      const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0xf59e0b;
+      const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
+      const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
+
+      // 1. Hexagonal Bus Core
+      const busGeo = new THREE.CylinderGeometry(0.58, 0.58, 1.15, 6);
+      const busMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.85, roughness: 0.25, wireframe: false });
+      const bus = new THREE.Mesh(busGeo, busMat);
+      threeEngineGroup.add(bus);
+      threeExplodedMeshes.push({ mesh: bus, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: 0 });
+
+      // 2. Gold MLI Thermal Foil Shield Band
+      const foilGeo = new THREE.CylinderGeometry(0.61, 0.61, 0.35, 6);
+      const foilMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.95, roughness: 0.15, wireframe: true });
+      const foil = new THREE.Mesh(foilGeo, foilMat);
+      threeEngineGroup.add(foil);
+      threeExplodedMeshes.push({ mesh: foil, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0.4, dirZ: 0 });
+
+      // 3. High-Gain Parabolic Communications Dish
+      const dishGeo = new THREE.SphereGeometry(0.58, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.45);
+      const dishMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.8, roughness: 0.2, wireframe: true, side: THREE.DoubleSide });
+      const dish = new THREE.Mesh(dishGeo, dishMat);
+      dish.position.set(0, 0.2, 0.7);
+      dish.rotation.x = Math.PI * 0.4;
+      threeEngineGroup.add(dish);
+      threeExplodedMeshes.push({ mesh: dish, origX: 0, origY: 0.2, origZ: 0.7, dirX: 0, dirY: 0.3, dirZ: 1.0 });
+
+      // Antenna Feed Horn
+      const hornGeo = new THREE.CylinderGeometry(0.03, 0.07, 0.4, 12);
+      const hornMat = new THREE.MeshStandardMaterial({ color: altHex, wireframe: false });
+      const horn = new THREE.Mesh(hornGeo, hornMat);
+      horn.position.set(0, 0.32, 0.9);
+      horn.rotation.x = Math.PI * 0.4;
+      threeEngineGroup.add(horn);
+      threeExplodedMeshes.push({ mesh: horn, origX: 0, origY: 0.32, origZ: 0.9, dirX: 0, dirY: 0.4, dirZ: 1.3 });
+
+      // 4. Dual Photovoltaic Solar Arrays (Left & Right)
+      [-1, 1].forEach((dir) => {
+        // Boom Spar
+        const boomGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.5, 12);
+        const boomMat = new THREE.MeshStandardMaterial({ color: secondaryHex });
+        const boom = new THREE.Mesh(boomGeo, boomMat);
+        boom.position.set(dir * 0.75, 0, 0);
+        boom.rotation.z = Math.PI / 2;
+        threeEngineGroup.add(boom);
+        threeExplodedMeshes.push({ mesh: boom, origX: dir * 0.75, origY: 0, origZ: 0, dirX: dir * 0.6, dirY: 0, dirZ: 0 });
+
+        // 3 Photovoltaic Panels
+        for (let p = 0; p < 3; p++) {
+          const pGeo = new THREE.BoxGeometry(0.6, 0.02, 0.42);
+          const pMat = new THREE.MeshStandardMaterial({ color: p % 2 === 0 ? secondaryHex : altHex, wireframe: true });
+          const panel = new THREE.Mesh(pGeo, pMat);
+          const px = dir * (1.25 + p * 0.65);
+          panel.position.set(px, 0, 0);
+          threeEngineGroup.add(panel);
+          threeExplodedMeshes.push({ mesh: panel, origX: px, origY: 0, origZ: 0, dirX: dir * (0.8 + p * 0.45), dirY: 0, dirZ: 0 });
+        }
+      });
+
+      // 5. Nadir Sensor Lens Suite at Base
+      const sensorGeo = new THREE.CylinderGeometry(0.18, 0.24, 0.3, 20);
+      const sensorMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.9, roughness: 0.2 });
+      const sensor = new THREE.Mesh(sensorGeo, sensorMat);
+      sensor.position.y = -0.72;
+      threeEngineGroup.add(sensor);
+      threeExplodedMeshes.push({ mesh: sensor, origX: 0, origY: -0.72, origZ: 0, dirX: 0, dirY: -0.9, dirZ: 0 });
+    }
+
+    function buildPlanetaryGearbox() {
+      if (!threeEngineGroup) return;
+      while (threeEngineGroup.children.length > 0) {
+        threeEngineGroup.remove(threeEngineGroup.children[0]);
+      }
+      threeExplodedMeshes = [];
+
+      const colors = getThemeColors();
+      const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0xf59e0b;
+      const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
+      const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
+
+      // 1. Central Drive Input Shaft
+      const shaftGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.8, 24);
+      const shaftMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.85, roughness: 0.25 });
+      const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+      shaft.rotation.x = Math.PI / 2;
+      threeEngineGroup.add(shaft);
+      threeExplodedMeshes.push({ mesh: shaft, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: -0.9 });
+
+      // 2. Central Sun Gear
+      const sunGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.3, 24);
+      const sunMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.9, roughness: 0.2, wireframe: true });
+      const sun = new THREE.Mesh(sunGeo, sunMat);
+      sun.rotation.x = Math.PI / 2;
+      threeEngineGroup.add(sun);
+      threeExplodedMeshes.push({ mesh: sun, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: -0.6 });
+
+      // 3. Three Orbiting Planet Gears
+      const orbitR = 0.65;
+      for (let i = 0; i < 3; i++) {
+        const ang = (i / 3) * Math.PI * 2;
+        const px = Math.cos(ang) * orbitR;
+        const py = Math.sin(ang) * orbitR;
+        const planetGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.28, 20);
+        const planetMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.8, roughness: 0.3, wireframe: false });
+        const planet = new THREE.Mesh(planetGeo, planetMat);
+        planet.position.set(px, py, 0);
+        planet.rotation.x = Math.PI / 2;
+        threeEngineGroup.add(planet);
+        threeExplodedMeshes.push({ mesh: planet, origX: px, origY: py, origZ: 0, dirX: Math.cos(ang) * 0.9, dirY: Math.sin(ang) * 0.9, dirZ: 0 });
+      }
+
+      // 4. Planet Carrier Triangular Plates (Front & Back)
+      [-0.24, 0.24].forEach((cz) => {
+        const carrierGeo = new THREE.CylinderGeometry(0.74, 0.74, 0.05, 3);
+        const carrierMat = new THREE.MeshStandardMaterial({ color: secondaryHex, wireframe: true });
+        const carrier = new THREE.Mesh(carrierGeo, carrierMat);
+        carrier.position.z = cz;
+        carrier.rotation.x = Math.PI / 2;
+        threeEngineGroup.add(carrier);
+        threeExplodedMeshes.push({ mesh: carrier, origX: 0, origY: 0, origZ: cz, dirX: 0, dirY: 0, dirZ: cz > 0 ? 0.7 : -0.7 });
+      });
+
+      // 5. Outer Ring Annulus Gear
+      const ringGeo = new THREE.CylinderGeometry(1.15, 1.15, 0.38, 32, 1, true);
+      const ringMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.7, roughness: 0.3, wireframe: true, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      threeEngineGroup.add(ring);
+      threeExplodedMeshes.push({ mesh: ring, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: 0.8 });
     }
 
     function loadCadModelFromBuffer(buffer, fileName, ext) {
@@ -1515,6 +2069,10 @@
     }
 
     function onFaceMeshResults(results) {
+      if (AppState.currentMode !== 'FACE_BIOMETRIC') {
+        AppState.detectedFaceLandmarks = null;
+        return;
+      }
       if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
         AppState.detectedFaceLandmarks = null;
         return;
@@ -1522,10 +2080,18 @@
       AppState.detectedFaceLandmarks = results.multiFaceLandmarks[0];
     }
 
-    // 5. MODE SWITCHING WITH BACKEND SYNC
+    // 5. MODE SWITCHING WITH BACKEND SYNC & RIGID CV TASK ISOLATION
     window.switchSystemMode = async function(newMode) {
       if (AppState.currentMode === newMode) return;
       AppState.currentMode = newMode;
+
+      // Rigid Task Segregation: immediately flush all dormant CV buffers
+      AppState.detectedHands = [];
+      AppState.detectedHandLandmarks = null;
+      AppState.detectedFaceLandmarks = null;
+      AppState.backendGesture = null;
+      AppState.backendFace = null;
+      AppState.liveDetections = [];
 
       try {
         await fetch('/api/mode', {
@@ -1552,10 +2118,27 @@
         }
       });
 
+      // Rigid Sidebar Card Segregation: show ONLY active mode card
+      const objCard = document.getElementById('objectDetectionCard');
+      const bioCard = document.getElementById('biometricSecurityCard');
+      const gestCard = document.getElementById('gestureMonitorCard');
+      const cadCard = document.getElementById('cadHierarchyCard');
+
+      if (objCard) objCard.classList.toggle('hidden', newMode !== 'OBJECT_DETECT');
+      if (bioCard) bioCard.classList.toggle('hidden', newMode !== 'FACE_BIOMETRIC');
+      if (gestCard) gestCard.classList.toggle('hidden', newMode !== 'HAND_GESTURE');
+      if (cadCard) cadCard.classList.toggle('hidden', newMode !== 'INTERACTIVE_3D');
+
       const threeC = document.getElementById('threeCanvas');
+      const cadBtn = document.getElementById('cadUploadBtn');
+      const cadSelector = document.getElementById('cadModelSelector');
+      const cadExplodeBtn = document.getElementById('cadExplodeToggleBtn');
 
       if (newMode === 'OBJECT_DETECT') {
         if (threeC) threeC.classList.add('hidden');
+        if (cadBtn) cadBtn.classList.add('hidden');
+        if (cadSelector) cadSelector.classList.add('hidden');
+        if (cadExplodeBtn) cadExplodeBtn.classList.add('hidden');
         document.getElementById('activeModeBadge').innerText = 'OBJECT RECOGNITION';
         document.getElementById('trackerDetailText').innerText = 'NESTED SUB-FRAMES • ANCHOR MATRIX • OPT-X';
         document.getElementById('modeCardTitle').innerText = 'OBJECT RECOGNITION MATRIX';
@@ -1563,6 +2146,9 @@
         document.getElementById('modePipeline').innerText = 'YOLOv11M ONNX';
       } else if (newMode === 'FACE_BIOMETRIC') {
         if (threeC) threeC.classList.add('hidden');
+        if (cadBtn) cadBtn.classList.add('hidden');
+        if (cadSelector) cadSelector.classList.add('hidden');
+        if (cadExplodeBtn) cadExplodeBtn.classList.add('hidden');
         document.getElementById('activeModeBadge').innerText = 'FACIAL RECOGNITION';
         document.getElementById('trackerDetailText').innerText = 'REAL-TIME 3D FACIAL POLAR WIRING';
         document.getElementById('modeCardTitle').innerText = '3D BIOMETRIC MESH RETICLE';
@@ -1570,17 +2156,19 @@
         document.getElementById('modePipeline').innerText = 'MEDIAPIPE 3D MESH';
       } else if (newMode === 'HAND_GESTURE') {
         if (threeC) threeC.classList.add('hidden');
+        if (cadBtn) cadBtn.classList.add('hidden');
+        if (cadSelector) cadSelector.classList.add('hidden');
+        if (cadExplodeBtn) cadExplodeBtn.classList.add('hidden');
         document.getElementById('activeModeBadge').innerText = 'HAND GESTURES';
         document.getElementById('trackerDetailText').innerText = 'MEDIAPIPE 21-JOINT 60FPS TRACKER';
         document.getElementById('modeCardTitle').innerText = 'JSL & HAND GESTURE CV';
         document.getElementById('modeCardDesc').innerText = 'Client-side 21-joint skeletal wireframe and JSL gestures running at 60 FPS in your active theme.';
         document.getElementById('modePipeline').innerText = 'MEDIAPIPE WASM';
-      }
-
-      const cadBtn = document.getElementById('cadUploadBtn');
-      if (newMode === 'INTERACTIVE_3D') {
+      } else if (newMode === 'INTERACTIVE_3D') {
         if (threeC) threeC.classList.remove('hidden');
         if (cadBtn) cadBtn.classList.remove('hidden');
+        if (cadSelector) cadSelector.classList.remove('hidden');
+        if (cadExplodeBtn) cadExplodeBtn.classList.remove('hidden');
         initInteractive3D();
         updateThreeThemeColors();
         document.getElementById('activeModeBadge').innerText = 'INTERACTIVE 3D CAD';
@@ -1588,15 +2176,49 @@
         document.getElementById('modeCardTitle').innerText = 'GESTURE 3D HOLOGRAPHIC CAD';
         document.getElementById('modeCardDesc').innerText = 'Bimanual manipulation of 3D CAD models: 2-Hand Grab & Roll, Stretch Zoom, and Drag & Drop custom .GLB/.STL models.';
         document.getElementById('modePipeline').innerText = 'THREE.JS + MEDIAPIPE';
-      } else {
-        if (threeC) threeC.classList.add('hidden');
-        if (cadBtn) cadBtn.classList.add('hidden');
       }
 
       lucide.createIcons();
     };
 
-    // 6. TELEMETRY POLLING LOOP
+    // Helper: Update Object Inventory Matrix in the Right Sidebar
+    function updateObjectInventoryUI(detections) {
+      const countBadge = document.getElementById('objectCountBadge');
+      const listEl = document.getElementById('objectInventoryList');
+      if (countBadge) {
+        countBadge.innerText = `${detections.length} TARGET${detections.length === 1 ? '' : 'S'}`;
+        countBadge.className = detections.length > 0
+          ? 'text-[10px] text-emerald-400 font-bold'
+          : 'text-[10px] text-slate-500 font-bold';
+      }
+      if (!listEl) return;
+      if (!detections || detections.length === 0) {
+        listEl.innerHTML = '<div class="p-2 text-center text-slate-500 italic text-[10px]">Awaiting target objects in viewport...</div>';
+        return;
+      }
+      listEl.innerHTML = detections.slice(0, 8).map(d => {
+        const label = (d.label || d.class || d.class_name || 'OBJECT').toUpperCase();
+        const conf = Math.round((d.confidence || 0.8) * 100);
+        const id = d.track_id !== undefined ? `#${d.track_id}` : (d.id !== undefined ? `#${d.id}` : '#01');
+        return `
+          <div class="p-1.5 bg-black/60 border rounded flex items-center justify-between" style="border-color: var(--panel-border);">
+            <div class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="font-bold text-white tracking-wide">${label}</span>
+              <span class="text-[9px] text-slate-400 font-mono">${id}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-1.5 bg-black/80 rounded-full overflow-hidden border border-white/10">
+                <div class="h-full bg-emerald-400 rounded-full" style="width: ${conf}%"></div>
+              </div>
+              <span class="font-bold text-emerald-400 font-mono">${conf}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 6. TELEMETRY POLLING LOOP WITH STRICT MODE SEGREGATION
     async function fetchTelemetry() {
       try {
         const res = await fetch('/api/live_detections');
@@ -1607,41 +2229,53 @@
           document.getElementById('inferTimeVal').innerText = `${AppState.liveLatency}ms`;
           document.getElementById('inferBar').style.width = `${Math.min(100, AppState.liveLatency * 2.5)}%`;
 
-          if (data.detections) {
-            AppState.liveDetections = data.detections;
-          }
-
-          // Backend Hand Gesture Telemetry Sync
-          const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
-          if (data.gesture) {
-            AppState.backendGesture = data.gesture;
-            if (!clientHandFresh) {
-              if (data.gesture.hands && data.gesture.hands.length >= 2) {
-                updateDualGestureMenuUI(data.gesture.hands[0], data.gesture.hands[1]);
-              } else {
-                updateGestureMenuUI(data.gesture.gesture);
+          if (AppState.currentMode === 'OBJECT_DETECT') {
+            AppState.liveDetections = data.detections || [];
+            updateObjectInventoryUI(AppState.liveDetections);
+            AppState.backendGesture = null;
+            AppState.backendFace = null;
+          } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
+            AppState.liveDetections = [];
+            AppState.backendFace = data.face || null;
+            AppState.backendGesture = null;
+          } else if (AppState.currentMode === 'HAND_GESTURE') {
+            AppState.liveDetections = [];
+            AppState.backendFace = null;
+            const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
+            if (data.gesture) {
+              AppState.backendGesture = data.gesture;
+              if (!clientHandFresh) {
+                if (data.gesture.hands && data.gesture.hands.length >= 2) {
+                  updateDualGestureMenuUI(data.gesture.hands[0], data.gesture.hands[1]);
+                } else {
+                  updateGestureMenuUI(data.gesture.gesture);
+                }
               }
-              if (AppState.currentMode === 'INTERACTIVE_3D') {
-                processBackendGestureFor3D(data.gesture);
+            } else {
+              AppState.backendGesture = null;
+              if (!clientHandFresh) {
+                AppState.detectedHandLandmarks = null;
+                AppState.detectedHands = [];
+                updateGestureMenuUI(null);
               }
             }
-          } else {
-            AppState.backendGesture = null;
-            if (!clientHandFresh) {
-              AppState.detectedHandLandmarks = null;
-              AppState.detectedHands = [];
-              updateGestureMenuUI(null);
-              if (AppState.currentMode === 'INTERACTIVE_3D') {
+          } else if (AppState.currentMode === 'INTERACTIVE_3D') {
+            AppState.liveDetections = [];
+            AppState.backendFace = null;
+            const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
+            if (data.gesture) {
+              AppState.backendGesture = data.gesture;
+              if (!clientHandFresh) {
+                processBackendGestureFor3D(data.gesture);
+              }
+            } else {
+              AppState.backendGesture = null;
+              if (!clientHandFresh) {
+                AppState.detectedHandLandmarks = null;
+                AppState.detectedHands = [];
                 processBackendGestureFor3D(null);
               }
             }
-          }
-
-          // Backend Real-time Face Tracking Sync
-          if (data.face) {
-            AppState.backendFace = data.face;
-          } else {
-            AppState.backendFace = null;
           }
         }
       } catch (e) {}
