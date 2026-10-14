@@ -148,31 +148,36 @@
       </div>
     </div>
 
-    <!-- PRIMARY SYSTEM MODE SWITCHER -->
+    <!-- PRIMARY SYSTEM MODE SWITCHER (COMPACT ICONIC ARCHITECTURE) -->
     <div class="flex items-center bg-black/60 border rounded-lg p-1 gap-1" style="border-color: var(--panel-border);">
-      <button id="modeBtnObject" onclick="switchSystemMode('OBJECT_DETECT')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all border shadow-sm" style="border-color: var(--accent-primary); color: var(--accent-primary); background-color: rgba(0,0,0,0.4);">
-        <i data-lucide="scan" class="w-3.5 h-3.5"></i>
-        <span>OBJECT_RECOGNITION</span>
+      <button id="modeBtnObject" onclick="switchSystemMode('OBJECT_DETECT')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all border shadow-sm" style="border-color: var(--accent-primary); color: var(--accent-primary); background-color: rgba(0,0,0,0.4);" title="Object Recognition & Matrix Tracking">
+        <i data-lucide="scan" class="w-4 h-4"></i>
+        <span class="hidden xl:inline text-[11px]">OBJECT</span>
       </button>
 
-      <button id="modeBtnFace" onclick="switchSystemMode('FACE_BIOMETRIC')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
-        <i data-lucide="scan-face" class="w-3.5 h-3.5"></i>
-        <span>FACIAL_RECOGNITION</span>
+      <button id="modeBtnFace" onclick="switchSystemMode('FACE_BIOMETRIC')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="3D Facial Polar Wiring & Biometrics">
+        <i data-lucide="scan-face" class="w-4 h-4"></i>
+        <span class="hidden xl:inline text-[11px]">FACE</span>
       </button>
 
-      <button id="modeBtnHand" onclick="switchSystemMode('HAND_GESTURE')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white">
-        <i data-lucide="hand" class="w-3.5 h-3.5"></i>
-        <span>HAND_GESTURES</span>
+      <button id="modeBtnHand" onclick="switchSystemMode('HAND_GESTURE')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="21-Joint Skeletal Hands & JSL Dictionary">
+        <i data-lucide="hand" class="w-4 h-4"></i>
+        <span class="hidden xl:inline text-[11px]">GESTURE</span>
       </button>
 
       <button id="modeBtnInteractive" onclick="switchSystemMode('INTERACTIVE_3D')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="Gesture-Controlled 3D Web Viewer & Exploded CAD Matrix">
-        <i data-lucide="box" class="w-3.5 h-3.5"></i>
-        <span class="flex items-center gap-1">INTERACTIVE <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-mono">3D</span></span>
+        <i data-lucide="box" class="w-4 h-4"></i>
+        <span class="hidden xl:inline text-[11px]">3D CAD</span>
+      </button>
+
+      <button id="modeBtnParticles" onclick="switchSystemMode('PARTICLE_FLOW')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="Hand-Reactor 3D GPU Particle Flow & Galaxy Warp">
+        <i data-lucide="orbit" class="w-4 h-4 text-cyan-400"></i>
+        <span class="hidden xl:inline text-[11px] text-cyan-400">PARTICLES</span>
       </button>
 
       <button id="modeBtnBird" onclick="switchSystemMode('BIRD_DETECT')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="Avian Robotics Tracking & Flight Vector Analysis">
-        <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
-        <span class="flex items-center gap-1">BIRD_DETECT <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 font-mono">ROBOT</span></span>
+        <i data-lucide="crosshair" class="w-4 h-4 text-amber-400"></i>
+        <span class="hidden xl:inline text-[11px] text-amber-400">BIRD</span>
       </button>
     </div>
 
@@ -662,6 +667,73 @@
         </div>
       </div>
 
+      <!-- 6. 3D GPU PARTICLE FLOW REACTOR CARD -->
+      <div id="particleControlCard" class="hidden theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono">
+        <div>
+          <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
+            <div class="flex items-center gap-2 text-xs font-bold font-industrial text-cyan-400">
+              <i data-lucide="orbit" class="w-4 h-4"></i>
+              <span>3D GPU PARTICLE FLOW</span>
+            </div>
+            <span id="particleCountBadge" class="text-[10px] text-cyan-400 font-bold">45,000 PTS</span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div class="p-2 bg-black/60 border rounded flex items-center justify-between" style="border-color: var(--panel-border);">
+              <div>
+                <div class="text-[9px] opacity-70">GALAXY STATE:</div>
+                <div id="particleStateText" class="font-bold text-xs text-cyan-300">CORE CONDENSED (FIST)</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[9px] opacity-70">EXPANSION (t):</div>
+                <div id="particleExpansionVal" class="font-bold text-xs text-emerald-400 font-mono">0.00</div>
+              </div>
+            </div>
+
+            <!-- Expansion Progress Bar -->
+            <div class="p-2 bg-black/50 border rounded space-y-1.5" style="border-color: var(--panel-border);">
+              <div class="flex justify-between items-center text-[10px]">
+                <span class="text-slate-300">GALAXY WARP FACTOR:</span>
+                <span id="particlePercentDisp" class="font-bold text-cyan-400 font-mono">0%</span>
+              </div>
+              <div class="w-full bg-black/80 h-1.5 rounded-full overflow-hidden border border-white/10">
+                <div id="particleExpansionBar" class="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full transition-all duration-75" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- Hand Reactor Telemetry -->
+            <div class="text-[10px] opacity-70 font-semibold pt-0.5">BIO-KINETIC REACTOR CONTROL:</div>
+            <div class="space-y-1 text-[10px]" style="color: var(--text-secondary);">
+              <div class="flex items-center justify-between p-1 bg-black/30 rounded">
+                <span>✊ CLOSED FIST</span>
+                <span class="font-bold text-amber-400">CONDENSE CORE</span>
+              </div>
+              <div class="flex items-center justify-between p-1 bg-black/30 rounded">
+                <span>🖐️ OPEN PALM</span>
+                <span class="font-bold text-cyan-400">EXPAND GALAXY</span>
+              </div>
+              <div class="flex items-center justify-between p-1 bg-black/30 rounded">
+                <span>🔄 FINGER EXTENSION d̄:</span>
+                <span id="particleAvgDistDisp" class="font-bold text-emerald-400 font-mono">0.00 px</span>
+              </div>
+              <div class="flex items-center justify-between p-1 bg-black/30 rounded">
+                <span>🖱️ MANUAL OVERRIDE:</span>
+                <input type="range" id="particleManualSlider" min="0" max="100" value="0" oninput="setParticleExpansionManual(this.value)" class="w-24 h-1 bg-black rounded appearance-none cursor-pointer accent-cyan-400">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t flex gap-1" style="border-color: var(--panel-border);">
+          <button onclick="resetParticleWarp()" class="flex-1 py-1 border rounded text-[10px] font-bold text-cyan-300 hover:bg-cyan-500/20 transition" style="border-color: var(--accent-primary);">
+            RESET WARP
+          </button>
+          <button onclick="toggleParticleTurbulence()" id="particleTurbulenceBtn" class="px-2.5 py-1 border rounded text-[10px] font-bold text-purple-400 hover:bg-purple-500/20 transition" style="border-color: var(--panel-border);">
+            TURBULENCE: OFF
+          </button>
+        </div>
+      </div>
+
       <!-- JSON Telemetry Buffer Status -->
       <div class="theme-card p-2.5 rounded-lg flex items-center justify-between font-mono text-xs">
         <span style="color: var(--text-secondary);">FIFO: <strong class="text-emerald-400" id="jsonCountDisp">0 packets</strong></span>
@@ -918,7 +990,7 @@
         }
 
         // Process frames through active client-side MediaPipe detector
-        if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D') && AppState.hands && !isProcessingHands) {
+        if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D' || AppState.currentMode === 'PARTICLE_FLOW') && AppState.hands && !isProcessingHands) {
           isProcessingHands = true;
           AppState.hands.send({ image: nextImg })
             .catch((err) => { console.warn("MediaPipe Hands inference error:", err); })
@@ -1089,7 +1161,7 @@
     }
 
     function onHandResults(results) {
-      if (AppState.currentMode !== 'HAND_GESTURE' && AppState.currentMode !== 'INTERACTIVE_3D') {
+      if (AppState.currentMode !== 'HAND_GESTURE' && AppState.currentMode !== 'INTERACTIVE_3D' && AppState.currentMode !== 'PARTICLE_FLOW') {
         AppState.detectedHandLandmarks = null;
         AppState.detectedHands = [];
         return;
@@ -1104,6 +1176,8 @@
         document.getElementById('palmState').className = 'font-bold text-slate-500';
         if (AppState.currentMode === 'INTERACTIVE_3D') {
           processInteractive3DLandmarks(null);
+        } else if (AppState.currentMode === 'PARTICLE_FLOW') {
+          processParticleFlowLandmarks(null);
         }
         return;
       }
@@ -1134,9 +1208,11 @@
         updateDualGestureMenuUI(handsList[0], handsList[1]);
       }
 
-      // Feed detected landmarks to Interactive 3D Holographic CAD Viewport
+      // Feed detected landmarks to active 3D mode
       if (AppState.currentMode === 'INTERACTIVE_3D') {
         processInteractive3DLandmarks(multiLms);
+      } else if (AppState.currentMode === 'PARTICLE_FLOW') {
+        processParticleFlowLandmarks(multiLms);
       }
     }
 
@@ -1155,6 +1231,204 @@
     let threeIsMouseDown = false;
     let threeMouseLastX = 0, threeMouseLastY = 0;
     let active3dModelTitle = "TURBOFAN JET ENGINE";
+
+    /*
+     * 3D GPU PARTICLE SYSTEM STATE (45,000 Points)
+     */
+    let threeParticleGroup = null;
+    let threeParticlePoints = null;
+    let particleCorePositions = null;
+    let particleGalaxyPositions = null;
+    let particleExpansion = 0.0;
+    let particleTargetExpansion = 0.0;
+    let particleTurbulenceActive = false;
+    let particleTime = 0.0;
+    const NUM_PARTICLES = 45000;
+
+    function buildGalaxyParticleSystem() {
+      if (threeParticlePoints) return;
+      const geom = new THREE.BufferGeometry();
+      const pos = new Float32Array(NUM_PARTICLES * 3);
+      const corePos = new Float32Array(NUM_PARTICLES * 3);
+      const galaxyPos = new Float32Array(NUM_PARTICLES * 3);
+      const colors = new Float32Array(NUM_PARTICLES * 3);
+
+      const colorInside = new THREE.Color('#38bdf8'); // Cyan-Blue Core
+      const colorOutside = new THREE.Color('#a855f7'); // Violet Outer Arms
+      const colorAccent = new THREE.Color('#f43f5e'); // Rose Nebula Highlights
+
+      const numArms = 4;
+      const galaxyRadius = 4.2;
+
+      for (let i = 0; i < NUM_PARTICLES; i++) {
+        const i3 = i * 3;
+
+        // 1. Core Condensed Spherical Coordinates (Dense Core / Fist State)
+        const u = Math.random();
+        const v = Math.random();
+        const theta = u * 2.0 * Math.PI;
+        const phi = Math.acos(2.0 * v - 1.0);
+        const rCore = Math.cbrt(Math.random()) * 0.42; // concentrated inside radius 0.42
+
+        corePos[i3]     = rCore * Math.sin(phi) * Math.cos(theta);
+        corePos[i3 + 1] = rCore * Math.sin(phi) * Math.sin(theta);
+        corePos[i3 + 2] = rCore * Math.cos(phi);
+
+        // 2. Open Galaxy Logarithmic Spiral Arms (Expanded Galaxy / Open Palm)
+        const rNorm = Math.pow(Math.random(), 1.6);
+        const rGal = rNorm * galaxyRadius + 0.15;
+        const spinAngle = rGal * 2.4;
+        const branchAngle = ((i % numArms) / numArms) * Math.PI * 2.0;
+
+        // Random dispersion perpendicular to arm
+        const randomX = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * 0.45 * (1 + rNorm);
+        const randomY = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * 0.28 * (1 + rNorm);
+        const randomZ = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * 0.45 * (1 + rNorm);
+
+        galaxyPos[i3]     = Math.cos(branchAngle + spinAngle) * rGal + randomX;
+        galaxyPos[i3 + 1] = randomY;
+        galaxyPos[i3 + 2] = Math.sin(branchAngle + spinAngle) * rGal + randomZ;
+
+        // Initial position matches core
+        pos[i3]     = corePos[i3];
+        pos[i3 + 1] = corePos[i3 + 1];
+        pos[i3 + 2] = corePos[i3 + 2];
+
+        // 3. Dynamic Color Gradient
+        const mixedColor = colorInside.clone().lerp(colorOutside, rNorm);
+        if (Math.random() < 0.08) {
+          mixedColor.lerp(colorAccent, 0.6);
+        }
+        colors[i3]     = mixedColor.r;
+        colors[i3 + 1] = mixedColor.g;
+        colors[i3 + 2] = mixedColor.b;
+      }
+
+      geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      // Circular Glow Point Texture
+      const canvasGlow = document.createElement('canvas');
+      canvasGlow.width = 64;
+      canvasGlow.height = 64;
+      const ctxG = canvasGlow.getContext('2d');
+      const grad = ctxG.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+      grad.addColorStop(0.25, 'rgba(56, 189, 248, 0.85)');
+      grad.addColorStop(0.65, 'rgba(168, 85, 247, 0.35)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0.0)');
+      ctxG.fillStyle = grad;
+      ctxG.fillRect(0, 0, 64, 64);
+      const pointTex = new THREE.CanvasTexture(canvasGlow);
+
+      const mat = new THREE.PointsMaterial({
+        size: 0.048,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        map: pointTex
+      });
+
+      threeParticlePoints = new THREE.Points(geom, mat);
+      particleCorePositions = corePos;
+      particleGalaxyPositions = galaxyPos;
+
+      if (threeParticleGroup) {
+        threeParticleGroup.add(threeParticlePoints);
+      }
+    }
+
+    function processParticleFlowLandmarks(multiHands) {
+      if (!multiHands || multiHands.length === 0) {
+        return;
+      }
+
+      const h1 = multiHands[0];
+      const wrist = h1[0];
+      const palmMcp = h1[9] || h1[0];
+      // Scale-invariant hand scale based on palm size (wrist to middle MCP)
+      const handScale = Math.max(0.01, Math.hypot(palmMcp.x - wrist.x, palmMcp.y - wrist.y));
+
+      const tips = [4, 8, 12, 16, 20];
+      let avgDist = 0;
+      tips.forEach(tIdx => {
+        avgDist += Math.hypot(h1[tIdx].x - wrist.x, h1[tIdx].y - wrist.y);
+      });
+      avgDist /= tips.length;
+
+      // Update avg distance readout
+      const avgDistEl = document.getElementById('particleAvgDistDisp');
+      if (avgDistEl) avgDistEl.innerText = `${(avgDist * 100).toFixed(1)} px`;
+
+      // Normalized extension: tips-to-wrist divided by hand scale
+      // Fist is typically ~1.0 - 1.15; open palm is ~1.50 - 1.80+
+      const normExt = avgDist / handScale;
+      let t = Math.min(1.0, Math.max(0.0, (normExt - 1.10) / 0.45));
+
+      // Direct gesture classification override if available
+      const gesture = classifySingleHandLandmarks(h1);
+      if (gesture === 'fist') {
+        t = 0.0;
+      } else if (gesture === 'palm') {
+        t = 1.0;
+      }
+
+      particleTargetExpansion = t;
+      updateParticleTelemetryUI(t);
+    }
+
+    function updateParticleTelemetryUI(t) {
+      const expVal = document.getElementById('particleExpansionVal');
+      const expBar = document.getElementById('particleExpansionBar');
+      const pctDisp = document.getElementById('particlePercentDisp');
+      const stateTxt = document.getElementById('particleStateText');
+      const slider = document.getElementById('particleManualSlider');
+
+      const pct = Math.round(t * 100);
+      if (expVal) expVal.innerText = t.toFixed(2);
+      if (pctDisp) pctDisp.innerText = `${pct}%`;
+      if (expBar) expBar.style.width = `${pct}%`;
+      if (slider && !isMouseDraggingParticleSlider) slider.value = pct;
+
+      if (stateTxt) {
+        if (t < 0.25) {
+          stateTxt.innerText = 'CORE CONDENSED (FIST)';
+          stateTxt.className = 'font-bold text-xs text-amber-400';
+        } else if (t < 0.70) {
+          stateTxt.innerText = 'SPIRAL NEBULA EXPANDING';
+          stateTxt.className = 'font-bold text-xs text-cyan-300';
+        } else {
+          stateTxt.innerText = 'GALAXY WARP UNLEASHED';
+          stateTxt.className = 'font-bold text-xs text-purple-400 animate-pulse';
+        }
+      }
+    }
+
+    let isMouseDraggingParticleSlider = false;
+    function setParticleExpansionManual(val) {
+      isMouseDraggingParticleSlider = true;
+      const t = Math.max(0, Math.min(100, parseFloat(val))) / 100.0;
+      particleTargetExpansion = t;
+      updateParticleTelemetryUI(t);
+      setTimeout(() => { isMouseDraggingParticleSlider = false; }, 300);
+    }
+
+    function resetParticleWarp() {
+      particleTargetExpansion = 0.0;
+      updateParticleTelemetryUI(0.0);
+    }
+
+    function toggleParticleTurbulence() {
+      particleTurbulenceActive = !particleTurbulenceActive;
+      const btn = document.getElementById('particleTurbulenceBtn');
+      if (btn) {
+        btn.innerText = particleTurbulenceActive ? 'TURBULENCE: ACTIVE' : 'TURBULENCE: OFF';
+        btn.className = particleTurbulenceActive
+          ? 'px-2.5 py-1 border rounded text-[10px] font-bold text-emerald-400 bg-emerald-500/20 border-emerald-500/50 transition'
+          : 'px-2.5 py-1 border rounded text-[10px] font-bold text-purple-400 hover:bg-purple-500/20 transition';
+      }
+    }
 
     function initInteractive3D() {
       if (threeRenderer) return;
@@ -1186,6 +1460,10 @@
 
       threeEngineGroup = new THREE.Group();
       threeScene.add(threeEngineGroup);
+
+      threeParticleGroup = new THREE.Group();
+      threeScene.add(threeParticleGroup);
+      buildGalaxyParticleSystem();
 
       setupThreeMouseControls(tCanvas);
       loadPresetModel(AppState.active3dPreset || 'JET_ENGINE');
@@ -1958,7 +2236,11 @@
           label: h.handedness || (i === 0 ? 'Right' : 'Left'),
           gesture: h.gesture
         }));
-        processInteractive3DLandmarks(multiLms);
+        if (AppState.currentMode === 'INTERACTIVE_3D') {
+          processInteractive3DLandmarks(multiLms);
+        } else if (AppState.currentMode === 'PARTICLE_FLOW') {
+          processParticleFlowLandmarks(multiLms);
+        }
         return;
       }
 
@@ -1978,14 +2260,22 @@
 
       // Apply backend landmarks
       AppState.detectedHandLandmarks = normLm;
-      AppState.detectedHands = [{ landmarks: normLm, label: 'Right', gesture: bg.gesture }];
-      processInteractive3DLandmarks([normLm]);
-
-      // Direct gesture semantic override: if gesture is explicitly classified
-      if (bg.gesture === 'fist') {
-        threeTargetExplode = 0.0;
-      } else if (bg.gesture === 'palm') {
-        threeTargetExplode = 1.0;
+      if (AppState.currentMode === 'INTERACTIVE_3D') {
+        processInteractive3DLandmarks([normLm]);
+        if (bg.gesture === 'fist') {
+          threeTargetExplode = 0.0;
+        } else if (bg.gesture === 'palm') {
+          threeTargetExplode = 1.0;
+        }
+      } else if (AppState.currentMode === 'PARTICLE_FLOW') {
+        processParticleFlowLandmarks([normLm]);
+        if (bg.gesture === 'fist') {
+          particleTargetExpansion = 0.0;
+          updateParticleTelemetryUI(0.0);
+        } else if (bg.gesture === 'palm') {
+          particleTargetExpansion = 1.0;
+          updateParticleTelemetryUI(1.0);
+        }
       }
     }
 
@@ -2157,8 +2447,8 @@
         });
       } catch (e) {}
 
-      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'HAND_GESTURE', 'INTERACTIVE_3D', 'BIRD_DETECT'];
-      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnBird'];
+      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT'];
+      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnParticles', 'modeBtnBird'];
 
       modes.forEach((m, idx) => {
         const btn = document.getElementById(btnIds[idx]);
@@ -2180,12 +2470,14 @@
       const gestCard = document.getElementById('gestureMonitorCard');
       const cadCard = document.getElementById('cadHierarchyCard');
       const birdCard = document.getElementById('birdRadarCard');
+      const particleCard = document.getElementById('particleControlCard');
 
       if (objCard) objCard.classList.toggle('hidden', newMode !== 'OBJECT_DETECT');
       if (bioCard) bioCard.classList.toggle('hidden', newMode !== 'FACE_BIOMETRIC');
       if (gestCard) gestCard.classList.toggle('hidden', newMode !== 'HAND_GESTURE');
       if (cadCard) cadCard.classList.toggle('hidden', newMode !== 'INTERACTIVE_3D');
       if (birdCard) birdCard.classList.toggle('hidden', newMode !== 'BIRD_DETECT');
+      if (particleCard) particleCard.classList.toggle('hidden', newMode !== 'PARTICLE_FLOW');
 
       const threeC = document.getElementById('threeCanvas');
       const cadBtn = document.getElementById('cadUploadBtn');
@@ -2238,12 +2530,27 @@
         if (cadSelector) cadSelector.classList.remove('hidden');
         if (cadExplodeBtn) cadExplodeBtn.classList.remove('hidden');
         initInteractive3D();
+        if (threeEngineGroup) threeEngineGroup.visible = true;
+        if (threeParticleGroup) threeParticleGroup.visible = false;
         updateThreeThemeColors();
         document.getElementById('activeModeBadge').innerText = 'INTERACTIVE 3D CAD';
         document.getElementById('trackerDetailText').innerText = 'DUAL-HAND: ROTATE/ROLL/STRETCH • PALM: EXPLODE';
         document.getElementById('modeCardTitle').innerText = 'GESTURE 3D HOLOGRAPHIC CAD';
         document.getElementById('modeCardDesc').innerText = 'Bimanual manipulation of 3D CAD models: 2-Hand Grab & Roll, Stretch Zoom, and Drag & Drop custom .GLB/.STL models.';
         document.getElementById('modePipeline').innerText = 'THREE.JS + MEDIAPIPE';
+      } else if (newMode === 'PARTICLE_FLOW') {
+        if (threeC) threeC.classList.remove('hidden');
+        if (cadBtn) cadBtn.classList.add('hidden');
+        if (cadSelector) cadSelector.classList.add('hidden');
+        if (cadExplodeBtn) cadExplodeBtn.classList.add('hidden');
+        initInteractive3D();
+        if (threeEngineGroup) threeEngineGroup.visible = false;
+        if (threeParticleGroup) threeParticleGroup.visible = true;
+        document.getElementById('activeModeBadge').innerText = 'PARTICLE FLOW // HAND-REACTOR';
+        document.getElementById('trackerDetailText').innerText = 'FIST: CONDENSE CORE • PALM: GALAXY WARP';
+        document.getElementById('modeCardTitle').innerText = '3D GPU PARTICLE FLOW';
+        document.getElementById('modeCardDesc').innerText = '45,000-point GPU particle system controlled in real time via hand gestures: clenched fist forms a dense core; open hand erupts into a spiral galaxy.';
+        document.getElementById('modePipeline').innerText = 'THREE.JS GPU PARTICLES';
       }
 
       lucide.createIcons();
@@ -2416,6 +2723,23 @@
               }
             }
           } else if (AppState.currentMode === 'INTERACTIVE_3D') {
+            AppState.liveDetections = [];
+            AppState.backendFace = null;
+            const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
+            if (data.gesture) {
+              AppState.backendGesture = data.gesture;
+              if (!clientHandFresh) {
+                processBackendGestureFor3D(data.gesture);
+              }
+            } else {
+              AppState.backendGesture = null;
+              if (!clientHandFresh) {
+                AppState.detectedHandLandmarks = null;
+                AppState.detectedHands = [];
+                processBackendGestureFor3D(null);
+              }
+            }
+          } else if (AppState.currentMode === 'PARTICLE_FLOW') {
             AppState.liveDetections = [];
             AppState.backendFace = null;
             const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
@@ -3243,91 +3567,8 @@
         }
 
         ctx.restore();
-      } else if (AppState.backendFace) {
-        // Real-time backend YuNet Face Tracking Reticle with Facial Anchors
-        ctx.save();
-        const bf = AppState.backendFace;
-        const [fx, fy, fw, fh] = bf.box;
-        const scaleX = canvas.width / 640;
-        const scaleY = canvas.height / 480;
-        const bx = fx * scaleX;
-        const by = fy * scaleY;
-        const bw = fw * scaleX;
-        const bh = fh * scaleY;
-
-        // Animated rotating biometric targeting ring
-        ctx.save();
-        const cx = bx + bw / 2;
-        const cy = by + bh / 2;
-        const rad = Math.max(bw, bh) * 0.65;
-        const rotAngle = (Date.now() % 3500) / 3500 * Math.PI * 2;
-
-        ctx.translate(cx, cy);
-        ctx.rotate(rotAngle);
-        ctx.strokeStyle = colors.primary;
-        ctx.lineWidth = 1.4;
-        ctx.setLineDash([14, 8]);
-        ctx.beginPath();
-        ctx.arc(0, 0, rad, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.restore();
-
-        // 3D Wireframe Bounding Box & Corner brackets
-        ctx.save();
-        ctx.strokeStyle = colors.secondary;
-        ctx.lineWidth = 1.2;
-        ctx.strokeRect(bx, by, bw, bh);
-
-        const cornerLen = Math.min(18, bw * 0.25);
-        ctx.strokeStyle = colors.primary;
-        ctx.lineWidth = 2.0;
-        ctx.beginPath();
-        // Top-left
-        ctx.moveTo(bx - 2, by); ctx.lineTo(bx - 2, by + cornerLen);
-        ctx.moveTo(bx, by - 2); ctx.lineTo(bx + cornerLen, by - 2);
-        // Bottom-right
-        ctx.moveTo(bx + bw + 2, by + bh); ctx.lineTo(bx + bw + 2, by + bh - cornerLen);
-        ctx.moveTo(bx + bw, by + bh + 2); ctx.lineTo(bx + bw - cornerLen, by + bh + 2);
-        ctx.stroke();
-
-        // Facial landmark nodes
-        if (bf.landmarks && bf.landmarks.length > 0) {
-          ctx.strokeStyle = colors.alt;
-          ctx.lineWidth = 1.0;
-          ctx.beginPath();
-          bf.landmarks.forEach(([lx, ly], idx) => {
-            const px = lx * scaleX;
-            const py = ly * scaleY;
-            if (idx === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-          });
-          ctx.stroke();
-
-          bf.landmarks.forEach(([lx, ly]) => {
-            const px = lx * scaleX;
-            const py = ly * scaleY;
-            ctx.fillStyle = colors.primary;
-            ctx.beginPath();
-            ctx.arc(px, py, 3.5, 0, Math.PI * 2);
-            ctx.fill();
-          });
-        }
-
-        // Target badge
-        ctx.fillStyle = 'rgba(7, 12, 20, 0.9)';
-        ctx.fillRect(bx, by - 24, Math.max(140, bw), 20);
-        ctx.strokeStyle = colors.primary;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(bx, by - 24, Math.max(140, bw), 20);
-        ctx.fillStyle = colors.primary;
-        ctx.font = '10px "Share Tech Mono", monospace';
-        ctx.fillText(`BIOMETRIC TRACK // CONF ${(bf.score * 100).toFixed(0)}%`, bx + 6, by - 10);
-
-        ctx.restore(); // restores bounding box save
-        ctx.restore(); // restores outer backendFace save
       } else {
-        // Subtle standby reticle in theme color
+        // Sleek Standby Holographic Scanning Reticle (Theme Synchronized)
         const cx = canvas.width * 0.5;
         const cy = canvas.height * 0.45;
         ctx.save();
@@ -3505,6 +3746,10 @@
           item.mesh.position.z = THREE.MathUtils.lerp(item.mesh.position.z, targetZ, 0.15);
         });
 
+        // Enforce CAD visibility and Particle dormancy
+        threeEngineGroup.visible = true;
+        if (threeParticleGroup) threeParticleGroup.visible = false;
+
         threeRenderer.render(threeScene, threeCamera);
       }
 
@@ -3626,12 +3871,129 @@
           renderHandGestureMode(ctx);
         } else if (AppState.currentMode === 'INTERACTIVE_3D') {
           renderInteractive3DMode(ctx);
+        } else if (AppState.currentMode === 'PARTICLE_FLOW') {
+          renderParticleFlowMode(ctx);
         }
       } catch (err) {
         console.error("RenderEngine loop error:", err);
       }
 
       requestAnimationFrame(renderEngine);
+    }
+
+    /*
+     * 3D GPU PARTICLE FLOW RENDERER & INTERPOLATION LOOP
+     */
+    function renderParticleFlowMode(ctx) {
+      const colors = getThemeColors();
+
+      // 1. Advance Particle Positions & Galaxy Spiral Simulation
+      if (threeRenderer && threeScene && threeCamera && threeParticlePoints && particleCorePositions && particleGalaxyPositions) {
+        // Smooth lerp expansion factor towards target
+        particleExpansion = THREE.MathUtils.lerp(particleExpansion, particleTargetExpansion, 0.08);
+
+        const posAttr = threeParticlePoints.geometry.attributes.position;
+        const positions = posAttr.array;
+        particleTime += 0.02;
+
+        const turbAmp = particleTurbulenceActive ? 0.08 : 0.0;
+
+        for (let i = 0; i < NUM_PARTICLES; i++) {
+          const i3 = i * 3;
+          const cx = particleCorePositions[i3];
+          const cy = particleCorePositions[i3 + 1];
+          const cz = particleCorePositions[i3 + 2];
+
+          const gx = particleGalaxyPositions[i3];
+          const gy = particleGalaxyPositions[i3 + 1];
+          const gz = particleGalaxyPositions[i3 + 2];
+
+          // Morph between dense core and open galaxy
+          let targetX = THREE.MathUtils.lerp(cx, gx, particleExpansion);
+          let targetY = THREE.MathUtils.lerp(cy, gy, particleExpansion);
+          let targetZ = THREE.MathUtils.lerp(cz, gz, particleExpansion);
+
+          // Add subtle cosmic drift & turbulence
+          if (turbAmp > 0) {
+            targetX += Math.sin(particleTime + i * 0.1) * turbAmp * particleExpansion;
+            targetY += Math.cos(particleTime + i * 0.15) * turbAmp * particleExpansion;
+            targetZ += Math.sin(particleTime * 0.7 + i * 0.05) * turbAmp * particleExpansion;
+          }
+
+          positions[i3]     = targetX;
+          positions[i3 + 1] = targetY;
+          positions[i3 + 2] = targetZ;
+        }
+
+        posAttr.needsUpdate = true;
+
+        // Continuous Majestic Galaxy Spin
+        const spinSpeed = 0.003 + (1.0 - particleExpansion) * 0.005;
+        threeParticleGroup.rotation.y += spinSpeed;
+        threeParticleGroup.rotation.x = Math.sin(particleTime * 0.25) * 0.12;
+
+        // Enforce Particle visibility and CAD dormancy
+        threeParticleGroup.visible = true;
+        if (threeEngineGroup) threeEngineGroup.visible = false;
+
+        threeRenderer.render(threeScene, threeCamera);
+      }
+
+      // 2. Render 2D Hand Landmark Skeleton Over the Viewport
+      const activeHands = (AppState.detectedHands && AppState.detectedHands.length > 0)
+        ? AppState.detectedHands
+        : (AppState.detectedHandLandmarks ? [{ landmarks: AppState.detectedHandLandmarks, label: 'Right' }] : []);
+
+      if (activeHands.length > 0) {
+        ctx.save();
+        activeHands.forEach(h => {
+          renderHandSkeletonOnCanvas(ctx, h.landmarks, h.label || 'Hand', colors, false);
+
+          // Draw kinetic energy ring around wrist
+          const wristX = h.landmarks[0].x * canvas.width;
+          const wristY = h.landmarks[0].y * canvas.height;
+          const ringRad = 20 + particleExpansion * 28;
+
+          ctx.strokeStyle = particleExpansion > 0.6 ? '#a855f7' : '#38bdf8';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.arc(wristX, wristY, ringRad, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        });
+        ctx.restore();
+      }
+
+      // 3. Holographic Tactical Particle Reactor Telemetry HUD
+      ctx.save();
+      const hudW = 290;
+      const hudH = 84;
+      const hudX = canvas.width - hudW - 16;
+      const hudY = 52;
+
+      ctx.fillStyle = 'rgba(7, 12, 20, 0.88)';
+      ctx.fillRect(hudX, hudY, hudW, hudH);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(hudX, hudY, hudW, hudH);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '10px "Share Tech Mono", monospace';
+      ctx.fillText('PARTICLE FLOW // 3D GPU HAND-REACTOR', hudX + 10, hudY + 16);
+
+      ctx.fillStyle = '#a855f7';
+      ctx.font = '9px "Share Tech Mono", monospace';
+      const warpPct = Math.round(particleExpansion * 100);
+      const stateLabel = particleExpansion < 0.25 ? 'CORE CONDENSED (FIST)' : (particleExpansion < 0.70 ? 'SPIRAL EXPANSION' : 'GALAXY WARP ACTIVE');
+      ctx.fillText(`STATUS: ${stateLabel}`, hudX + 10, hudY + 32);
+      ctx.fillText(`WARP: ${warpPct}% // PARTICLES: 45,000 PTS`, hudX + 10, hudY + 46);
+
+      ctx.fillStyle = colors.text;
+      ctx.fillText(activeHands.length > 0 ? 'BIO-KINETIC HAND ENGAGED' : 'STANDBY [CLENCH FIST OR OPEN PALM]', hudX + 10, hudY + 62);
+      ctx.fillText(`TURBULENCE: ${particleTurbulenceActive ? 'ACTIVE' : 'OFF'} // ADDITIVE BLENDING`, hudX + 10, hudY + 74);
+
+      ctx.restore();
     }
 
     const kernelLines = [

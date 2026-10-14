@@ -235,7 +235,7 @@ while True:
                 detections = list(yolo_last_results)
                 last_latency = yolo_last_latency or 18.0
 
-        elif current_mode in ("HAND_GESTURE", "INTERACTIVE_3D"):
+        elif current_mode in ("HAND_GESTURE", "INTERACTIVE_3D", "PARTICLE_FLOW"):
             # Hand Pose CV: runs 21-joint tracking (YOLO paused, low compute)
             t0 = time.time()
             try:
