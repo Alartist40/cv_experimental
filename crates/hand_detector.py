@@ -9,9 +9,9 @@ def get_hand_models():
     if _palm_detector is None:
         from crates.mp_hand import MPPalmDet
         from crates.mp_handpose import MPHandPose
-        # Calibrated threshold: reliably triggers on real hands across diverse webcam angles while preventing false positives
-        _palm_detector = MPPalmDet(modelPath="models/palm_detection_mediapipe_2023feb.onnx", scoreThreshold=0.45)
-        _hand_pose = MPHandPose(modelPath="models/handpose_estimation_mediapipe_2023feb.onnx", confThreshold=0.38)
+        # Calibrated threshold: reliably triggers dual hands across diverse webcam angles
+        _palm_detector = MPPalmDet(modelPath="models/palm_detection_mediapipe_2023feb.onnx", scoreThreshold=0.30)
+        _hand_pose = MPHandPose(modelPath="models/handpose_estimation_mediapipe_2023feb.onnx", confThreshold=0.30)
     return _palm_detector, _hand_pose
 
 import os
@@ -119,14 +119,19 @@ def classify_hand_landmarks(lm, bbox):
     else:
         d_mid_thb = np.hypot(lm[4, 0] - lm[12, 0], lm[4, 1] - lm[12, 1])
         d_rng_thb = np.hypot(lm[4, 0] - lm[16, 0], lm[4, 1] - lm[16, 1])
-        is_snout_closed = (d_mid_thb / hand_scale < 0.38) and (d_rng_thb / hand_scale < 0.38)
+        # Calibrated Kitsune snout contact threshold (0.48): accommodates perspective foreshortening
+        is_snout_closed = (d_mid_thb / hand_scale < 0.48) and (d_rng_thb / hand_scale < 0.48)
+        # Check if middle and ring are curled towards palm (not pointing outward like horns)
+        mid_curled = (lm[12, 1] > lm[10, 1] - 0.05 * hand_scale) or (d_mid_thb / hand_scale < 0.48)
+        rng_curled = (lm[16, 1] > lm[14, 1] - 0.05 * hand_scale) or (d_rng_thb / hand_scale < 0.48)
+
         if idx_ext and pnk_ext and is_snout_closed:
             gesture_name = "kitsune"
         elif pnk_ext and not idx_ext and not mid_ext and not rng_ext and not thb_ext:
             gesture_name = "pinky_promise"
         elif thb_ext and pnk_ext and not idx_ext and not mid_ext and not rng_ext:
             gesture_name = "call"
-        elif idx_ext and pnk_ext and not mid_ext and not rng_ext:
+        elif idx_ext and pnk_ext and not mid_ext and not rng_ext and not is_snout_closed:
             gesture_name = "rock"
         elif idx_ext and mid_ext and not rng_ext and not pnk_ext:
             gesture_name = "peace"

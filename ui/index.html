@@ -1022,8 +1022,8 @@
           AppState.hands.setOptions({
             maxNumHands: 2,
             modelComplexity: 1,
-            minDetectionConfidence: 0.40,
-            minTrackingConfidence: 0.40
+            minDetectionConfidence: 0.25,
+            minTrackingConfidence: 0.25
           });
           AppState.hands.onResults(onHandResults);
           console.log("MediaPipe Hands pipeline successfully initialized");
@@ -1080,7 +1080,7 @@
 
       const dMidThb = Math.hypot(lm[4].x - lm[12].x, lm[4].y - lm[12].y);
       const dRngThb = Math.hypot(lm[4].x - lm[16].x, lm[4].y - lm[16].y);
-      const isSnoutClosed = (dMidThb / handScale < 0.38) && (dRngThb / handScale < 0.38);
+      const isSnoutClosed = (dMidThb / handScale < 0.48) && (dRngThb / handScale < 0.48);
 
       // Check custom JSL trained model
       let customJsl = matchClientJslPrototype(lm, false);
@@ -1097,7 +1097,7 @@
         detected = 'pinky_promise';
       } else if (thumbUp && pinkyUp && !indexUp && !middleUp && !ringUp) {
         detected = 'call';
-      } else if (indexUp && pinkyUp && !middleUp && !ringUp) {
+      } else if (indexUp && pinkyUp && !middleUp && !ringUp && !isSnoutClosed) {
         detected = 'rock';
       } else if (indexUp && middleUp && !ringUp && !pinkyUp) {
         detected = 'peace';
@@ -1601,64 +1601,162 @@
       const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
       const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
 
-      // 1. Central Core Shaft
-      const shaftGeo = new THREE.CylinderGeometry(0.18, 0.18, 2.8, 32);
-      const shaftMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.85, roughness: 0.25, wireframe: false });
+      // 1. Central Core Spool & Drive Shaft
+      const shaftGeo = new THREE.CylinderGeometry(0.14, 0.14, 3.2, 32);
+      const shaftMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.9, roughness: 0.2 });
       const shaft = new THREE.Mesh(shaftGeo, shaftMat);
       shaft.rotation.z = Math.PI / 2;
       threeEngineGroup.add(shaft);
       threeExplodedMeshes.push({ mesh: shaft, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: 0 });
 
-      // 2. High-Pressure Compressor Discs
-      for (let i = -2; i <= 2; i++) {
-        const discGeo = new THREE.CylinderGeometry(0.65 - Math.abs(i) * 0.08, 0.65 - Math.abs(i) * 0.08, 0.1, 32);
-        const discMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.7, roughness: 0.3, wireframe: true });
-        const disc = new THREE.Mesh(discGeo, discMat);
-        disc.rotation.z = Math.PI / 2;
-        disc.position.x = i * 0.22;
-        threeEngineGroup.add(disc);
-        threeExplodedMeshes.push({ mesh: disc, origX: disc.position.x, origY: 0, origZ: 0, dirX: i * 0.35, dirY: 0, dirZ: 0 });
-      }
+      // 2. Front Aerodynamic Spinner Nosecone with spiral vortex groove
+      const spinnerGeo = new THREE.ConeGeometry(0.38, 0.72, 32);
+      const spinnerMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.92, roughness: 0.15 });
+      const spinner = new THREE.Mesh(spinnerGeo, spinnerMat);
+      spinner.rotation.z = Math.PI / 2;
+      spinner.position.x = -1.55;
+      threeEngineGroup.add(spinner);
+      threeExplodedMeshes.push({ mesh: spinner, origX: -1.55, origY: 0, origZ: 0, dirX: -1.4, dirY: 0, dirZ: 0 });
 
-      // 3. Front Turbofan Blade Assembly
-      const fanGeo = new THREE.TorusGeometry(1.05, 0.08, 16, 64);
-      const fanMat = new THREE.MeshStandardMaterial({ color: altHex, wireframe: false, metalness: 0.9, roughness: 0.1 });
-      const fanRing = new THREE.Mesh(fanGeo, fanMat);
-      fanRing.rotation.y = Math.PI / 2;
-      fanRing.position.x = -1.1;
-      threeEngineGroup.add(fanRing);
-      threeExplodedMeshes.push({ mesh: fanRing, origX: -1.1, origY: 0, origZ: 0, dirX: -0.9, dirY: 0, dirZ: 0 });
+      // 3. 24 Contoured Titanium Turbofan Blades with Aerofoil Pitch
+      const fanHubGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.22, 32);
+      const fanHubMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.85, roughness: 0.2 });
+      const fanHub = new THREE.Mesh(fanHubGeo, fanHubMat);
+      fanHub.rotation.z = Math.PI / 2;
+      fanHub.position.x = -1.22;
+      threeEngineGroup.add(fanHub);
+      threeExplodedMeshes.push({ mesh: fanHub, origX: -1.22, origY: 0, origZ: 0, dirX: -1.0, dirY: 0, dirZ: 0 });
 
-      // Turbofan Blades array
-      for (let b = 0; b < 16; b++) {
-        const bladeGeo = new THREE.BoxGeometry(0.04, 0.75, 0.12);
-        const bladeMat = new THREE.MeshStandardMaterial({ color: secondaryHex, wireframe: true });
+      const numBlades = 24;
+      for (let b = 0; b < numBlades; b++) {
+        const bladeAngle = (b / numBlades) * Math.PI * 2;
+        // Swept wide-chord fan blade
+        const bladeGeo = new THREE.BoxGeometry(0.035, 0.82, 0.16);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.9, roughness: 0.18 });
         const blade = new THREE.Mesh(bladeGeo, bladeMat);
-        const angle = (b / 16) * Math.PI * 2;
-        blade.position.set(-1.1, Math.cos(angle) * 0.5, Math.sin(angle) * 0.5);
-        blade.rotation.x = angle;
-        blade.rotation.z = 0.3;
+        const rMid = 0.72;
+        const by = Math.cos(bladeAngle) * rMid;
+        const bz = Math.sin(bladeAngle) * rMid;
+        blade.position.set(-1.22, by, bz);
+        blade.rotation.x = bladeAngle;
+        blade.rotation.z = 0.38; // Aerodynamic angle of attack
+        blade.rotation.y = 0.12;
         threeEngineGroup.add(blade);
-        threeExplodedMeshes.push({ mesh: blade, origX: -1.1, origY: blade.position.y, origZ: blade.position.z, dirX: -0.9, dirY: 0, dirZ: 0 });
+        threeExplodedMeshes.push({
+          mesh: blade,
+          origX: -1.22, origY: by, origZ: bz,
+          dirX: -1.0, dirY: Math.cos(bladeAngle) * 0.45, dirZ: Math.sin(bladeAngle) * 0.45
+        });
       }
 
-      // 4. Outer Nacelle Cowling (Explodable outer rings)
-      const cowlGeo = new THREE.CylinderGeometry(1.2, 1.25, 1.2, 32, 1, true);
-      const cowlMat = new THREE.MeshStandardMaterial({ color: primaryHex, wireframe: true, transparent: true, opacity: 0.65 });
-      const cowl = new THREE.Mesh(cowlGeo, cowlMat);
-      cowl.rotation.z = Math.PI / 2;
-      cowl.position.x = 0.2;
-      threeEngineGroup.add(cowl);
-      threeExplodedMeshes.push({ mesh: cowl, origX: 0.2, origY: 0, origZ: 0, dirX: 0.8, dirY: 0, dirZ: 0 });
+      // Outer Fan Shroud Containment Ring
+      const fanRingGeo = new THREE.TorusGeometry(1.22, 0.05, 16, 64);
+      const fanRingMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.9, roughness: 0.15 });
+      const fanRing = new THREE.Mesh(fanRingGeo, fanRingMat);
+      fanRing.rotation.y = Math.PI / 2;
+      fanRing.position.x = -1.22;
+      threeEngineGroup.add(fanRing);
+      threeExplodedMeshes.push({ mesh: fanRing, origX: -1.22, origY: 0, origZ: 0, dirX: -1.0, dirY: 0, dirZ: 0 });
 
-      // 5. Exhaust Nozzle Cone
-      const coneGeo = new THREE.ConeGeometry(0.45, 0.9, 32, 1, true);
-      const coneMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.95, roughness: 0.15, wireframe: false });
+      // 4. Low-Pressure & High-Pressure Compressor Stages (5 Blisk Spools)
+      for (let s = 0; s < 5; s++) {
+        const sx = -0.75 + s * 0.22;
+        const discR = 0.72 - s * 0.06;
+        const bliskGeo = new THREE.CylinderGeometry(discR, discR, 0.10, 32);
+        const bliskMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.8, roughness: 0.25, wireframe: true });
+        const blisk = new THREE.Mesh(bliskGeo, bliskMat);
+        blisk.rotation.z = Math.PI / 2;
+        blisk.position.x = sx;
+        threeEngineGroup.add(blisk);
+        threeExplodedMeshes.push({ mesh: blisk, origX: sx, origY: 0, origZ: 0, dirX: (s - 2) * 0.35, dirY: 0, dirZ: 0 });
+
+        // Stator Vanes between blisks
+        const statorRingGeo = new THREE.TorusGeometry(discR + 0.08, 0.025, 8, 32);
+        const statorRingMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.75, roughness: 0.3 });
+        const statorRing = new THREE.Mesh(statorRingGeo, statorRingMat);
+        statorRing.rotation.y = Math.PI / 2;
+        statorRing.position.x = sx;
+        threeEngineGroup.add(statorRing);
+        threeExplodedMeshes.push({ mesh: statorRing, origX: sx, origY: 0, origZ: 0, dirX: (s - 2) * 0.35, dirY: 0, dirZ: 0 });
+      }
+
+      // 5. Annular Combustion Chamber with Fuel Injector Nozzles
+      const combustorGeo = new THREE.CylinderGeometry(0.55, 0.52, 0.55, 32, 1, true);
+      const combustorMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.88, roughness: 0.22, wireframe: true });
+      const combustor = new THREE.Mesh(combustorGeo, combustorMat);
+      combustor.rotation.z = Math.PI / 2;
+      combustor.position.x = 0.52;
+      threeEngineGroup.add(combustor);
+      threeExplodedMeshes.push({ mesh: combustor, origX: 0.52, origY: 0, origZ: 0, dirX: 0.45, dirY: 0, dirZ: 0 });
+
+      // 12 Circumferential Fuel Injector Pods
+      for (let f = 0; f < 12; f++) {
+        const fAngle = (f / 12) * Math.PI * 2;
+        const fGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.16, 12);
+        const fMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.95, roughness: 0.1 });
+        const nozzle = new THREE.Mesh(fGeo, fMat);
+        const ny = Math.cos(fAngle) * 0.54;
+        const nz = Math.sin(fAngle) * 0.54;
+        nozzle.position.set(0.52, ny, nz);
+        nozzle.rotation.x = fAngle;
+        threeEngineGroup.add(nozzle);
+        threeExplodedMeshes.push({
+          mesh: nozzle,
+          origX: 0.52, origY: ny, origZ: nz,
+          dirX: 0.45, dirY: Math.cos(fAngle) * 0.5, dirZ: Math.sin(fAngle) * 0.5
+        });
+      }
+
+      // 6. High-Pressure & Low-Pressure Turbines (Aft Stages)
+      for (let t = 0; t < 2; t++) {
+        const tx = 0.95 + t * 0.22;
+        const tGeo = new THREE.CylinderGeometry(0.58 + t * 0.05, 0.58 + t * 0.05, 0.08, 32);
+        const tMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.92, roughness: 0.18, wireframe: true });
+        const turb = new THREE.Mesh(tGeo, tMat);
+        turb.rotation.z = Math.PI / 2;
+        turb.position.x = tx;
+        threeEngineGroup.add(turb);
+        threeExplodedMeshes.push({ mesh: turb, origX: tx, origY: 0, origZ: 0, dirX: 0.8 + t * 0.3, dirY: 0, dirZ: 0 });
+      }
+
+      // 7. Aerodynamic Exhaust Cone & Mixer Nozzle
+      const coneGeo = new THREE.ConeGeometry(0.36, 0.85, 32);
+      const coneMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.95, roughness: 0.12 });
       const cone = new THREE.Mesh(coneGeo, coneMat);
       cone.rotation.z = -Math.PI / 2;
-      cone.position.x = 1.35;
+      cone.position.x = 1.48;
       threeEngineGroup.add(cone);
-      threeExplodedMeshes.push({ mesh: cone, origX: 1.35, origY: 0, origZ: 0, dirX: 1.2, dirY: 0, dirZ: 0 });
+      threeExplodedMeshes.push({ mesh: cone, origX: 1.48, origY: 0, origZ: 0, dirX: 1.4, dirY: 0, dirZ: 0 });
+
+      // Outer Exhaust Tailpipe Casing
+      const tailGeo = new THREE.CylinderGeometry(0.68, 0.58, 0.72, 32, 1, true);
+      const tailMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.75, roughness: 0.3, wireframe: true });
+      const tail = new THREE.Mesh(tailGeo, tailMat);
+      tail.rotation.z = Math.PI / 2;
+      tail.position.x = 1.25;
+      threeEngineGroup.add(tail);
+      threeExplodedMeshes.push({ mesh: tail, origX: 1.25, origY: 0, origZ: 0, dirX: 1.2, dirY: 0, dirZ: 0 });
+
+      // 8. Outer Nacelle Cowling (Two Symmetrical Clamshell Halves)
+      [-1, 1].forEach((side) => {
+        const cowlGeo = new THREE.CylinderGeometry(1.28, 1.32, 1.4, 32, 1, true, side > 0 ? 0 : Math.PI, Math.PI);
+        const cowlMat = new THREE.MeshStandardMaterial({
+          color: primaryHex,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.60,
+          side: THREE.DoubleSide
+        });
+        const cowl = new THREE.Mesh(cowlGeo, cowlMat);
+        cowl.rotation.z = Math.PI / 2;
+        cowl.position.set(-0.35, 0, 0);
+        threeEngineGroup.add(cowl);
+        threeExplodedMeshes.push({
+          mesh: cowl,
+          origX: -0.35, origY: 0, origZ: 0,
+          dirX: 0.2, dirY: side * 1.1, dirZ: 0
+        });
+      });
     }
 
     function buildCyberDrone() {
@@ -2266,55 +2364,158 @@
       const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
       const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
 
-      // 1. Central Drive Input Shaft
-      const shaftGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.8, 24);
-      const shaftMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.85, roughness: 0.25 });
-      const shaft = new THREE.Mesh(shaftGeo, shaftMat);
-      shaft.rotation.x = Math.PI / 2;
-      threeEngineGroup.add(shaft);
-      threeExplodedMeshes.push({ mesh: shaft, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: -0.9 });
+      // 1. Central Drive Input / Output Shafts
+      const shaftInGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.95, 24);
+      const shaftMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.9, roughness: 0.2 });
+      const shaftIn = new THREE.Mesh(shaftInGeo, shaftMat);
+      shaftIn.rotation.x = Math.PI / 2;
+      shaftIn.position.z = -0.72;
+      threeEngineGroup.add(shaftIn);
+      threeExplodedMeshes.push({ mesh: shaftIn, origX: 0, origY: 0, origZ: -0.72, dirX: 0, dirY: 0, dirZ: -1.2 });
 
-      // 2. Central Sun Gear
-      const sunGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.3, 24);
-      const sunMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.9, roughness: 0.2, wireframe: true });
-      const sun = new THREE.Mesh(sunGeo, sunMat);
-      sun.rotation.x = Math.PI / 2;
-      threeEngineGroup.add(sun);
-      threeExplodedMeshes.push({ mesh: sun, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: -0.6 });
+      const shaftOutGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.95, 24);
+      const shaftOut = new THREE.Mesh(shaftOutGeo, shaftMat);
+      shaftOut.rotation.x = Math.PI / 2;
+      shaftOut.position.z = 0.72;
+      threeEngineGroup.add(shaftOut);
+      threeExplodedMeshes.push({ mesh: shaftOut, origX: 0, origY: 0, origZ: 0.72, dirX: 0, dirY: 0, dirZ: 1.2 });
 
-      // 3. Three Orbiting Planet Gears
-      const orbitR = 0.65;
-      for (let i = 0; i < 3; i++) {
-        const ang = (i / 3) * Math.PI * 2;
-        const px = Math.cos(ang) * orbitR;
-        const py = Math.sin(ang) * orbitR;
-        const planetGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.28, 20);
-        const planetMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.8, roughness: 0.3, wireframe: false });
-        const planet = new THREE.Mesh(planetGeo, planetMat);
-        planet.position.set(px, py, 0);
-        planet.rotation.x = Math.PI / 2;
-        threeEngineGroup.add(planet);
-        threeExplodedMeshes.push({ mesh: planet, origX: px, origY: py, origZ: 0, dirX: Math.cos(ang) * 0.9, dirY: Math.sin(ang) * 0.9, dirZ: 0 });
+      // 2. High-Precision Sun Gear (Hub + 18 Involute Teeth)
+      const sunHubGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.28, 32);
+      const sunMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.92, roughness: 0.18 });
+      const sunHub = new THREE.Mesh(sunHubGeo, sunMat);
+      sunHub.rotation.x = Math.PI / 2;
+      threeEngineGroup.add(sunHub);
+      threeExplodedMeshes.push({ mesh: sunHub, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: -0.65 });
+
+      const sunTeeth = 18;
+      for (let st = 0; st < sunTeeth; st++) {
+        const ang = (st / sunTeeth) * Math.PI * 2;
+        const toothGeo = new THREE.BoxGeometry(0.045, 0.09, 0.28);
+        const toothMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.95, roughness: 0.15 });
+        const tooth = new THREE.Mesh(toothGeo, toothMat);
+        const tx = Math.cos(ang) * 0.34;
+        const ty = Math.sin(ang) * 0.34;
+        tooth.position.set(tx, ty, 0);
+        tooth.rotation.z = ang;
+        threeEngineGroup.add(tooth);
+        threeExplodedMeshes.push({
+          mesh: tooth,
+          origX: tx, origY: ty, origZ: 0,
+          dirX: Math.cos(ang) * 0.15, dirY: Math.sin(ang) * 0.15, dirZ: -0.65
+        });
       }
 
-      // 4. Planet Carrier Triangular Plates (Front & Back)
-      [-0.24, 0.24].forEach((cz) => {
-        const carrierGeo = new THREE.CylinderGeometry(0.74, 0.74, 0.05, 3);
-        const carrierMat = new THREE.MeshStandardMaterial({ color: secondaryHex, wireframe: true });
+      // 3. Four Orbiting Planet Gears with Individual Teeth & Roller Bearings
+      const orbitR = 0.74;
+      const numPlanets = 4;
+      for (let p = 0; p < numPlanets; p++) {
+        const pAng = (p / numPlanets) * Math.PI * 2;
+        const px = Math.cos(pAng) * orbitR;
+        const py = Math.sin(pAng) * orbitR;
+
+        // Planet Gear Hub
+        const pHubGeo = new THREE.CylinderGeometry(0.30, 0.30, 0.26, 28);
+        const pMat = new THREE.MeshStandardMaterial({ color: altHex, metalness: 0.88, roughness: 0.22 });
+        const pHub = new THREE.Mesh(pHubGeo, pMat);
+        pHub.position.set(px, py, 0);
+        pHub.rotation.x = Math.PI / 2;
+        threeEngineGroup.add(pHub);
+        threeExplodedMeshes.push({
+          mesh: pHub,
+          origX: px, origY: py, origZ: 0,
+          dirX: Math.cos(pAng) * 0.95, dirY: Math.sin(pAng) * 0.95, dirZ: 0
+        });
+
+        // Planet Bearing Pin Spindle
+        const pinGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.44, 16);
+        const pinMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.95, roughness: 0.1 });
+        const pin = new THREE.Mesh(pinGeo, pinMat);
+        pin.position.set(px, py, 0);
+        pin.rotation.x = Math.PI / 2;
+        threeEngineGroup.add(pin);
+        threeExplodedMeshes.push({
+          mesh: pin,
+          origX: px, origY: py, origZ: 0,
+          dirX: Math.cos(pAng) * 0.95, dirY: Math.sin(pAng) * 0.95, dirZ: 0
+        });
+
+        // 14 Involute Teeth per Planet Gear
+        const pTeeth = 14;
+        for (let pt = 0; pt < pTeeth; pt++) {
+          const tang = (pt / pTeeth) * Math.PI * 2;
+          const pToothGeo = new THREE.BoxGeometry(0.042, 0.08, 0.26);
+          const pTooth = new THREE.Mesh(pToothGeo, pMat);
+          const ptx = px + Math.cos(tang) * 0.32;
+          const pty = py + Math.sin(tang) * 0.32;
+          pTooth.position.set(ptx, pty, 0);
+          pTooth.rotation.z = tang;
+          threeEngineGroup.add(pTooth);
+          threeExplodedMeshes.push({
+            mesh: pTooth,
+            origX: ptx, origY: pty, origZ: 0,
+            dirX: Math.cos(pAng) * 0.95, dirY: Math.sin(pAng) * 0.95, dirZ: 0
+          });
+        }
+      }
+
+      // 4. Planet Carrier Cage (Spider Plate + 4 Standoff Tie Bars + Rear Plate)
+      [-0.20, 0.20].forEach((cz, cIdx) => {
+        // Machined 4-lobed carrier spider disc
+        const carrierGeo = new THREE.CylinderGeometry(0.92, 0.92, 0.06, 32);
+        const carrierMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.85, roughness: 0.25, wireframe: true });
         const carrier = new THREE.Mesh(carrierGeo, carrierMat);
         carrier.position.z = cz;
         carrier.rotation.x = Math.PI / 2;
         threeEngineGroup.add(carrier);
-        threeExplodedMeshes.push({ mesh: carrier, origX: 0, origY: 0, origZ: cz, dirX: 0, dirY: 0, dirZ: cz > 0 ? 0.7 : -0.7 });
+        threeExplodedMeshes.push({
+          mesh: carrier,
+          origX: 0, origY: 0, origZ: cz,
+          dirX: 0, dirY: 0, dirZ: cz > 0 ? 0.75 : -0.75
+        });
       });
 
-      // 5. Outer Ring Annulus Gear
-      const ringGeo = new THREE.CylinderGeometry(1.15, 1.15, 0.38, 32, 1, true);
-      const ringMat = new THREE.MeshStandardMaterial({ color: primaryHex, metalness: 0.7, roughness: 0.3, wireframe: true, side: THREE.DoubleSide });
+      // 4 Structural Tie-Bar Spacers joining the carrier plates
+      for (let b = 0; b < numPlanets; b++) {
+        const bAng = ((b + 0.5) / numPlanets) * Math.PI * 2;
+        const bx = Math.cos(bAng) * 0.65;
+        const by = Math.sin(bAng) * 0.65;
+        const barGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.40, 12);
+        const barMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.9, roughness: 0.2 });
+        const bar = new THREE.Mesh(barGeo, barMat);
+        bar.position.set(bx, by, 0);
+        bar.rotation.x = Math.PI / 2;
+        threeEngineGroup.add(bar);
+        threeExplodedMeshes.push({
+          mesh: bar,
+          origX: bx, origY: by, origZ: 0,
+          dirX: Math.cos(bAng) * 0.55, dirY: Math.sin(bAng) * 0.55, dirZ: 0
+        });
+      }
+
+      // 5. Outer Ring Annulus Gear (Internal Teeth Ring + Mounting Flange)
+      const ringGeo = new THREE.CylinderGeometry(1.22, 1.22, 0.36, 48, 1, true);
+      const ringMat = new THREE.MeshStandardMaterial({
+        color: primaryHex,
+        metalness: 0.82,
+        roughness: 0.25,
+        wireframe: true,
+        side: THREE.DoubleSide
+      });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = Math.PI / 2;
       threeEngineGroup.add(ring);
-      threeExplodedMeshes.push({ mesh: ring, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: 0.8 });
+      threeExplodedMeshes.push({ mesh: ring, origX: 0, origY: 0, origZ: 0, dirX: 0, dirY: 0, dirZ: 0.95 });
+
+      // Outer Bolted Mounting Rim Flanges
+      [-0.18, 0.18].forEach((fz) => {
+        const flangeGeo = new THREE.TorusGeometry(1.28, 0.04, 12, 48);
+        const flangeMat = new THREE.MeshStandardMaterial({ color: secondaryHex, metalness: 0.9, roughness: 0.15 });
+        const flange = new THREE.Mesh(flangeGeo, flangeMat);
+        flange.position.z = fz;
+        threeEngineGroup.add(flange);
+        threeExplodedMeshes.push({ mesh: flange, origX: 0, origY: 0, origZ: fz, dirX: 0, dirY: 0, dirZ: fz > 0 ? 1.05 : -1.05 });
+      });
     }
 
     function loadCadModelFromBuffer(buffer, fileName, ext) {
@@ -3867,135 +4068,198 @@
           ctx.translate(eyeCenter.x, eyeCenter.y);
           ctx.rotate(eyeAngle);
 
-          // 1. Curved Wrap-Around Visor Geometry (Extends past eyes towards ears)
+          // 1. Visor coordinate frame (wraps around face from ear to ear)
           const visorW = eyeDist * 3.4;
-          const visorH = eyeDist * 1.45;
+          const visorH = eyeDist * 1.5;
           const vLeft = -visorW * 0.5;
           const vTop = -visorH * 0.52;
 
-          // Subtle, ultra-clean glass tint (generous transparency so face is clear)
-          const visorGrad = ctx.createLinearGradient(0, vTop, 0, vTop + visorH);
-          visorGrad.addColorStop(0.0, 'rgba(56, 189, 248, 0.04)');
-          visorGrad.addColorStop(0.4, 'rgba(56, 189, 248, 0.10)');
-          visorGrad.addColorStop(0.85, 'rgba(168, 85, 247, 0.05)');
-          visorGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
-          ctx.fillStyle = visorGrad;
+          // Borderless design: NO outer bounding box or glass perimeter stroke.
+          // Soft ambient holographic glow across the ocular band
+          const ocularGlow = ctx.createRadialGradient(0, 0, eyeDist * 0.2, 0, 0, visorW * 0.55);
+          ocularGlow.addColorStop(0.0, 'rgba(56, 189, 248, 0.08)');
+          ocularGlow.addColorStop(0.5, 'rgba(56, 189, 248, 0.03)');
+          ocularGlow.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = ocularGlow;
+          ctx.fillRect(vLeft, vTop - 20, visorW, visorH + 40);
 
-          // Rounded, aerodynamic curved contour sweeping toward ears (not a harsh box)
+          // 2. High-Tech Holographic Horizontal Scan & Grid Lines across brow/temples
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+          ctx.lineWidth = 0.8;
+          ctx.setLineDash([4, 6]);
           ctx.beginPath();
-          const rRad = 28;
-          ctx.moveTo(vLeft + rRad, vTop);
-          // Top curved brow edge
-          ctx.quadraticCurveTo(0, vTop - 8, -vLeft - rRad, vTop);
-          // Right temple ear curve
-          ctx.quadraticCurveTo(-vLeft + 12, vTop + visorH * 0.35, -vLeft - rRad * 0.5, vTop + visorH);
-          // Bottom sweeping cheek edge
-          ctx.quadraticCurveTo(0, vTop + visorH + 12, vLeft + rRad * 0.5, vTop + visorH);
-          // Left temple ear curve
-          ctx.quadraticCurveTo(vLeft - 12, vTop + visorH * 0.35, vLeft + rRad, vTop);
-          ctx.closePath();
-          ctx.fill();
-
-          // Subtle curved glass edge rails (fine 0.9px hairline)
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
-          ctx.lineWidth = 0.9;
+          ctx.moveTo(vLeft + 20, vTop + 10);
+          ctx.lineTo(-vLeft - 20, vTop + 10);
+          ctx.moveTo(vLeft + 35, vTop + visorH - 8);
+          ctx.lineTo(-vLeft - 35, vTop + visorH - 8);
           ctx.stroke();
+          ctx.setLineDash([]);
 
-          // 2. Ear Temple Fasteners / Hinge Nodes (Subtle scifi mounts)
-          [-vLeft, vLeft].forEach((tx, idx) => {
-            ctx.save();
-            ctx.translate(tx, vTop + visorH * 0.28);
-            ctx.strokeStyle = colors.primary;
-            ctx.lineWidth = 1.0;
-            ctx.strokeRect(idx === 0 ? -12 : 0, -6, 12, 12);
-            ctx.fillStyle = colors.secondary;
-            ctx.beginPath();
-            ctx.arc(idx === 0 ? -6 : 6, 0, 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-          });
-
-          // 3. Ultra-Crisp, Minimalist Central Callout ".MO" (Image 2)
-          ctx.font = 'bold 24px "Share Tech Mono", monospace';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+          // 3. Central Callout ".MO" & Mission Badges (Image 2)
+          ctx.save();
+          ctx.shadowColor = '#00f0ff';
+          ctx.shadowBlur = 10;
+          ctx.font = 'bold 26px "Share Tech Mono", monospace';
+          ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
-          ctx.fillText('.MO', 0, vTop + visorH * 0.44);
+          ctx.fillText('.MO', 0, vTop + visorH * 0.42);
+          ctx.restore();
 
-          // Sub-stamps: "GHOST // 11-HE" & optical version
-          ctx.font = 'bold 8px "Share Tech Mono", monospace';
+          // Sub-stamps: "GHOST // 11-HE" & optical tags
+          ctx.font = 'bold 9px "Share Tech Mono", monospace';
           ctx.fillStyle = '#ef4444';
           ctx.textAlign = 'left';
-          ctx.fillText('GHOST // 11-HE', 52, vTop + visorH * 0.40);
+          ctx.fillText('GHOST // 11-HE', 54, vTop + visorH * 0.38);
 
           ctx.font = '7px "Share Tech Mono", monospace';
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.7)';
-          ctx.textAlign = 'center';
-          ctx.fillText('NEURAL OPTICAL AR VISOR // MK-IV', 0, vTop + 14);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillText('NEURAL VISOR SYS-MK4', 54, vTop + visorH * 0.46);
 
-          // 4. Subtle Hairline PCB Circuit Schematics (Left Temple Area)
-          const schX = vLeft + 22;
-          const schY = vTop + 18;
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
-          ctx.lineWidth = 0.75;
+          ctx.font = '7px "Share Tech Mono", monospace';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.textAlign = 'right';
+          ctx.fillText('SEC // LEV-7', -54, vTop + visorH * 0.38);
+          ctx.fillText('FREQ: 5.8 GHz', -54, vTop + visorH * 0.46);
 
-          // Circuit blueprint block
-          ctx.strokeRect(schX, schY, 44, 32);
-          ctx.strokeRect(schX + 5, schY + 5, 14, 12);
-          ctx.strokeRect(schX + 24, schY + 5, 15, 22);
+          // 4. Dense Micro-PCB Schematic Details (Left Temple / Ear level)
+          const schX = vLeft + 15;
+          const schY = vTop + 16;
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+          ctx.lineWidth = 0.8;
 
-          // Micro circuit trace lines with 90-degree elbows
+          // Micro circuit blocks
+          ctx.strokeRect(schX, schY, 48, 34);
+          ctx.strokeRect(schX + 6, schY + 6, 16, 14);
+          ctx.strokeRect(schX + 26, schY + 6, 16, 22);
+
+          // 90-degree circuit traces
           ctx.beginPath();
-          ctx.moveTo(schX + 19, schY + 11);
-          ctx.lineTo(schX + 24, schY + 11);
-          ctx.moveTo(schX + 12, schY + 17);
-          ctx.lineTo(schX + 12, schY + 26);
-          ctx.lineTo(schX + 24, schY + 26);
+          ctx.moveTo(schX + 22, schY + 13);
+          ctx.lineTo(schX + 26, schY + 13);
+          ctx.moveTo(schX + 14, schY + 20);
+          ctx.lineTo(schX + 14, schY + 28);
+          ctx.lineTo(schX + 26, schY + 28);
+          ctx.moveTo(schX + 42, schY + 18);
+          ctx.lineTo(schX + 54, schY + 18);
           ctx.stroke();
 
-          // Delicate micro-text below circuit
+          // Micro circuit labels & node dots
+          ctx.fillStyle = '#00f0ff';
+          ctx.beginPath();
+          ctx.arc(schX + 22, schY + 13, 2, 0, Math.PI * 2);
+          ctx.arc(schX + 26, schY + 28, 2, 0, Math.PI * 2);
+          ctx.fill();
+
           ctx.font = '6px "Share Tech Mono", monospace';
           ctx.fillStyle = colors.primary;
           ctx.textAlign = 'left';
-          ctx.fillText('MOD // 0x8F94', schX, schY + 42);
-          ctx.fillText('BUS: 128-BIT AR', schX, schY + 50);
+          ctx.fillText('CHIP // Q-CORE 8X', schX, schY + 44);
+          ctx.fillText('BUS: 256-BIT SYNC', schX, schY + 52);
 
-          // 5. Right Temple Telemetry & Micro Coordinates (Image 2 right data)
-          const rDatX = -vLeft - 74;
-          const rDatY = vTop + 20;
-          ctx.font = '6px "Share Tech Mono", monospace';
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
+          // 5. Dense Right Temple Telemetry & Micro Scale Ticks (Right Ear level)
+          const rDatX = -vLeft - 80;
+          const rDatY = vTop + 18;
+          ctx.font = '7px "Share Tech Mono", monospace';
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.95)';
           ctx.textAlign = 'left';
           ctx.fillText('LATENCY: 0.8ms', rDatX, rDatY + 8);
-          ctx.fillText('REFRACT: 1.544', rDatX, rDatY + 16);
-          ctx.fillText('TARGET LOCK: OK', rDatX, rDatY + 24);
+          ctx.fillText('REFRACT: 1.544', rDatX, rDatY + 18);
+          ctx.fillText('TARGET LOCK: OK', rDatX, rDatY + 28);
+          ctx.fillText('SYNC: 120 FPS', rDatX, rDatY + 38);
 
-          // Delicate stepped optical level gauge
+          // Precision stepped optical ladder scale
           ctx.strokeStyle = colors.primary;
-          ctx.lineWidth = 0.75;
+          ctx.lineWidth = 1.0;
           ctx.beginPath();
-          for (let step = 0; step < 6; step++) {
-            const gy = rDatY + 32 + step * 5;
-            ctx.moveTo(rDatX + 60, gy);
-            ctx.lineTo(rDatX + (step % 2 === 0 ? 68 : 64), gy);
+          for (let step = 0; step < 8; step++) {
+            const gy = rDatY + 46 + step * 4;
+            ctx.moveTo(rDatX + 66, gy);
+            ctx.lineTo(rDatX + (step % 2 === 0 ? 76 : 71), gy);
           }
           ctx.stroke();
 
-          // 6. Subtle Optical Crosshairs at Pupil Centers (No bulky rotating rings)
+          // 6. LUMINOUS CYBERNETIC PUPIL RETICLES (Images 3 & 4)
+          // High-intensity concentric glowing neon rings & rotating segmentation arcs locked to pupils
           const lEyeLocalX = -eyeDist * 0.5;
           const rEyeLocalX = eyeDist * 0.5;
-          [lEyeLocalX, rEyeLocalX].forEach((ex) => {
+          const pupilY = 4;
+          const tSec = Date.now() * 0.003;
+
+          [lEyeLocalX, rEyeLocalX].forEach((ex, eyeIdx) => {
             ctx.save();
-            ctx.translate(ex, 6);
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
-            ctx.lineWidth = 0.75;
-            const cLen = 6;
+            ctx.translate(ex, pupilY);
+
+            // Glowing Bloom Core at pupil center (bright neon cyan/white)
+            const pGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 18);
+            pGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.98)');
+            pGrad.addColorStop(0.2, 'rgba(0, 240, 255, 0.85)');
+            pGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.35)');
+            pGrad.addColorStop(1.0, 'rgba(0, 240, 255, 0.0)');
+
+            ctx.fillStyle = pGrad;
             ctx.beginPath();
-            ctx.moveTo(-cLen, 0); ctx.lineTo(cLen, 0);
-            ctx.moveTo(0, -cLen); ctx.lineTo(0, cLen);
+            ctx.arc(0, 0, 18, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Intense inner pupil pin-point core
+            ctx.save();
+            ctx.shadowColor = '#00f0ff';
+            ctx.shadowBlur = 14;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Concentric Glowing Neon Iris Rings
+            ctx.save();
+            ctx.shadowColor = '#00f0ff';
+            ctx.shadowBlur = 10;
+            ctx.lineWidth = 1.4;
+            ctx.strokeStyle = '#00f0ff';
+
+            // Ring 1: Tight inner optical ring
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, Math.PI * 2);
             ctx.stroke();
-            // Delicate corner brackets
-            const bDist = 18;
-            ctx.strokeRect(-bDist, -bDist, bDist * 2, bDist * 2);
+
+            // Ring 2: Rotating Segmented Tracking Arc
+            const rotSpeed = (eyeIdx === 0 ? 1 : -1) * tSec;
+            ctx.beginPath();
+            ctx.arc(0, 0, 14, rotSpeed, rotSpeed + Math.PI * 1.15);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 14, rotSpeed + Math.PI * 1.35, rotSpeed + Math.PI * 1.85);
+            ctx.stroke();
+
+            // Ring 3: Outer Dotted Aperture Ring
+            ctx.lineWidth = 1.0;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.setLineDash([3, 5]);
+            ctx.beginPath();
+            ctx.arc(0, 0, 21, -rotSpeed * 0.7, -rotSpeed * 0.7 + Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            // Fine optical crosshair tines
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.75)';
+            ctx.lineWidth = 0.8;
+            const cLen = 7;
+            ctx.beginPath();
+            ctx.moveTo(-cLen - 15, 0); ctx.lineTo(-15, 0);
+            ctx.moveTo(15, 0); ctx.lineTo(cLen + 15, 0);
+            ctx.moveTo(0, -cLen - 15); ctx.lineTo(0, -15);
+            ctx.moveTo(0, 15); ctx.lineTo(0, cLen + 15);
+            ctx.stroke();
+
+            // Micro coordinate stamp under pupil
+            ctx.font = '6px "Share Tech Mono", monospace';
+            ctx.fillStyle = '#00f0ff';
+            ctx.textAlign = 'center';
+            ctx.fillText(eyeIdx === 0 ? 'IRIS-L // 468' : 'IRIS-R // 473', 0, 31);
+
             ctx.restore();
           });
 
