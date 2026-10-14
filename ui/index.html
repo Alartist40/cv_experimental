@@ -160,6 +160,11 @@
         <span class="hidden xl:inline text-[11px]">FACE</span>
       </button>
 
+      <button id="modeBtnEmotion" onclick="switchSystemMode('EMOTION_READER')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="Cute Robot Avatar Emotion Mirror & Facial Expression Tracer">
+        <i data-lucide="smile" class="w-4 h-4"></i>
+        <span class="hidden xl:inline text-[11px]">EMOTION</span>
+      </button>
+
       <button id="modeBtnHand" onclick="switchSystemMode('HAND_GESTURE')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="21-Joint Skeletal Hands & JSL Dictionary">
         <i data-lucide="hand" class="w-4 h-4"></i>
         <span class="hidden xl:inline text-[11px]">GESTURE</span>
@@ -171,13 +176,13 @@
       </button>
 
       <button id="modeBtnParticles" onclick="switchSystemMode('PARTICLE_FLOW')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="Hand-Reactor 3D GPU Particle Flow & Galaxy Warp">
-        <i data-lucide="orbit" class="w-4 h-4 text-cyan-400"></i>
-        <span class="hidden xl:inline text-[11px] text-cyan-400">PARTICLES</span>
+        <i data-lucide="orbit" class="w-4 h-4"></i>
+        <span class="hidden xl:inline text-[11px]">PARTICLES</span>
       </button>
 
       <button id="modeBtnBird" onclick="switchSystemMode('BIRD_DETECT')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="Avian Robotics Tracking & Flight Vector Analysis">
-        <i data-lucide="crosshair" class="w-4 h-4 text-amber-400"></i>
-        <span class="hidden xl:inline text-[11px] text-amber-400">BIRD</span>
+        <i data-lucide="crosshair" class="w-4 h-4"></i>
+        <span class="hidden xl:inline text-[11px]">BIRD</span>
       </button>
     </div>
 
@@ -453,6 +458,69 @@
           <button onclick="enrollFaceCurrentFrame()" class="w-full py-0.5 border rounded text-[10px] font-semibold transition hover:bg-white/10" style="border-color: var(--panel-border); color: var(--text-secondary);">
             + ENROLL NEW SUBJECT IN REGISTRY
           </button>
+        </div>
+      </div>
+
+      <!-- 2B. CUTE ROBOT AVATAR EMOTION READER CARD -->
+      <div id="emotionControlCard" class="hidden theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono space-y-2.5">
+        <div>
+          <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
+            <div class="flex items-center gap-2 text-xs font-bold font-industrial text-pink-400">
+              <i data-lucide="smile" class="w-4 h-4"></i>
+              <span>EMOTION AVATAR MIRROR</span>
+            </div>
+            <span id="emotionStatusPill" class="text-xs font-bold font-mono text-pink-400">TRACKING</span>
+          </div>
+
+          <div class="flex items-center gap-3 pt-1">
+            <div id="emotionMiniAvatarPreview" class="relative w-12 h-12 border-2 border-pink-500/50 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-[18px] bg-black/60 shadow-[0_0_12px_rgba(244,63,94,0.3)]">
+              ∩ ◡ ∩
+            </div>
+
+            <div class="space-y-0.5 text-xs font-mono leading-tight">
+              <div class="font-bold font-industrial text-pink-300" id="detectedEmotionLabel">HAPPY</div>
+              <div style="color: var(--text-secondary);">CONFIDENCE: <span id="emotionConfidenceVal" class="text-emerald-400 font-bold">96%</span></div>
+              <div style="color: var(--text-muted);">GAZE: <span id="emotionGazeVal" class="font-bold text-cyan-400">CENTER</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t space-y-2 font-mono text-xs" style="border-color: var(--panel-border);">
+          <!-- Live Facial Metrics -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-[10px]">
+              <span style="color: var(--text-muted);">SMILE INDEX</span>
+              <span id="metricSmileVal" class="font-bold text-pink-400">0.00</span>
+            </div>
+            <div class="w-full bg-black/50 h-1.5 rounded-full overflow-hidden border border-white/10">
+              <div id="metricSmileBar" class="bg-pink-500 h-full w-0 transition-all duration-150"></div>
+            </div>
+
+            <div class="flex justify-between text-[10px] pt-1">
+              <span style="color: var(--text-muted);">MOUTH APERTURE</span>
+              <span id="metricMouthVal" class="font-bold text-cyan-400">0.00</span>
+            </div>
+            <div class="w-full bg-black/50 h-1.5 rounded-full overflow-hidden border border-white/10">
+              <div id="metricMouthBar" class="bg-cyan-400 h-full w-0 transition-all duration-150"></div>
+            </div>
+
+            <div class="flex justify-between text-[10px] pt-1">
+              <span style="color: var(--text-muted);">EYE BLINK / WINK</span>
+              <span id="metricEyeVal" class="font-bold text-amber-400">L: 0.28 | R: 0.28</span>
+            </div>
+          </div>
+
+          <!-- Color palette picker for robot avatar LED -->
+          <div class="pt-1.5 border-t border-white/10 flex items-center justify-between">
+            <span class="text-[10px]" style="color: var(--text-secondary);">AVATAR LED:</span>
+            <div class="flex gap-1">
+              <button onclick="setAvatarLedColor('#ff66b2')" class="w-4 h-4 rounded-full bg-[#ff66b2] border border-white/40 hover:scale-110 transition" title="Neon Pink"></button>
+              <button onclick="setAvatarLedColor('#38bdf8')" class="w-4 h-4 rounded-full bg-[#38bdf8] border border-white/40 hover:scale-110 transition" title="Cyber Cyan"></button>
+              <button onclick="setAvatarLedColor('#a855f7')" class="w-4 h-4 rounded-full bg-[#a855f7] border border-white/40 hover:scale-110 transition" title="Synthwave Violet"></button>
+              <button onclick="setAvatarLedColor('#34d399')" class="w-4 h-4 rounded-full bg-[#34d399] border border-white/40 hover:scale-110 transition" title="Mint Green"></button>
+              <button onclick="setAvatarLedColor('#ffffff')" class="w-4 h-4 rounded-full bg-[#ffffff] border border-white/40 hover:scale-110 transition" title="Crisp White"></button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -931,6 +999,31 @@
       document.getElementById('activeThemeLabel').innerText = THEME_NAMES[theme] || theme.toUpperCase();
       document.getElementById('footerThemeName').innerText = THEME_NAMES[theme] || theme.toUpperCase();
       document.getElementById('themeMenu').classList.add('hidden');
+
+      const colors = getThemeColors();
+
+      // Synchronize robot avatar LED color to theme primary accent
+      if (typeof setAvatarLedColor === 'function') {
+        setAvatarLedColor(colors.primary);
+      }
+
+      // Re-apply active navbar button color
+      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'EMOTION_READER', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT'];
+      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnEmotion', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnParticles', 'modeBtnBird'];
+      modes.forEach((m, idx) => {
+        const btn = document.getElementById(btnIds[idx]);
+        if (!btn) return;
+        if (m === AppState.currentMode) {
+          btn.style.borderColor = colors.primary;
+          btn.style.color = colors.primary;
+          btn.style.backgroundColor = 'rgba(0,0,0,0.4)';
+        } else {
+          btn.style.borderColor = 'transparent';
+          btn.style.color = 'var(--text-secondary)';
+          btn.style.backgroundColor = 'transparent';
+        }
+      });
+
       if (typeof updateThreeThemeColors === 'function') {
         updateThreeThemeColors();
       }
@@ -995,7 +1088,7 @@
           AppState.hands.send({ image: nextImg })
             .catch((err) => { console.warn("MediaPipe Hands inference error:", err); })
             .finally(() => { isProcessingHands = false; });
-        } else if (AppState.currentMode === 'FACE_BIOMETRIC' && AppState.faceMesh && !isProcessingFace) {
+        } else if ((AppState.currentMode === 'FACE_BIOMETRIC' || AppState.currentMode === 'EMOTION_READER') && AppState.faceMesh && !isProcessingFace) {
           isProcessingFace = true;
           AppState.faceMesh.send({ image: nextImg })
             .catch((err) => { console.warn("MediaPipe FaceMesh inference error:", err); })
@@ -2627,21 +2720,48 @@
     }
 
     function updateThreeThemeColors() {
-      if (!threeEngineGroup) return;
       const colors = getThemeColors();
       const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0xf59e0b;
       const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
       const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
 
-      threeEngineGroup.traverse((child) => {
-        if (child.isMesh && child.material) {
-          if (child.material.wireframe) {
-            child.material.color.setHex(primaryHex);
-          } else {
-            child.material.color.setHex(secondaryHex);
+      // 1. Update 3D CAD Engine Meshes
+      if (threeEngineGroup) {
+        threeEngineGroup.traverse((child) => {
+          if (child.isMesh && child.material) {
+            if (child.material.wireframe) {
+              child.material.color.setHex(primaryHex);
+            } else {
+              child.material.color.setHex(secondaryHex);
+            }
           }
+        });
+      }
+
+      // 2. Update 45,000 3D GPU Particle Flow Colors according to active theme
+      if (threeParticlePoints && threeParticlePoints.geometry) {
+        const geom = threeParticlePoints.geometry;
+        const colorAttr = geom.attributes.color;
+        if (colorAttr && colorAttr.array) {
+          const colArr = colorAttr.array;
+          const colorCore = new THREE.Color(colors.primary);
+          const colorArms = new THREE.Color(colors.secondary);
+          const colorAcc = new THREE.Color(colors.alt);
+
+          for (let i = 0; i < NUM_PARTICLES; i++) {
+            const i3 = i * 3;
+            const rNorm = Math.pow(i / NUM_PARTICLES, 0.7);
+            const mixedColor = colorCore.clone().lerp(colorArms, rNorm);
+            if ((i % 13) === 0) {
+              mixedColor.lerp(colorAcc, 0.55);
+            }
+            colArr[i3]     = mixedColor.r;
+            colArr[i3 + 1] = mixedColor.g;
+            colArr[i3 + 2] = mixedColor.b;
+          }
+          colorAttr.needsUpdate = true;
         }
-      });
+      }
     }
 
     let threeLastTwoHandAngle = null;
@@ -2982,7 +3102,7 @@
     }
 
     function onFaceMeshResults(results) {
-      if (AppState.currentMode !== 'FACE_BIOMETRIC') {
+      if (AppState.currentMode !== 'FACE_BIOMETRIC' && AppState.currentMode !== 'EMOTION_READER') {
         AppState.detectedFaceLandmarks = null;
         return;
       }
@@ -3014,8 +3134,8 @@
         });
       } catch (e) {}
 
-      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT'];
-      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnParticles', 'modeBtnBird'];
+      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'EMOTION_READER', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT'];
+      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnEmotion', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnParticles', 'modeBtnBird'];
 
       modes.forEach((m, idx) => {
         const btn = document.getElementById(btnIds[idx]);
@@ -3034,6 +3154,7 @@
       // Rigid Sidebar Card Segregation: show ONLY active mode card
       const objCard = document.getElementById('objectDetectionCard');
       const bioCard = document.getElementById('biometricSecurityCard');
+      const emoCard = document.getElementById('emotionControlCard');
       const gestCard = document.getElementById('gestureMonitorCard');
       const cadCard = document.getElementById('cadHierarchyCard');
       const birdCard = document.getElementById('birdRadarCard');
@@ -3041,6 +3162,7 @@
 
       if (objCard) objCard.classList.toggle('hidden', newMode !== 'OBJECT_DETECT');
       if (bioCard) bioCard.classList.toggle('hidden', newMode !== 'FACE_BIOMETRIC');
+      if (emoCard) emoCard.classList.toggle('hidden', newMode !== 'EMOTION_READER');
       if (gestCard) gestCard.classList.toggle('hidden', newMode !== 'HAND_GESTURE');
       if (cadCard) cadCard.classList.toggle('hidden', newMode !== 'INTERACTIVE_3D');
       if (birdCard) birdCard.classList.toggle('hidden', newMode !== 'BIRD_DETECT');
@@ -3081,6 +3203,16 @@
         document.getElementById('modeCardTitle').innerText = '3D BIOMETRIC MESH RETICLE';
         document.getElementById('modeCardDesc').innerText = 'Lively 3D facial wireframe matrix tracking your head in real-time as you move, with biometric lock telemetry.';
         document.getElementById('modePipeline').innerText = 'MEDIAPIPE 3D MESH';
+      } else if (newMode === 'EMOTION_READER') {
+        if (threeC) threeC.classList.add('hidden');
+        if (cadBtn) cadBtn.classList.add('hidden');
+        if (cadSelector) cadSelector.classList.add('hidden');
+        if (cadExplodeBtn) cadExplodeBtn.classList.add('hidden');
+        document.getElementById('activeModeBadge').innerText = 'EMOTION READER // ROBOT AVATAR';
+        document.getElementById('trackerDetailText').innerText = 'REAL-TIME FACIAL EXPRESSION • AVATAR MIRROR • PIP TRACER';
+        document.getElementById('modeCardTitle').innerText = 'CUTE ROBOT AVATAR EMOTION MIRROR';
+        document.getElementById('modeCardDesc').innerText = 'Tracks real-time facial expressions (smile, wink, surprise, sleep, neutral) and reflects them onto an animated cute robot screen display.';
+        document.getElementById('modePipeline').innerText = 'FACEMESH + AVATAR RIG';
       } else if (newMode === 'HAND_GESTURE') {
         if (threeC) threeC.classList.add('hidden');
         if (cadBtn) cadBtn.classList.add('hidden');
@@ -3909,21 +4041,24 @@
         ctx.save();
 
         // Outer circular perimeter radar ring
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+        ctx.strokeStyle = colors.primary;
+        ctx.globalAlpha = 0.4;
         ctx.lineWidth = 1.2;
         ctx.setLineDash([6, 6]);
         ctx.beginPath();
         ctx.arc(cx, cy, 140, 0, Math.PI * 2);
         ctx.stroke();
 
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
+        ctx.strokeStyle = colors.secondary;
+        ctx.globalAlpha = 0.25;
         ctx.beginPath();
         ctx.arc(cx, cy, 80, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
 
         // Crosshairs
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
+        ctx.strokeStyle = colors.primary;
+        ctx.globalAlpha = 0.3;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(cx - 160, cy); ctx.lineTo(cx + 160, cy);
@@ -3932,12 +4067,14 @@
 
         // Rotating radar sweep line
         const sweepAngle = (performance.now() * 0.002) % (Math.PI * 2);
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)';
+        ctx.strokeStyle = colors.primary;
+        ctx.globalAlpha = 0.75;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(cx + Math.cos(sweepAngle) * 140, cy + Math.sin(sweepAngle) * 140);
         ctx.stroke();
+        ctx.globalAlpha = 1.0;
 
         ctx.fillStyle = colors.primary;
         ctx.font = '11px "Share Tech Mono", monospace';
@@ -3969,16 +4106,16 @@
 
         ctx.save();
 
-        // 1. Tactical Circular Tracking Reticle
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.9)';
+        // 1. Tactical Circular Tracking Reticle in Theme Primary
+        ctx.strokeStyle = colors.primary;
         ctx.lineWidth = 1.6;
         const r = Math.max(22, Math.max(w, h) * 0.6);
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Outer segmented brackets
-        ctx.strokeStyle = '#ef4444';
+        // Outer segmented brackets in Theme Alt
+        ctx.strokeStyle = colors.alt;
         ctx.lineWidth = 2.0;
         ctx.beginPath();
         ctx.arc(cx, cy, r + 6, -Math.PI * 0.25, Math.PI * 0.25);
@@ -3987,9 +4124,9 @@
         ctx.arc(cx, cy, r + 6, Math.PI * 0.75, Math.PI * 1.25);
         ctx.stroke();
 
-        // 2. Flight Vector Trajectory Arrow (projecting heading)
+        // 2. Flight Vector Trajectory Arrow (projecting heading) in Theme Secondary
         const vectorLen = Math.min(60, r * 1.8);
-        ctx.strokeStyle = '#38bdf8';
+        ctx.strokeStyle = colors.secondary;
         ctx.lineWidth = 2.0;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
@@ -3997,7 +4134,7 @@
         ctx.stroke();
 
         // Arrow head
-        ctx.fillStyle = '#38bdf8';
+        ctx.fillStyle = colors.secondary;
         ctx.beginPath();
         ctx.moveTo(cx, cy - vectorLen - 6);
         ctx.lineTo(cx - 5, cy - vectorLen + 2);
@@ -4019,18 +4156,18 @@
 
         ctx.fillStyle = 'rgba(10, 15, 25, 0.92)';
         ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+        ctx.strokeStyle = colors.primary;
         ctx.lineWidth = 1.2;
         ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
 
-        ctx.fillStyle = '#f59e0b';
+        ctx.fillStyle = colors.primary;
         ctx.fillText(labelText, badgeX + 6, badgeY + 12);
-        ctx.fillStyle = '#38bdf8';
+        ctx.fillStyle = colors.secondary;
         ctx.fillText(confText, badgeX + labelW + 12, badgeY + 12);
 
         // Velocity telemetry
         ctx.font = '8px "Share Tech Mono", monospace';
-        ctx.fillStyle = '#fbbf24';
+        ctx.fillStyle = colors.alt;
         ctx.fillText(`HEADING: N-32° // VEL: ACTIVE`, badgeX + 6, badgeY + badgeH + 10);
 
         ctx.restore();
@@ -4067,21 +4204,29 @@
           // Left Eyebrow arch
           [70, 63], [63, 105], [105, 66], [66, 107], [107, 55],
           // Right Eyebrow arch
-          [300, 293], [293, 334], [334, 296], [296, 336], [336, 285],
-          // Outer Lips contour
+          [300, 293], [293, 334], [334, 296], [296, 336], [336, 285]
+        ];
+
+        // Outer Lip contour (MediaPipe landmark chain strictly hugging the lips)
+        const outerLipStrut = [
           [61, 185], [185, 40], [40, 39], [39, 37], [37, 0], [0, 267], [267, 269], [269, 270], [270, 409], [409, 291],
-          [291, 375], [375, 321], [321, 405], [405, 314], [314, 17], [17, 84], [84, 181], [181, 91], [91, 146], [146, 61],
-          // Inner Lips contour
+          [291, 375], [375, 321], [321, 405], [405, 314], [314, 17], [17, 84], [84, 181], [181, 91], [91, 146], [146, 61]
+        ];
+        // Inner Lip contour
+        const innerLipStrut = [
           [78, 191], [191, 80], [80, 81], [81, 82], [82, 13], [13, 312], [312, 311], [311, 310], [310, 415], [415, 308],
-          [308, 324], [324, 318], [318, 402], [402, 317], [317, 14], [14, 87], [87, 178], [178, 88], [88, 95], [95, 78],
-          // Cheekbones & 3D triangulation
-          [168, 107], [168, 336], [1, 123], [123, 50], [50, 205], [1, 352], [352, 280], [280, 425]
+          [308, 324], [324, 318], [318, 402], [402, 317], [317, 14], [14, 87], [87, 178], [178, 88], [88, 95], [95, 78]
+        ];
+
+        // Cheekbones & high facial triangulation (Strictly decoupled from mouth corners)
+        const facialStruts = [
+          [168, 107], [168, 336], [123, 50], [50, 205], [352, 280], [280, 425]
         ];
 
         // Draw fine 3D polygonal wireframe struts in glowing cyan hairline
         ctx.strokeStyle = 'rgba(56, 189, 248, 0.42)';
         ctx.lineWidth = 0.85;
-        struts.forEach(([i, j]) => {
+        [...struts, ...outerLipStrut, ...innerLipStrut, ...facialStruts].forEach(([i, j]) => {
           if (lm[i] && lm[j]) {
             ctx.beginPath();
             ctx.moveTo(lm[i].x * canvas.width, lm[i].y * canvas.height);
@@ -4125,14 +4270,14 @@
 
           // Soft ambient optical gradient across brow
           const ocularGlow = ctx.createRadialGradient(0, 0, eyeDist * 0.2, 0, 0, visorW * 0.55);
-          ocularGlow.addColorStop(0.0, 'rgba(0, 240, 255, 0.12)');
-          ocularGlow.addColorStop(0.5, 'rgba(56, 189, 248, 0.05)');
+          ocularGlow.addColorStop(0.0, colors.primary + '1f');
+          ocularGlow.addColorStop(0.5, colors.secondary + '0d');
           ocularGlow.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
           ctx.fillStyle = ocularGlow;
           ctx.fillRect(vLeft, vTop - 20, visorW, visorH + 40);
 
-          // High-contrast horizontal optical guide rail
-          ctx.strokeStyle = '#00f0ff';
+          // High-contrast horizontal optical guide rail in Theme Primary
+          ctx.strokeStyle = colors.primary;
           ctx.lineWidth = 1.2;
           ctx.setLineDash([8, 8]);
           ctx.beginPath();
@@ -4140,7 +4285,7 @@
           ctx.lineTo(-vLeft - 15, vTop + 8);
           ctx.stroke();
 
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.strokeStyle = colors.secondary;
           ctx.lineWidth = 0.8;
           ctx.beginPath();
           ctx.moveTo(vLeft + 30, vTop + visorH - 6);
@@ -4148,9 +4293,9 @@
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // CENTRAL CALLOUT: ".ID" with glowing neon bloom
+          // CENTRAL CALLOUT: ".ID" with glowing neon bloom in Theme Primary
           ctx.save();
-          ctx.shadowColor = '#00f0ff';
+          ctx.shadowColor = colors.primary;
           ctx.shadowBlur = 14;
           ctx.font = 'bold 28px "Share Tech Mono", monospace';
           ctx.fillStyle = '#ffffff';
@@ -4160,12 +4305,12 @@
 
           // Sub-stamps: "GHOST // 11-HE" & optical tags
           ctx.font = 'bold 9px "Share Tech Mono", monospace';
-          ctx.fillStyle = '#ef4444';
+          ctx.fillStyle = colors.alt;
           ctx.textAlign = 'left';
           ctx.fillText('GHOST // 11-HE', 56, vTop + visorH * 0.38);
 
           ctx.font = 'bold 8px "Share Tech Mono", monospace';
-          ctx.fillStyle = '#00f0ff';
+          ctx.fillStyle = colors.secondary;
           ctx.fillText('IDENTITY MATRIX // ACTIVE', 56, vTop + visorH * 0.47);
 
           ctx.font = 'bold 8px "Share Tech Mono", monospace';
@@ -4177,7 +4322,7 @@
 
           // Rich Interstitial Panel Details (Connecting Bridges & Hex Indicators)
           [-75, 75].forEach((bx) => {
-            ctx.strokeStyle = 'rgba(0, 240, 255, 0.7)';
+            ctx.strokeStyle = colors.primary;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(bx > 0 ? 46 : -46, vTop + visorH * 0.42);
@@ -4185,10 +4330,10 @@
             ctx.stroke();
           });
 
-          // Dense Micro-PCB Schematics (Left Temple Area)
+          // Dense Micro-PCB Schematics (Left Temple Area) in Theme Primary & Secondary
           const schX = vLeft + 15;
           const schY = vTop + 14;
-          ctx.strokeStyle = '#00f0ff';
+          ctx.strokeStyle = colors.primary;
           ctx.lineWidth = 1.0;
           ctx.strokeRect(schX, schY, 50, 36);
           ctx.strokeRect(schX + 6, schY + 6, 16, 14);
@@ -4210,19 +4355,19 @@
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'left';
           ctx.fillText('CHIP // Q-CORE 8X', schX, schY + 46);
-          ctx.fillStyle = colors.primary;
+          ctx.fillStyle = colors.secondary;
           ctx.fillText('BUS: 256-BIT SYNC', schX, schY + 54);
 
           // Dense Right Temple Telemetry & Precision Ladder Gauge
           const rDatX = -vLeft - 85;
           const rDatY = vTop + 16;
           ctx.font = 'bold 7px "Share Tech Mono", monospace';
-          ctx.fillStyle = '#00f0ff';
+          ctx.fillStyle = colors.secondary;
           ctx.textAlign = 'left';
           ctx.fillText('LATENCY: 0.8ms', rDatX, rDatY + 8);
           ctx.fillStyle = '#ffffff';
           ctx.fillText('REFRACT: 1.544', rDatX, rDatY + 18);
-          ctx.fillStyle = '#10b981';
+          ctx.fillStyle = colors.alt;
           ctx.fillText('TARGET LOCK: OK', rDatX, rDatY + 28);
           ctx.fillStyle = colors.primary;
           ctx.fillText('SYNC: 120 FPS', rDatX, rDatY + 38);
@@ -4268,9 +4413,9 @@
             // Glowing Bloom Core
             const pGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 18);
             pGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.98)');
-            pGrad.addColorStop(0.2, 'rgba(0, 240, 255, 0.88)');
-            pGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.40)');
-            pGrad.addColorStop(1.0, 'rgba(0, 240, 255, 0.0)');
+            pGrad.addColorStop(0.2, colors.primary);
+            pGrad.addColorStop(0.6, colors.secondary);
+            pGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
             ctx.fillStyle = pGrad;
             ctx.beginPath();
             ctx.arc(0, 0, 18, 0, Math.PI * 2);
@@ -4278,7 +4423,7 @@
 
             // Intense inner pupil pin-point core
             ctx.save();
-            ctx.shadowColor = '#00f0ff';
+            ctx.shadowColor = colors.primary;
             ctx.shadowBlur = 14;
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
@@ -4286,12 +4431,12 @@
             ctx.fill();
             ctx.restore();
 
-            // Concentric Glowing Neon Iris Rings
+            // Concentric Glowing Neon Iris Rings in Theme Primary
             ctx.save();
-            ctx.shadowColor = '#00f0ff';
+            ctx.shadowColor = colors.primary;
             ctx.shadowBlur = 10;
             ctx.lineWidth = 1.4;
-            ctx.strokeStyle = '#00f0ff';
+            ctx.strokeStyle = colors.primary;
 
             ctx.beginPath();
             ctx.arc(0, 0, 8, 0, Math.PI * 2);
@@ -4316,7 +4461,7 @@
             ctx.restore();
 
             // Fine optical crosshair tines
-            ctx.strokeStyle = 'rgba(0, 240, 255, 0.85)';
+            ctx.strokeStyle = colors.secondary;
             ctx.lineWidth = 0.8;
             const cLen = 7;
             ctx.beginPath();
@@ -4327,7 +4472,7 @@
             ctx.stroke();
 
             ctx.font = 'bold 6px "Share Tech Mono", monospace';
-            ctx.fillStyle = '#00f0ff';
+            ctx.fillStyle = colors.primary;
             ctx.textAlign = 'center';
             ctx.fillText('IRIS-L // 468', 0, 28);
 
@@ -4355,16 +4500,16 @@
 
             const pGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 18);
             pGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.98)');
-            pGrad.addColorStop(0.2, 'rgba(0, 240, 255, 0.88)');
-            pGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.40)');
-            pGrad.addColorStop(1.0, 'rgba(0, 240, 255, 0.0)');
+            pGrad.addColorStop(0.2, colors.primary);
+            pGrad.addColorStop(0.6, colors.secondary);
+            pGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
             ctx.fillStyle = pGrad;
             ctx.beginPath();
             ctx.arc(0, 0, 18, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.save();
-            ctx.shadowColor = '#00f0ff';
+            ctx.shadowColor = colors.primary;
             ctx.shadowBlur = 14;
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
@@ -4373,10 +4518,10 @@
             ctx.restore();
 
             ctx.save();
-            ctx.shadowColor = '#00f0ff';
+            ctx.shadowColor = colors.primary;
             ctx.shadowBlur = 10;
             ctx.lineWidth = 1.4;
-            ctx.strokeStyle = '#00f0ff';
+            ctx.strokeStyle = colors.primary;
 
             ctx.beginPath();
             ctx.arc(0, 0, 8, 0, Math.PI * 2);
@@ -4398,7 +4543,7 @@
             ctx.setLineDash([]);
             ctx.restore();
 
-            ctx.strokeStyle = 'rgba(0, 240, 255, 0.85)';
+            ctx.strokeStyle = colors.secondary;
             ctx.lineWidth = 0.8;
             const cLen = 7;
             ctx.beginPath();
@@ -4409,7 +4554,7 @@
             ctx.stroke();
 
             ctx.font = 'bold 6px "Share Tech Mono", monospace';
-            ctx.fillStyle = '#00f0ff';
+            ctx.fillStyle = colors.primary;
             ctx.textAlign = 'center';
             ctx.fillText('IRIS-R // 473', 0, 28);
 
@@ -4418,7 +4563,7 @@
         }
 
         // =========================================================================
-        // PASS 2D: CYBERNETIC DENTAL LUMINESCENCE MATRIX (Image 1)
+        // PASS 2D: CYBERNETIC DENTAL LUMINESCENCE MATRIX (Image 1 & 2)
         // Activates when mouth is open or smiling to reveal glowing neon teeth arches
         // =========================================================================
         if (lm[13] && lm[14] && lm[78] && lm[308] && lm[0] && lm[17]) {
@@ -4430,12 +4575,12 @@
           if (mouthRatio > 0.08) {
             ctx.save();
 
-            // Upper teeth contour landmarks (inner upper lip arch)
+            // Upper teeth contour landmarks strictly hugging dental boundary
             const upperArch = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308];
-            // Lower teeth contour landmarks (inner lower lip arch)
+            // Lower teeth contour landmarks
             const lowerArch = [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308];
 
-            // 1. Neon Glowing Upper Teeth Arch (Cyan Bloom // Image 1)
+            // 1. Neon Glowing Upper Teeth Arch (Cyan Bloom // Image 1 & 2)
             ctx.save();
             ctx.shadowColor = '#00f0ff';
             ctx.shadowBlur = 14;
@@ -4451,7 +4596,7 @@
             ctx.stroke();
             ctx.restore();
 
-            // 2. Neon Glowing Lower Teeth Arch (Electric Magenta/Pink Bloom // Image 1)
+            // 2. Neon Glowing Lower Teeth Arch (Electric Magenta/Pink Bloom // Image 1 & 2)
             ctx.save();
             ctx.shadowColor = '#f43f5e';
             ctx.shadowBlur = 16;
@@ -4467,7 +4612,7 @@
             ctx.stroke();
             ctx.restore();
 
-            // 3. Orthodontic Wire & Bracket Nodes across teeth (Image 1)
+            // 3. Orthodontic Wire & Individual Bracket Nodes across teeth (Image 1 & 2)
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.lineWidth = 1.0;
             ctx.beginPath();
@@ -4479,22 +4624,22 @@
             });
             ctx.stroke();
 
-            // Metallic brackets on individual teeth
+            // Metallic brackets on individual teeth with cyan glowing boundary
             [80, 81, 82, 13, 312, 311, 310].forEach(idx => {
               const px = lm[idx].x * canvas.width;
               const py = lm[idx].y * canvas.height;
               ctx.fillStyle = '#ffffff';
-              ctx.fillRect(px - 3, py - 2.5, 6, 5);
+              ctx.fillRect(px - 2.5, py - 2, 5, 4);
               ctx.strokeStyle = '#00f0ff';
               ctx.lineWidth = 0.8;
-              ctx.strokeRect(px - 3, py - 2.5, 6, 5);
+              ctx.strokeRect(px - 2.5, py - 2, 5, 4);
             });
 
-            // 4. Central Incisor Holographic Wireframe Tooth Box (Image 1)
+            // 4. Central Incisor Holographic Wireframe Tooth Box (Image 1 & 2)
             const mMidX = (lm[13].x * canvas.width + lm[14].x * canvas.width) / 2;
             const mMidY = (lm[13].y * canvas.height + lm[14].y * canvas.height) / 2;
-            const boxW = mouthWidth * canvas.width * 0.32;
-            const boxH = mouthOpenDist * canvas.height * 0.85;
+            const boxW = Math.min(38, mouthWidth * canvas.width * 0.28);
+            const boxH = Math.min(32, mouthOpenDist * canvas.height * 0.75);
 
             ctx.save();
             ctx.strokeStyle = '#00f0ff';
@@ -4509,35 +4654,34 @@
             ctx.setLineDash([]);
             ctx.restore();
 
-            // 5. Vertical Laser Scan Beam Passing Through Dental Center (Purple Laser // Image 1)
-            const laserGrad = ctx.createLinearGradient(0, mMidY - 70, 0, mMidY + 70);
+            // 5. Vertical Laser Scan Beam Passing Through Dental Center (Purple Laser // Image 1 & 2)
+            const laserGrad = ctx.createLinearGradient(0, mMidY - 50, 0, mMidY + 50);
             laserGrad.addColorStop(0.0, 'rgba(168, 85, 247, 0.0)');
             laserGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.85)');
             laserGrad.addColorStop(1.0, 'rgba(168, 85, 247, 0.0)');
             ctx.strokeStyle = laserGrad;
             ctx.lineWidth = 2.0;
             ctx.beginPath();
-            ctx.moveTo(mMidX, mMidY - 70);
-            ctx.lineTo(mMidX, mMidY + 70);
+            ctx.moveTo(mMidX, mMidY - 50);
+            ctx.lineTo(mMidX, mMidY + 50);
             ctx.stroke();
 
-            // 6. Holographic Dental Telemetry Callout Pill (Image 1 top right)
-            const dCallX = mMidX + boxW * 0.65 + 10;
-            const dCallY = mMidY - boxH * 0.6 - 15;
+            // 6. Holographic Dental Telemetry Callout Pill (Image 1 & 2) in Theme Colors
+            const dCallX = mMidX + boxW * 0.65 + 8;
+            const dCallY = mMidY - boxH * 0.6 - 12;
             ctx.fillStyle = 'rgba(7, 12, 20, 0.90)';
-            ctx.fillRect(dCallX, dCallY, 95, 36);
-            ctx.strokeStyle = '#a855f7';
+            ctx.fillRect(dCallX, dCallY, 90, 34);
+            ctx.strokeStyle = colors.primary;
             ctx.lineWidth = 1.0;
-            ctx.strokeRect(dCallX, dCallY, 95, 36);
+            ctx.strokeRect(dCallX, dCallY, 90, 34);
 
             ctx.font = 'bold 7px "Share Tech Mono", monospace';
-            ctx.fillStyle = '#00f0ff';
-            ctx.fillText('DENTAL ARCH // OK', dCallX + 6, dCallY + 11);
-            ctx.fillStyle = '#f43f5e';
-            ctx.fillText('ALIGN: 99.4%', dCallX + 6, dCallY + 21);
+            ctx.fillStyle = colors.primary;
+            ctx.fillText('DENTAL ARCH // OK', dCallX + 5, dCallY + 10);
+            ctx.fillStyle = colors.secondary;
+            ctx.fillText('ALIGN: 99.4%', dCallX + 5, dCallY + 19);
             ctx.fillStyle = '#ffffff';
-            ctx.fillText('GAP: 0.12mm // BIO', dCallX + 6, dCallY + 31);
-
+            ctx.fillText('GAP: 0.12mm // BIO', dCallX + 5, dCallY + 28);
             ctx.restore();
           }
         }
@@ -4552,14 +4696,14 @@
 
           ctx.fillStyle = 'rgba(7, 12, 20, 0.92)';
           ctx.fillRect(nx + 105, ny - 24, 140, 36);
-          ctx.strokeStyle = '#00f0ff';
+          ctx.strokeStyle = colors.primary;
           ctx.lineWidth = 1.2;
           ctx.strokeRect(nx + 105, ny - 24, 140, 36);
 
-          ctx.fillStyle = '#00f0ff';
+          ctx.fillStyle = colors.primary;
           ctx.font = 'bold 9px "Share Tech Mono", monospace';
           ctx.fillText(`BIOMETRIC TRACK // ACTIVE`, nx + 112, ny - 11);
-          ctx.fillStyle = '#ffffff';
+          ctx.fillStyle = colors.secondary;
           ctx.font = '8px "Share Tech Mono", monospace';
           ctx.fillText(`PITCH: ${pitch}° // YAW: ${yaw}°`, nx + 112, ny + 3);
         }
@@ -4706,6 +4850,580 @@
         ctx.textAlign = 'center';
         ctx.fillText('PRESENT HANDS (1 OR 2)', cx, cy);
       }
+
+      ctx.restore();
+    }
+
+    /*
+     * =================================================================================
+     * RENDER PASS 3B: CUTE ROBOT AVATAR EMOTION MIRROR & REAL-TIME FACIAL TRACER
+     * Adapted from robot_ui_expression_studio.html: SVG avatar rig + PIP face tracer
+     * =================================================================================
+     */
+    let avatarLedColor = '#ff66b2';
+    window.setAvatarLedColor = function(color) {
+      avatarLedColor = color;
+      const preview = document.getElementById('emotionMiniAvatarPreview');
+      if (preview) {
+        preview.style.borderColor = color;
+        preview.style.boxShadow = `0 0 16px ${color}66`;
+      }
+    };
+
+    let smoothedEmotion = 'neutral';
+    let emotionConfidence = 0.95;
+    let emotionGazeX = 0;
+    let emotionGazeY = 0;
+
+    function renderEmotionReaderMode(ctx) {
+      const colors = getThemeColors();
+      const lm = AppState.detectedFaceLandmarks;
+      const tNow = Date.now() * 0.003;
+
+      let smileIndex = 0;
+      let mouthAperture = 0;
+      let earL = 0.28;
+      let earR = 0.28;
+      let browFurrow = 0;
+      let headTilt = 0;
+      let detectedEm = 'neutral';
+
+      if (lm) {
+        // 1. Compute facial geometry metrics
+        // Eye Aspect Ratios (EAR)
+        if (lm[33] && lm[133] && lm[159] && lm[145]) {
+          earL = Math.hypot(lm[159].x - lm[145].x, lm[159].y - lm[145].y) /
+                 Math.max(1e-4, Math.hypot(lm[33].x - lm[133].x, lm[33].y - lm[133].y));
+        }
+        if (lm[263] && lm[362] && lm[386] && lm[374]) {
+          earR = Math.hypot(lm[386].x - lm[374].x, lm[386].y - lm[374].y) /
+                 Math.max(1e-4, Math.hypot(lm[263].x - lm[362].x, lm[263].y - lm[362].y));
+        }
+
+        // Mouth Opening Ratio (MOR)
+        if (lm[13] && lm[14] && lm[78] && lm[308]) {
+          const mouthOpenDist = Math.hypot(lm[13].x - lm[14].x, lm[13].y - lm[14].y);
+          const mouthWidth = Math.hypot(lm[78].x - lm[308].x, lm[78].y - lm[308].y);
+          mouthAperture = mouthOpenDist / Math.max(1e-4, mouthWidth);
+
+          // Smile Metric: height of mouth corners (61, 291) relative to mouth center (13, 14)
+          const cornerAvgY = (lm[61].y + lm[291].y) * 0.5;
+          const centerLipY = (lm[0].y + lm[17].y) * 0.5;
+          // When smiling, corners elevate (lower Y value) relative to lip center
+          smileIndex = Math.max(0, (centerLipY - cornerAvgY) * 18);
+        }
+
+        // Brow Furrow (Distance between inner brow points 55 and 285)
+        if (lm[55] && lm[285] && lm[33] && lm[263]) {
+          const eyeDist = Math.hypot(lm[263].x - lm[33].x, lm[263].y - lm[33].y);
+          const browDist = Math.hypot(lm[285].x - lm[55].x, lm[285].y - lm[55].y);
+          browFurrow = browDist / Math.max(1e-4, eyeDist);
+        }
+
+        // Head Gaze direction
+        if (lm[1] && lm[33] && lm[263]) {
+          const eyeMidX = (lm[33].x + lm[263].x) * 0.5;
+          const eyeMidY = (lm[33].y + lm[263].y) * 0.5;
+          emotionGazeX = THREE.MathUtils.lerp(emotionGazeX, (lm[1].x - eyeMidX) * 35, 0.15);
+          emotionGazeY = THREE.MathUtils.lerp(emotionGazeY, (lm[1].y - eyeMidY) * 35, 0.15);
+          headTilt = Math.atan2(lm[263].y - lm[33].y, lm[263].x - lm[33].x);
+        }
+
+        // 2. Classify facial expression into robot states
+        const eyeClosedL = earL < 0.16;
+        const eyeClosedR = earR < 0.16;
+
+        if (eyeClosedL && eyeClosedR) {
+          detectedEm = 'sleeping';
+          emotionConfidence = 0.98;
+        } else if (eyeClosedL !== eyeClosedR) {
+          detectedEm = 'wink';
+          emotionConfidence = 0.94;
+        } else if (mouthAperture > 0.32) {
+          detectedEm = 'surprised';
+          emotionConfidence = 0.96;
+        } else if (smileIndex > 0.12) {
+          detectedEm = 'happy';
+          emotionConfidence = 0.97;
+        } else if (browFurrow < 0.42) {
+          detectedEm = 'angry';
+          emotionConfidence = 0.90;
+        } else {
+          detectedEm = 'neutral';
+          emotionConfidence = 0.92;
+        }
+      } else {
+        detectedEm = 'neutral';
+        emotionConfidence = 0.60;
+      }
+
+      smoothedEmotion = detectedEm;
+
+      // Update sidebar telemetry
+      const lbl = document.getElementById('detectedEmotionLabel');
+      if (lbl) lbl.innerText = smoothedEmotion.toUpperCase();
+      const conf = document.getElementById('emotionConfidenceVal');
+      if (conf) conf.innerText = `${Math.round(emotionConfidence * 100)}%`;
+      const gazeEl = document.getElementById('emotionGazeVal');
+      if (gazeEl) gazeEl.innerText = Math.abs(emotionGazeX) > 4 ? (emotionGazeX > 0 ? 'LOOK RIGHT' : 'LOOK LEFT') : 'CENTER';
+
+      const smEl = document.getElementById('metricSmileVal');
+      if (smEl) smEl.innerText = smileIndex.toFixed(2);
+      const smBar = document.getElementById('metricSmileBar');
+      if (smBar) smBar.style.width = `${Math.min(100, Math.round(smileIndex * 250))}%`;
+
+      const moEl = document.getElementById('metricMouthVal');
+      if (moEl) moEl.innerText = mouthAperture.toFixed(2);
+      const moBar = document.getElementById('metricMouthBar');
+      if (moBar) moBar.style.width = `${Math.min(100, Math.round(mouthAperture * 200))}%`;
+
+      const eyEl = document.getElementById('metricEyeVal');
+      if (eyEl) eyEl.innerText = `L: ${earL.toFixed(2)} | R: ${earR.toFixed(2)}`;
+
+      const miniPrev = document.getElementById('emotionMiniAvatarPreview');
+      if (miniPrev) {
+        if (smoothedEmotion === 'happy') miniPrev.innerText = '∩ ◡ ∩';
+        else if (smoothedEmotion === 'wink') miniPrev.innerText = '∩ ◡ ⌒';
+        else if (smoothedEmotion === 'surprised') miniPrev.innerText = '◎ ⚬ ◎';
+        else if (smoothedEmotion === 'sleeping') miniPrev.innerText = '‿ — ‿';
+        else if (smoothedEmotion === 'angry') miniPrev.innerText = '> ^ <';
+        else miniPrev.innerText = '● ◡ ●';
+      }
+
+      // =========================================================================
+      // DRAW ROBOT SCREEN DISPLAY (HARDWARE BEZEL + CRT GLOW + FLOATING BOB)
+      // =========================================================================
+      ctx.save();
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Dark futuristic cyber-room background
+      ctx.fillStyle = '#08090e';
+      ctx.fillRect(0, 0, w, h);
+
+      // Subtle room perspective grid lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      // Robot screen size and position (Centered square monitor)
+      const monitorSize = Math.min(w * 0.72, h * 0.72, 440);
+      const mx = (w - monitorSize) * 0.5;
+      const my = (h - monitorSize) * 0.5;
+
+      // 1. Physical Outer Bezel (Dark metallic shell with rounded corners)
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 32;
+      ctx.shadowOffsetY = 16;
+      ctx.fillStyle = '#14121d';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 3;
+
+      // Draw rounded rectangle bezel
+      const bRad = 32;
+      ctx.beginPath();
+      ctx.roundRect(mx - 20, my - 20, monitorSize + 40, monitorSize + 40, bRad);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      // Hardware status LEDs on top bezel
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.beginPath();
+      ctx.arc(mx + 6, my - 6, 2.5, 0, Math.PI * 2);
+      ctx.arc(mx + 16, my - 6, 2.5, 0, Math.PI * 2);
+      ctx.arc(mx + 26, my - 6, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pulsing LIVE indicator on top right
+      const pulseA = 0.5 + Math.sin(tNow * 4) * 0.5;
+      ctx.fillStyle = avatarLedColor;
+      ctx.globalAlpha = pulseA;
+      ctx.beginPath();
+      ctx.arc(mx + monitorSize + 14, my - 6, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+
+      ctx.font = 'bold 8px "Share Tech Mono", monospace';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.textAlign = 'right';
+      ctx.fillText('LIVE AVATAR UI', mx + monitorSize + 5, my - 4);
+
+      // 2. Inner Active OLED Screen Area
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(mx, my, monitorSize, monitorSize, 20);
+      ctx.clip(); // Clip everything to inside screen display
+
+      // Screen background (Deep OLED dark navy/purple)
+      ctx.fillStyle = '#09080e';
+      ctx.fillRect(mx, my, monitorSize, monitorSize);
+
+      // Screen Vignette (Edge falloff)
+      const vigGrad = ctx.createRadialGradient(
+        mx + monitorSize * 0.5, my + monitorSize * 0.5, monitorSize * 0.2,
+        mx + monitorSize * 0.5, my + monitorSize * 0.5, monitorSize * 0.65
+      );
+      vigGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      vigGrad.addColorStop(1, 'rgba(0, 0, 0, 0.65)');
+      ctx.fillStyle = vigGrad;
+      ctx.fillRect(mx, my, monitorSize, monitorSize);
+
+      // Subtle CRT Scanlines
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+      for (let sy = my; sy < my + monitorSize; sy += 3) {
+        ctx.fillRect(mx, sy, monitorSize, 1.2);
+      }
+
+      // Subtle idle breathing float / bobbing
+      const bobY = Math.sin(tNow * 2.2) * 5;
+
+      // 3. Render Vector Robot Facial Rig inside screen
+      const rCenterX = mx + monitorSize * 0.5 + emotionGazeX * 0.6;
+      const rCenterY = my + monitorSize * 0.5 + bobY + emotionGazeY * 0.6;
+      const scale = monitorSize / 400;
+
+      ctx.save();
+      ctx.translate(rCenterX, rCenterY);
+      ctx.scale(scale, scale);
+
+      // Hardware Neon Bloom Filter Glow
+      ctx.shadowColor = avatarLedColor;
+      ctx.shadowBlur = 18;
+      ctx.strokeStyle = avatarLedColor;
+      ctx.fillStyle = avatarLedColor;
+
+      // =========================================================================
+      // AVATAR EXPRESSION GEOMETRY (ADAPTED DIRECTLY FROM REFERENCE CODE)
+      // =========================================================================
+      if (smoothedEmotion === 'happy') {
+        // Happy: Inverted Arch Eyes (∩ ∩) + Eyelashes + Cute Smirk Mouth
+        ctx.lineWidth = 16;
+        ctx.lineCap = 'round';
+        // Left Eye
+        ctx.beginPath();
+        ctx.arc(-65, -10, 31, Math.PI, 0, false);
+        ctx.stroke();
+        // Left Eye outer lash
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(-96, -32); ctx.lineTo(-122, -40); ctx.stroke();
+
+        // Right Eye
+        ctx.lineWidth = 16;
+        ctx.beginPath();
+        ctx.arc(65, -10, 31, Math.PI, 0, false);
+        ctx.stroke();
+        // Right Eye outer lash
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(96, -32); ctx.lineTo(122, -40); ctx.stroke();
+
+        // Cute Mouth (◡)
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.arc(0, 26, 14, 0.2 * Math.PI, 0.8 * Math.PI, false);
+        ctx.stroke();
+
+        // Pink Blush Lines
+        drawBlushLines(ctx, -105, 38, 105, 38);
+
+      } else if (smoothedEmotion === 'wink') {
+        // Wink: Left Happy Arch (∩), Right Wink Dash Line (⌒)
+        ctx.lineWidth = 16;
+        ctx.lineCap = 'round';
+        // Left eye happy arch
+        ctx.beginPath();
+        ctx.arc(-65, -10, 31, Math.PI, 0, false);
+        ctx.stroke();
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(-96, -32); ctx.lineTo(-122, -40); ctx.stroke();
+
+        // Right eye wink arc
+        ctx.lineWidth = 14;
+        ctx.beginPath();
+        ctx.arc(65, -8, 28, 0.15 * Math.PI, 0.85 * Math.PI, true);
+        ctx.stroke();
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(94, -20); ctx.lineTo(118, -28); ctx.stroke();
+
+        // Cute Smirk Mouth
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.arc(0, 26, 14, 0.2 * Math.PI, 0.8 * Math.PI, false);
+        ctx.stroke();
+
+        drawBlushLines(ctx, -105, 38, 105, 38);
+
+      } else if (smoothedEmotion === 'surprised') {
+        // Surprised: Big Circle Eyes (◎ ◎) + Small Round O Mouth (⚬)
+        ctx.lineWidth = 13;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(-68, -26, 28, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(-94, -40); ctx.lineTo(-116, -50); ctx.stroke();
+
+        ctx.lineWidth = 13;
+        ctx.beginPath();
+        ctx.arc(68, -26, 28, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(94, -40); ctx.lineTo(116, -50); ctx.stroke();
+
+        // Small circle mouth
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(0, 35, 9, 0, Math.PI * 2);
+        ctx.stroke();
+
+        drawBlushLines(ctx, -105, 38, 105, 38);
+
+      } else if (smoothedEmotion === 'sleeping') {
+        // Sleeping: Soft closed curved slits (‿ ‿) + Zzz floating particles
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(-65, -12, 30, 0.15 * Math.PI, 0.85 * Math.PI, false);
+        ctx.stroke();
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(-96, -10); ctx.lineTo(-120, -2); ctx.stroke();
+
+        ctx.lineWidth = 14;
+        ctx.beginPath();
+        ctx.arc(65, -12, 30, 0.15 * Math.PI, 0.85 * Math.PI, false);
+        ctx.stroke();
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(96, -10); ctx.lineTo(120, -2); ctx.stroke();
+
+        // Flat relaxed mouth line
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(-8, 36); ctx.lineTo(8, 36);
+        ctx.stroke();
+
+        // Floating Zzz
+        ctx.font = 'bold 18px "Share Tech Mono", monospace';
+        const zOff = (tNow * 30) % 60;
+        ctx.globalAlpha = Math.max(0, 1 - zOff / 60);
+        ctx.fillText('z', 90 + zOff * 0.4, -60 - zOff);
+        ctx.fillText('Z', 105 + zOff * 0.5, -85 - zOff);
+        ctx.globalAlpha = 1.0;
+
+      } else if (smoothedEmotion === 'angry') {
+        // Angry: Furrowed brow polyline ( > < ) + Frown mouth ( ^ )
+        ctx.lineWidth = 15;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(-98, -52); ctx.lineTo(-44, -24); ctx.lineTo(-98, -2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(98, -52); ctx.lineTo(44, -24); ctx.lineTo(98, -2);
+        ctx.stroke();
+
+        // Frown mouth
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.moveTo(-10, 40); ctx.lineTo(0, 30); ctx.lineTo(10, 40);
+        ctx.stroke();
+
+      } else {
+        // Neutral / Cute Idle: Smooth capsule eyes (● ●) with eye-gaze tracking + gentle smile (◡)
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+
+        // Left capsule eye
+        ctx.beginPath();
+        ctx.roundRect(-98, -54, 62, 58, 28);
+        ctx.stroke();
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(-98, -38); ctx.lineTo(-120, -46); ctx.stroke();
+
+        // Right capsule eye
+        ctx.lineWidth = 14;
+        ctx.beginPath();
+        ctx.roundRect(36, -54, 62, 58, 28);
+        ctx.stroke();
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(98, -38); ctx.lineTo(120, -46); ctx.stroke();
+
+        // Inner glowing pupil that moves with user gaze
+        const pupilX = THREE.MathUtils.clamp(emotionGazeX * 0.4, -12, 12);
+        const pupilY = THREE.MathUtils.clamp(emotionGazeY * 0.4, -10, 10);
+        ctx.beginPath();
+        ctx.arc(-67 + pupilX, -25 + pupilY, 11, 0, Math.PI * 2);
+        ctx.arc(67 + pupilX, -25 + pupilY, 11, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Subtle cute mouth
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(0, 28, 10, 0.2 * Math.PI, 0.8 * Math.PI, false);
+        ctx.stroke();
+
+        drawBlushLines(ctx, -105, 38, 105, 38);
+      }
+
+      ctx.restore(); // Restore rig translation
+
+      // Emotion pill badge in bottom left of screen
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.strokeStyle = avatarLedColor;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(mx + 14, my + monitorSize - 28, 80, 18, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = avatarLedColor;
+      ctx.font = 'bold 9px "Share Tech Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(smoothedEmotion.toUpperCase(), mx + 54, my + monitorSize - 16);
+
+      ctx.restore(); // Restore screen clipping
+
+      // =========================================================================
+      // PICTURE-IN-PICTURE (PIP) LIVE WEBCAM & FACIAL TRACER OVERLAY
+      // Floating corner screen showing user points being traced in real-time
+      // =========================================================================
+      const pipW = 200;
+      const pipH = 150;
+      const pipX = w - pipW - 20;
+      const pipY = h - pipH - 24;
+
+      ctx.save();
+      // Border & background container
+      ctx.fillStyle = 'rgba(10, 14, 24, 0.90)';
+      ctx.fillRect(pipX, pipY, pipW, pipH);
+      ctx.strokeStyle = colors.primary;
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(pipX, pipY, pipW, pipH);
+
+      // Draw camera thumbnail inside PIP
+      const activeFrame = (currentFrameImg && currentFrameImg.complete && currentFrameImg.naturalWidth > 0)
+        ? currentFrameImg
+        : ((liveImg && liveImg.complete && liveImg.naturalWidth > 0) ? liveImg : null);
+
+      if (activeFrame) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(pipX + 2, pipY + 2, pipW - 4, pipH - 4);
+        ctx.clip();
+        ctx.drawImage(activeFrame, pipX, pipY, pipW, pipH);
+        ctx.fillStyle = 'rgba(7, 12, 20, 0.35)';
+        ctx.fillRect(pipX, pipY, pipW, pipH);
+        ctx.restore();
+      }
+
+      // Draw 3D facial point tracer overlay inside PIP in Theme Colors
+      if (lm) {
+        ctx.save();
+        ctx.translate(pipX, pipY);
+        const pScaleX = pipW;
+        const pScaleY = pipH;
+
+        // Lip contour in Theme Primary
+        const lipPts = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146, 61];
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        lipPts.forEach((idx, i) => {
+          if (lm[idx]) {
+            const px = lm[idx].x * pScaleX;
+            const py = lm[idx].y * pScaleY;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+        });
+        ctx.stroke();
+
+        // Eye contours in Theme Secondary
+        const leftEyePts = [33, 160, 158, 133, 153, 144, 33];
+        const rightEyePts = [263, 387, 385, 362, 380, 373, 263];
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 1.0;
+        ctx.beginPath();
+        leftEyePts.forEach((idx, i) => {
+          if (lm[idx]) {
+            const px = lm[idx].x * pScaleX;
+            const py = lm[idx].y * pScaleY;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+        });
+        ctx.stroke();
+
+        ctx.beginPath();
+        rightEyePts.forEach((idx, i) => {
+          if (lm[idx]) {
+            const px = lm[idx].x * pScaleX;
+            const py = lm[idx].y * pScaleY;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+        });
+        ctx.stroke();
+
+        // Key feature nodes in Theme Alt
+        [1, 33, 263, 61, 291, 152].forEach(idx => {
+          if (lm[idx]) {
+            const px = lm[idx].x * pScaleX;
+            const py = lm[idx].y * pScaleY;
+            ctx.fillStyle = colors.alt;
+            ctx.beginPath();
+            ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+
+        ctx.restore();
+      }
+
+      // PIP Telemetry Header
+      ctx.fillStyle = 'rgba(7, 12, 20, 0.85)';
+      ctx.fillRect(pipX, pipY, pipW, 18);
+      ctx.fillStyle = colors.primary;
+      ctx.font = 'bold 8px "Share Tech Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('FACIAL POINT TRACER // 468 PTS', pipX + 6, pipY + 12);
+
+      // PIP status badge
+      ctx.fillStyle = lm ? colors.alt : colors.primary;
+      ctx.beginPath();
+      ctx.arc(pipX + pipW - 10, pipY + 9, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+      ctx.restore();
+    }
+
+    // Helper: Draw cute diagonal blush stripes under eyes
+    function drawBlushLines(ctx, lx, ly, rx, ry) {
+      ctx.save();
+      ctx.lineWidth = 4.0;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = avatarLedColor;
+      ctx.globalAlpha = 0.85;
+
+      [-8, 0, 8].forEach(off => {
+        ctx.beginPath();
+        ctx.moveTo(lx + off - 6, ly - 6);
+        ctx.lineTo(lx + off + 6, ly + 6);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(rx + off - 6, ry - 6);
+        ctx.lineTo(rx + off + 6, ry + 6);
+        ctx.stroke();
+      });
 
       ctx.restore();
     }
@@ -4865,6 +5583,8 @@
           renderBirdRadarAndTracks(ctx, AppState.liveDetections);
         } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
           render3DFaceWiring(ctx);
+        } else if (AppState.currentMode === 'EMOTION_READER') {
+          renderEmotionReaderMode(ctx);
         } else if (AppState.currentMode === 'HAND_GESTURE') {
           renderHandGestureMode(ctx);
         } else if (AppState.currentMode === 'INTERACTIVE_3D') {
