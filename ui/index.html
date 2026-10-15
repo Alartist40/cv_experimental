@@ -4563,168 +4563,125 @@
         }
 
         // =========================================================================
-        // PASS 2D: CYBERNETIC DENTAL LUMINESCENCE MATRIX (Image 1, 2 & 3)
-        // Strictly positioned INSIDE mouth aperture to illuminate actual upper & lower teeth
+        // PASS 2D: CYBERNETIC DENTAL LUMINESCENCE MATRIX (Image 1 & 2)
+        // Activates when mouth is open or smiling to reveal glowing neon teeth arches
         // =========================================================================
         if (lm[13] && lm[14] && lm[78] && lm[308] && lm[0] && lm[17]) {
           const mouthOpenDist = Math.hypot(lm[13].x - lm[14].x, lm[13].y - lm[14].y);
           const mouthWidth = Math.hypot(lm[78].x - lm[308].x, lm[78].y - lm[308].y);
           const mouthRatio = mouthOpenDist / Math.max(1e-4, mouthWidth);
 
-          // Triggers only when mouth is parted to reveal teeth (mouthRatio > 0.075)
-          if (mouthRatio > 0.075) {
+          // Triggers whenever mouth is parted/smiling (mouthRatio > 0.08)
+          if (mouthRatio > 0.08) {
             ctx.save();
 
-            const cW = canvas.width;
-            const cH = canvas.height;
+            // Upper teeth contour landmarks strictly hugging dental boundary
+            const upperArch = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308];
+            // Lower teeth contour landmarks
+            const lowerArch = [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308];
 
-            const cornerLX = lm[78].x * cW;
-            const cornerLY = lm[78].y * cH;
-            const cornerRX = lm[308].x * cW;
-            const cornerRY = lm[308].y * cH;
-
-            const lipUpInnerY = lm[13].y * cH;
-            const lipLowInnerY = lm[14].y * cH;
-            const lipMidX = (lm[13].x + lm[14].x) * 0.5 * cW;
-            const mouthGapPx = (lipLowInnerY - lipUpInnerY);
-
-            // Exposed teeth zone sits INSIDE the aperture between inner upper & lower lips
-            const upperGumY = lipUpInnerY + mouthGapPx * 0.10;
-            const upperEdgeY = lipUpInnerY + mouthGapPx * 0.52;
-            const lowerEdgeY = lipLowInnerY - mouthGapPx * 0.44;
-            const lowerGumY = lipLowInnerY - mouthGapPx * 0.08;
-
-            const dentalSpan = Math.min(mouthWidth * cW * 0.82, 130);
-            const numTeeth = 8;
-            const toothW = dentalSpan / numTeeth;
-            const startX = lipMidX - dentalSpan * 0.5;
-
-            // 1. Cybernetic Upper Teeth Dental Matrix (Scalloped glowing tooth cusps)
+            // 1. Neon Glowing Upper Teeth Arch (Cyan Bloom // Image 1 & 2)
             ctx.save();
             ctx.shadowColor = '#00f0ff';
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = 14;
             ctx.strokeStyle = '#00f0ff';
-            ctx.lineWidth = 1.6;
-            ctx.fillStyle = 'rgba(0, 240, 255, 0.12)';
-
-            for (let i = 0; i < numTeeth; i++) {
-              const tx = startX + i * toothW;
-              const distFromMid = Math.abs(i - (numTeeth - 1) * 0.5) / (numTeeth * 0.5);
-              // Natural dental arch curvature
-              const archCurv = Math.sin((i / (numTeeth - 1)) * Math.PI) * 4;
-              const tTop = upperGumY - archCurv * 0.3;
-              const tBot = upperEdgeY - (distFromMid * distFromMid) * 3;
-              const tH = Math.max(4, tBot - tTop);
-
-              ctx.beginPath();
-              ctx.roundRect(tx + 1, tTop, toothW - 2, tH, [2, 2, 4, 4]);
-              ctx.fill();
-              ctx.stroke();
-
-              // Central fissure detail
-              ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-              ctx.lineWidth = 0.8;
-              ctx.beginPath();
-              ctx.moveTo(tx + toothW * 0.5, tTop + 1);
-              ctx.lineTo(tx + toothW * 0.5, tTop + tH * 0.7);
-              ctx.stroke();
-              ctx.strokeStyle = '#00f0ff';
-              ctx.lineWidth = 1.6;
-            }
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            upperArch.forEach((idx, i) => {
+              const px = lm[idx].x * canvas.width;
+              const py = lm[idx].y * canvas.height;
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            });
+            ctx.stroke();
             ctx.restore();
 
-            // 2. Cybernetic Lower Teeth Arch (Neon Pink / Rose Bloom inside lower aperture)
+            // 2. Neon Glowing Lower Teeth Arch (Electric Magenta/Pink Bloom // Image 1 & 2)
             ctx.save();
             ctx.shadowColor = '#f43f5e';
-            ctx.shadowBlur = 14;
+            ctx.shadowBlur = 16;
             ctx.strokeStyle = '#f43f5e';
-            ctx.lineWidth = 1.4;
-            ctx.fillStyle = 'rgba(244, 63, 94, 0.12)';
-
-            for (let i = 1; i < numTeeth - 1; i++) {
-              const tx = startX + i * toothW + toothW * 0.25;
-              const distFromMid = Math.abs(i - (numTeeth - 1) * 0.5) / (numTeeth * 0.5);
-              const tTop = lowerEdgeY + (distFromMid * distFromMid) * 2;
-              const tBot = lowerGumY;
-              const tH = Math.max(3, tBot - tTop);
-
-              ctx.beginPath();
-              ctx.roundRect(tx + 1, tTop, toothW - 3, tH, [4, 4, 2, 2]);
-              ctx.fill();
-              ctx.stroke();
-            }
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            lowerArch.forEach((idx, i) => {
+              const px = lm[idx].x * canvas.width;
+              const py = lm[idx].y * canvas.height;
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            });
+            ctx.stroke();
             ctx.restore();
 
-            // 3. Orthodontic Archwire & Metallic Bracket Nodes Across Upper Teeth
-            ctx.save();
-            const wireY = (upperGumY + upperEdgeY) * 0.5;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
-            ctx.shadowColor = '#00f0ff';
-            ctx.shadowBlur = 8;
-            ctx.lineWidth = 1.2;
+            // 3. Orthodontic Wire & Individual Bracket Nodes across teeth (Image 1 & 2)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 1.0;
             ctx.beginPath();
-            ctx.moveTo(startX - 2, wireY + 2);
-            ctx.quadraticCurveTo(lipMidX, wireY - 2, startX + dentalSpan + 2, wireY + 2);
+            [80, 81, 82, 13, 312, 311, 310].forEach((idx, i) => {
+              const px = lm[idx].x * canvas.width;
+              const py = lm[idx].y * canvas.height;
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            });
             ctx.stroke();
 
-            // Brackets on central and lateral teeth
-            for (let i = 1; i < numTeeth - 1; i++) {
-              const bx = startX + (i + 0.5) * toothW;
-              const by = wireY + (Math.abs(i - 3.5) / 3.5) * 1.5 - 1;
+            // Metallic brackets on individual teeth with cyan glowing boundary
+            [80, 81, 82, 13, 312, 311, 310].forEach(idx => {
+              const px = lm[idx].x * canvas.width;
+              const py = lm[idx].y * canvas.height;
               ctx.fillStyle = '#ffffff';
-              ctx.fillRect(bx - 2.5, by - 2, 5, 4);
+              ctx.fillRect(px - 2.5, py - 2, 5, 4);
               ctx.strokeStyle = '#00f0ff';
               ctx.lineWidth = 0.8;
-              ctx.strokeRect(bx - 2.5, by - 2, 5, 4);
-            }
-            ctx.restore();
+              ctx.strokeRect(px - 2.5, py - 2, 5, 4);
+            });
 
-            // 4. Central Incisor Holographic Wireframe Tooth Box
-            const mMidY = (lipUpInnerY + lipLowInnerY) * 0.5;
-            const boxW = Math.min(32, toothW * 2.2);
-            const boxH = Math.min(28, mouthGapPx * 0.78);
+            // 4. Central Incisor Holographic Wireframe Tooth Box (Image 1 & 2)
+            const mMidX = (lm[13].x * canvas.width + lm[14].x * canvas.width) / 2;
+            const mMidY = (lm[13].y * canvas.height + lm[14].y * canvas.height) / 2;
+            const boxW = Math.min(38, mouthWidth * canvas.width * 0.28);
+            const boxH = Math.min(32, mouthOpenDist * canvas.height * 0.75);
 
             ctx.save();
             ctx.strokeStyle = '#00f0ff';
             ctx.lineWidth = 1.0;
-            ctx.strokeRect(lipMidX - boxW * 0.5, mMidY - boxH * 0.5, boxW, boxH);
-            ctx.setLineDash([2, 2]);
+            ctx.strokeRect(mMidX - boxW * 0.5, mMidY - boxH * 0.5, boxW, boxH);
+            // Inner wireframe grid lines
+            ctx.setLineDash([2, 3]);
             ctx.beginPath();
-            ctx.moveTo(lipMidX, mMidY - boxH * 0.5); ctx.lineTo(lipMidX, mMidY + boxH * 0.5);
-            ctx.moveTo(lipMidX - boxW * 0.5, mMidY); ctx.lineTo(lipMidX + boxW * 0.5, mMidY);
+            ctx.moveTo(mMidX, mMidY - boxH * 0.5); ctx.lineTo(mMidX, mMidY + boxH * 0.5);
+            ctx.moveTo(mMidX - boxW * 0.5, mMidY); ctx.lineTo(mMidX + boxW * 0.5, mMidY);
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.restore();
 
-            // 5. Vertical Laser Scan Line Passing Through Dental Center (Purple Laser)
-            const laserGrad = ctx.createLinearGradient(0, mMidY - 36, 0, mMidY + 36);
+            // 5. Vertical Laser Scan Beam Passing Through Dental Center (Purple Laser // Image 1 & 2)
+            const laserGrad = ctx.createLinearGradient(0, mMidY - 50, 0, mMidY + 50);
             laserGrad.addColorStop(0.0, 'rgba(168, 85, 247, 0.0)');
-            laserGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.9)');
+            laserGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.85)');
             laserGrad.addColorStop(1.0, 'rgba(168, 85, 247, 0.0)');
             ctx.strokeStyle = laserGrad;
             ctx.lineWidth = 2.0;
             ctx.beginPath();
-            ctx.moveTo(lipMidX, mMidY - 36);
-            ctx.lineTo(lipMidX, mMidY + 36);
+            ctx.moveTo(mMidX, mMidY - 50);
+            ctx.lineTo(mMidX, mMidY + 50);
             ctx.stroke();
 
-            // 6. Holographic Dental Telemetry Callout Pill in Theme Colors
-            const dCallX = lipMidX + dentalSpan * 0.5 + 10;
-            const dCallY = mMidY - 18;
+            // 6. Holographic Dental Telemetry Callout Pill (Image 1 & 2) in Theme Colors
+            const dCallX = mMidX + boxW * 0.65 + 8;
+            const dCallY = mMidY - boxH * 0.6 - 12;
             ctx.fillStyle = 'rgba(7, 12, 20, 0.90)';
-            ctx.fillRect(dCallX, dCallY, 92, 34);
+            ctx.fillRect(dCallX, dCallY, 90, 34);
             ctx.strokeStyle = colors.primary;
             ctx.lineWidth = 1.0;
-            ctx.strokeRect(dCallX, dCallY, 92, 34);
+            ctx.strokeRect(dCallX, dCallY, 90, 34);
 
             ctx.font = 'bold 7px "Share Tech Mono", monospace';
             ctx.fillStyle = colors.primary;
-            ctx.fillText('DENTAL MATRIX // OK', dCallX + 5, dCallY + 10);
+            ctx.fillText('DENTAL ARCH // OK', dCallX + 5, dCallY + 10);
             ctx.fillStyle = colors.secondary;
-            ctx.fillText('CUSPS: 8 // ARCH 99.4%', dCallX + 5, dCallY + 19);
+            ctx.fillText('ALIGN: 99.4%', dCallX + 5, dCallY + 19);
             ctx.fillStyle = '#ffffff';
-            ctx.fillText('LUMEN: ACTIVE // BIO', dCallX + 5, dCallY + 28);
-
+            ctx.fillText('GAP: 0.12mm // BIO', dCallX + 5, dCallY + 28);
             ctx.restore();
           }
         }
@@ -4918,73 +4875,115 @@
     let emotionGazeX = 0;
     let emotionGazeY = 0;
 
+    // Temporal filter state to eliminate jitter/glitching across frames
+    let animEarL = 0.28;
+    let animEarR = 0.28;
+    let animMouthOpen = 0.0;
+    let animSmile = 0.0;
+    let animBrowFurrow = 0.0;
+    let animBrowRaise = 0.0;
+    let animHeadTilt = 0.0;
+
     function renderEmotionReaderMode(ctx) {
       const colors = getThemeColors();
       const lm = AppState.detectedFaceLandmarks;
       const tNow = Date.now() * 0.003;
 
-      let smileIndex = 0;
-      let mouthAperture = 0;
-      let earL = 0.28;
-      let earR = 0.28;
-      let browFurrow = 0;
-      let headTilt = 0;
+      let targetSmile = 0;
+      let targetMouthOpen = 0;
+      let targetEarL = 0.28;
+      let targetEarR = 0.28;
+      let targetBrowFurrow = 0;
+      let targetBrowRaise = 0;
+      let targetHeadTilt = 0;
       let detectedEm = 'neutral';
 
       if (lm) {
-        // 1. Compute facial geometry metrics
-        // Eye Aspect Ratios (EAR)
+        // 1. Precise Eye Aspect Ratios (EAR)
         if (lm[33] && lm[133] && lm[159] && lm[145]) {
-          earL = Math.hypot(lm[159].x - lm[145].x, lm[159].y - lm[145].y) /
-                 Math.max(1e-4, Math.hypot(lm[33].x - lm[133].x, lm[33].y - lm[133].y));
+          targetEarL = Math.hypot(lm[159].x - lm[145].x, lm[159].y - lm[145].y) /
+                       Math.max(1e-4, Math.hypot(lm[33].x - lm[133].x, lm[33].y - lm[133].y));
         }
         if (lm[263] && lm[362] && lm[386] && lm[374]) {
-          earR = Math.hypot(lm[386].x - lm[374].x, lm[386].y - lm[374].y) /
-                 Math.max(1e-4, Math.hypot(lm[263].x - lm[362].x, lm[263].y - lm[362].y));
+          targetEarR = Math.hypot(lm[386].x - lm[374].x, lm[386].y - lm[374].y) /
+                       Math.max(1e-4, Math.hypot(lm[263].x - lm[362].x, lm[263].y - lm[362].y));
         }
 
-        // Mouth Opening Ratio (MOR)
+        // 2. Continuous Mouth Opening (MOR) & Smile Metric
         if (lm[13] && lm[14] && lm[78] && lm[308]) {
           const mouthOpenDist = Math.hypot(lm[13].x - lm[14].x, lm[13].y - lm[14].y);
           const mouthWidth = Math.hypot(lm[78].x - lm[308].x, lm[78].y - lm[308].y);
-          mouthAperture = mouthOpenDist / Math.max(1e-4, mouthWidth);
+          targetMouthOpen = mouthOpenDist / Math.max(1e-4, mouthWidth);
 
-          // Smile Metric: height of mouth corners (61, 291) relative to mouth center (13, 14)
+          // Height of corners (61, 291) relative to lip center (0, 17)
           const cornerAvgY = (lm[61].y + lm[291].y) * 0.5;
           const centerLipY = (lm[0].y + lm[17].y) * 0.5;
-          // When smiling, corners elevate (lower Y value) relative to lip center
-          smileIndex = Math.max(0, (centerLipY - cornerAvgY) * 18);
+          targetSmile = (centerLipY - cornerAvgY) * 16;
         }
 
-        // Brow Tilt / Slant (Inner vs Outer brow heights for responsive eyebrow expression)
-        if (lm[55] && lm[70] && lm[285] && lm[300]) {
-          const browTiltL = (lm[70].y - lm[55].y) * 12; // positive = furrowed/inward slant, negative = raised
-          const browTiltR = (lm[300].y - lm[285].y) * 12;
-          browFurrow = (browTiltL + browTiltR) * 0.5;
+        // 3. Eyebrow Motion Tracking: Furrow (Angry) and Raise (Surprised)
+        // MediaPipe points: Left eyebrow [70, 63, 105, 66, 107, 55], Right [300, 293, 334, 296, 336, 285]
+        if (lm[55] && lm[285] && lm[33] && lm[263] && lm[107] && lm[336] && lm[159] && lm[386]) {
+          const eyeDist = Math.hypot(lm[263].x - lm[33].x, lm[263].y - lm[33].y);
+          const browInnerDist = Math.hypot(lm[285].x - lm[55].x, lm[285].y - lm[55].y);
+
+          // Normalized brow inner gap (decreases when furrowing/angry)
+          const browGapRatio = browInnerDist / Math.max(1e-4, eyeDist);
+
+          // Vertical distance between brow and eyelid (decreases when frowning/angry, increases when raising brows)
+          const browEyeDistL = (lm[159].y - lm[107].y) / Math.max(1e-4, eyeDist);
+          const browEyeDistR = (lm[386].y - lm[336].y) / Math.max(1e-4, eyeDist);
+          const browEyeAvg = (browEyeDistL + browEyeDistR) * 0.5;
+
+          // Brow slant: inner brow pulled down relative to outer brow
+          const browSlantL = (lm[55].y - lm[70].y) / Math.max(1e-4, eyeDist);
+          const browSlantR = (lm[285].y - lm[300].y) / Math.max(1e-4, eyeDist);
+          const browSlantAvg = (browSlantL + browSlantR) * 0.5;
+
+          // Furrow / Angry intensity (0.0 to 1.0+)
+          // When furrowed: browGapRatio drops below 0.38, browEyeAvg drops, or browSlantAvg increases
+          targetBrowFurrow = Math.max(0, (0.39 - browGapRatio) * 6.5 + browSlantAvg * 4.0);
+
+          // Raise / Surprised intensity
+          targetBrowRaise = Math.max(0, (browEyeAvg - 0.24) * 8.0);
         }
 
-        // Head Gaze direction
+        // 4. Head Gaze & Tilt
         if (lm[1] && lm[33] && lm[263]) {
           const eyeMidX = (lm[33].x + lm[263].x) * 0.5;
           const eyeMidY = (lm[33].y + lm[263].y) * 0.5;
-          emotionGazeX = THREE.MathUtils.lerp(emotionGazeX, (lm[1].x - eyeMidX) * 35, 0.15);
-          emotionGazeY = THREE.MathUtils.lerp(emotionGazeY, (lm[1].y - eyeMidY) * 35, 0.15);
-          headTilt = Math.atan2(lm[263].y - lm[33].y, lm[263].x - lm[33].x);
+          emotionGazeX = THREE.MathUtils.lerp(emotionGazeX, (lm[1].x - eyeMidX) * 35, 0.20);
+          emotionGazeY = THREE.MathUtils.lerp(emotionGazeY, (lm[1].y - eyeMidY) * 35, 0.20);
+          targetHeadTilt = Math.atan2(lm[263].y - lm[33].y, lm[263].x - lm[33].x);
         }
+      }
 
-        // Descriptive telemetry tag for status pill
-        if (earL < 0.14 && earR < 0.14) {
+      // Smooth temporal lerp (0.28 lerp factor eliminates jitter/stutter while maintaining snappy response)
+      const lerpSpd = 0.28;
+      animEarL = THREE.MathUtils.lerp(animEarL, targetEarL, lerpSpd);
+      animEarR = THREE.MathUtils.lerp(animEarR, targetEarR, lerpSpd);
+      animMouthOpen = THREE.MathUtils.lerp(animMouthOpen, targetMouthOpen, 0.35); // Mouth moves quickly with speech
+      animSmile = THREE.MathUtils.lerp(animSmile, targetSmile, lerpSpd);
+      animBrowFurrow = THREE.MathUtils.lerp(animBrowFurrow, targetBrowFurrow, lerpSpd);
+      animBrowRaise = THREE.MathUtils.lerp(animBrowRaise, targetBrowRaise, lerpSpd);
+      animHeadTilt = THREE.MathUtils.lerp(animHeadTilt, targetHeadTilt, lerpSpd);
+
+      // Determine active expression telemetry status label
+      if (lm) {
+        if (animBrowFurrow > 0.45) {
+          detectedEm = 'ANGRY';
+        } else if (animEarL < 0.13 && animEarR < 0.13) {
           detectedEm = 'BLINK';
-        } else if (earL < 0.14 || earR < 0.14) {
+        } else if (animEarL < 0.13 || animEarR < 0.13) {
           detectedEm = 'WINK';
-        } else if (mouthAperture > 0.35) {
-          detectedEm = 'OPEN MOUTH';
-        } else if (smileIndex > 0.14) {
+        } else if (animMouthOpen > 0.14) {
+          detectedEm = animMouthOpen > 0.38 ? 'SURPRISED' : 'SPEAKING';
+        } else if (animSmile > 0.15) {
           detectedEm = 'SMILING';
-        } else if (earL < 0.22 && earR < 0.22) {
+        } else if (animEarL < 0.20 && animEarR < 0.20) {
           detectedEm = 'SQUINT';
         } else {
-          detectedEm = 'TRACKING';
+          detectedEm = 'NEUTRAL';
         }
         emotionConfidence = 0.96;
       } else {
@@ -4996,31 +4995,32 @@
 
       // Update sidebar telemetry
       const lbl = document.getElementById('detectedEmotionLabel');
-      if (lbl) lbl.innerText = smoothedEmotion.toUpperCase();
+      if (lbl) lbl.innerText = smoothedEmotion;
       const conf = document.getElementById('emotionConfidenceVal');
       if (conf) conf.innerText = `${Math.round(emotionConfidence * 100)}%`;
       const gazeEl = document.getElementById('emotionGazeVal');
       if (gazeEl) gazeEl.innerText = Math.abs(emotionGazeX) > 4 ? (emotionGazeX > 0 ? 'LOOK RIGHT' : 'LOOK LEFT') : 'CENTER';
 
       const smEl = document.getElementById('metricSmileVal');
-      if (smEl) smEl.innerText = smileIndex.toFixed(2);
+      if (smEl) smEl.innerText = animSmile.toFixed(2);
       const smBar = document.getElementById('metricSmileBar');
-      if (smBar) smBar.style.width = `${Math.min(100, Math.round(smileIndex * 250))}%`;
+      if (smBar) smBar.style.width = `${Math.min(100, Math.max(0, Math.round(animSmile * 200)))}%`;
 
       const moEl = document.getElementById('metricMouthVal');
-      if (moEl) moEl.innerText = mouthAperture.toFixed(2);
+      if (moEl) moEl.innerText = animMouthOpen.toFixed(2);
       const moBar = document.getElementById('metricMouthBar');
-      if (moBar) moBar.style.width = `${Math.min(100, Math.round(mouthAperture * 200))}%`;
+      if (moBar) moBar.style.width = `${Math.min(100, Math.round(animMouthOpen * 220))}%`;
 
       const eyEl = document.getElementById('metricEyeVal');
-      if (eyEl) eyEl.innerText = `L: ${earL.toFixed(2)} | R: ${earR.toFixed(2)}`;
+      if (eyEl) eyEl.innerText = `L: ${animEarL.toFixed(2)} | R: ${animEarR.toFixed(2)}`;
 
       const miniPrev = document.getElementById('emotionMiniAvatarPreview');
       if (miniPrev) {
-        if (mouthAperture > 0.35) miniPrev.innerText = '● ⚬ ●';
-        else if (smileIndex > 0.15) miniPrev.innerText = '∩ ◡ ∩';
-        else if (earL < 0.14 && earR < 0.14) miniPrev.innerText = '— ◡ —';
-        else if (earL < 0.14 || earR < 0.14) miniPrev.innerText = '● ◡ ⌒';
+        if (animBrowFurrow > 0.45) miniPrev.innerText = '> ^ <';
+        else if (animMouthOpen > 0.35) miniPrev.innerText = '◎ ⚬ ◎';
+        else if (animSmile > 0.15) miniPrev.innerText = '∩ ◡ ∩';
+        else if (animEarL < 0.13 && animEarR < 0.13) miniPrev.innerText = '— ◡ —';
+        else if (animEarL < 0.13 || animEarR < 0.13) miniPrev.innerText = '● ◡ ⌒';
         else miniPrev.innerText = '● ◡ ●';
       }
 
@@ -5059,7 +5059,6 @@
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
       ctx.lineWidth = 3;
 
-      // Draw rounded rectangle bezel
       const bRad = 32;
       ctx.beginPath();
       ctx.roundRect(mx - 20, my - 20, monitorSize + 40, monitorSize + 40, bRad);
@@ -5093,9 +5092,9 @@
       ctx.save();
       ctx.beginPath();
       ctx.roundRect(mx, my, monitorSize, monitorSize, 20);
-      ctx.clip(); // Clip everything to inside screen display
+      ctx.clip(); // Clip inside screen display
 
-      // Screen background (Deep OLED dark navy/purple)
+      // Screen background (Deep OLED dark navy)
       ctx.fillStyle = '#09080e';
       ctx.fillRect(mx, my, monitorSize, monitorSize);
 
@@ -5115,8 +5114,8 @@
         ctx.fillRect(mx, sy, monitorSize, 1.2);
       }
 
-      // Subtle idle breathing float / bobbing
-      const bobY = Math.sin(tNow * 2.2) * 5;
+      // Subtle idle breathing float
+      const bobY = Math.sin(tNow * 2.2) * 4;
 
       // 3. Render Vector Robot Facial Rig inside screen
       const rCenterX = mx + monitorSize * 0.5 + emotionGazeX * 0.6;
@@ -5125,7 +5124,7 @@
 
       ctx.save();
       ctx.translate(rCenterX, rCenterY);
-      ctx.rotate(headTilt * 0.4); // Subtle reactive head tilt
+      ctx.rotate(animHeadTilt * 0.35); // Smooth reactive head tilt
       ctx.scale(scale, scale);
 
       // Hardware Neon Bloom Filter Glow
@@ -5135,17 +5134,18 @@
       ctx.fillStyle = avatarLedColor;
 
       // =========================================================================
-      // DYNAMIC PARAMETRIC ROBOT FACIAL RIG (CONTINUOUS LIVE EXPRESSION MIMICRY)
-      // Smoothly maps eye heights, blinks, squints, gaze, smile curvature, and mouth
+      // DYNAMIC PARAMETRIC ROBOT FACIAL RIG (JITTER-FREE LIVE EXPRESSION MIMICRY)
       // =========================================================================
+      const normEarL = THREE.MathUtils.clamp((animEarL - 0.11) / 0.17, 0.0, 1.35);
+      const normEarR = THREE.MathUtils.clamp((animEarR - 0.11) / 0.17, 0.0, 1.35);
 
-      // Map EAR continuously: 0.08 (fully closed/blink) -> 0.28 (normal) -> 0.38 (wide awake)
-      const normEarL = THREE.MathUtils.clamp((earL - 0.10) / 0.18, 0.0, 1.35);
-      const normEarR = THREE.MathUtils.clamp((earR - 0.10) / 0.18, 0.0, 1.35);
+      const isAngry = animBrowFurrow > 0.45;
+      const browFurrowClamped = THREE.MathUtils.clamp(animBrowFurrow, 0.0, 1.0);
 
+      // Eye capsules dimensions
       const baseEyeW = 62;
       const baseEyeH = 58;
-      const minEyeH = 8; // Slit when blinking / closed
+      const minEyeH = 8;
 
       const eyeHL = minEyeH + (baseEyeH - minEyeH) * normEarL;
       const eyeHR = minEyeH + (baseEyeH - minEyeH) * normEarR;
@@ -5153,25 +5153,36 @@
       const pupilX = THREE.MathUtils.clamp(emotionGazeX * 0.45, -13, 13);
       const pupilY = THREE.MathUtils.clamp(emotionGazeY * 0.45, -11, 11);
 
-      // Continuous eyebrow tilt / rotation angle
-      const browRot = THREE.MathUtils.clamp(browFurrow * 0.08, -0.25, 0.25);
-
-      // Helper to draw parametric robot eye capsule
-      const renderParametricEye = (cx, cy, eW, eH, rot, isLeft) => {
+      // Helper to render robot eyes with parametric squint/blink and angry brow polyline
+      const renderAvatarEye = (cx, cy, eW, eH, isLeft) => {
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.rotate(rot);
 
-        ctx.lineWidth = 14;
-        ctx.lineCap = 'round';
-
-        if (eH < 12) {
-          // Closed / Blink slit arc (smooth curved line)
+        if (isAngry) {
+          // Sharp angular polyline eye (> <) when angry as defined in Robot Studio
+          ctx.lineWidth = 15;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
           ctx.beginPath();
-          ctx.arc(0, 0, eW * 0.45, 0.15 * Math.PI, 0.85 * Math.PI, smileIndex > 0.1);
+          if (isLeft) {
+            ctx.moveTo(-31, -26);
+            ctx.lineTo(23, 2);
+            ctx.lineTo(-31, 24);
+          } else {
+            ctx.moveTo(31, -26);
+            ctx.lineTo(-23, 2);
+            ctx.lineTo(31, 24);
+          }
+          ctx.stroke();
+        } else if (eH < 12) {
+          // Closed / Blink slit arc
+          ctx.lineWidth = 14;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.arc(0, 0, eW * 0.45, 0.15 * Math.PI, 0.85 * Math.PI, animSmile > 0.12);
           ctx.stroke();
 
-          // Outer eyelash accent
+          // Outer eyelash tick
           ctx.lineWidth = 6;
           ctx.beginPath();
           if (isLeft) {
@@ -5181,8 +5192,10 @@
           }
           ctx.stroke();
         } else {
-          // Open capsule eye with dynamic rounded corners based on height
+          // Open capsule eye with dynamic rounded corners
           const cr = Math.min(eW * 0.5, eH * 0.5);
+          ctx.lineWidth = 14;
+          ctx.lineCap = 'round';
           ctx.beginPath();
           ctx.roundRect(-eW * 0.5, -eH * 0.5, eW, eH, cr);
           ctx.stroke();
@@ -5197,7 +5210,7 @@
           }
           ctx.stroke();
 
-          // Responsive glowing pupil inside eye capsule
+          // Responsive glowing pupil
           const pR = Math.min(11, eH * 0.35);
           if (pR > 3) {
             const pClampX = THREE.MathUtils.clamp(pupilX, -(eW * 0.5 - pR - 4), (eW * 0.5 - pR - 4));
@@ -5210,69 +5223,77 @@
         ctx.restore();
       };
 
-      // Draw Left & Right Robot Eyes with independent blink / squint mimicry
-      renderParametricEye(-67, -25, baseEyeW, eyeHL, -browRot, true);
-      renderParametricEye(67, -25, baseEyeW, eyeHR, browRot, false);
+      // Draw eyes
+      renderAvatarEye(-67, -25, baseEyeW, eyeHL, true);
+      renderAvatarEye(67, -25, baseEyeW, eyeHR, false);
 
-      // Dynamic Robot Eyebrows (responsive slant & raise)
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      // Left brow
-      ctx.moveTo(-92, -65 + browRot * 25);
-      ctx.lineTo(-42, -65 - browRot * 25);
-      // Right brow
-      ctx.moveTo(42, -65 - browRot * 25);
-      ctx.lineTo(92, -65 + browRot * 25);
-      ctx.stroke();
+      // Eyebrows: Angle tilts sharply inward when furrowing/angry, raises when surprised
+      if (!isAngry) {
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        const browTiltY = browFurrowClamped * 16 - animBrowRaise * 14;
+        const browElevY = -animBrowRaise * 10;
+        ctx.beginPath();
+        // Left eyebrow
+        ctx.moveTo(-94, -62 + browElevY);
+        ctx.lineTo(-40, -62 + browTiltY + browElevY);
+        // Right eyebrow
+        ctx.moveTo(40, -62 + browTiltY + browElevY);
+        ctx.lineTo(94, -62 + browElevY);
+        ctx.stroke();
+      }
 
       // =========================================================================
-      // DYNAMIC EXPRESSIVE MOUTH (CONTINUOUS OPENING, SMILING, & POUTING)
+      // DYNAMIC SPEECH & EXPRESSIVE MOUTH (RESPONSIVE LIVE LIP MIMICRY)
+      // Directly mimics open mouth height & width smoothly without fake talk loop
       // =========================================================================
       ctx.save();
       const mouthY = 32;
-      const baseMouthW = 32 + smileIndex * 25; // Expands wider when smiling
-      const mOpenPx = Math.max(0, (mouthAperture - 0.08) * 90); // Opening height in px
+      const speechOpenH = Math.max(0, (animMouthOpen - 0.08) * 85); // Direct mm opening proportional height
+      const mouthWidthPx = Math.min(68, 30 + (animSmile > 0 ? animSmile * 22 : 0) + speechOpenH * 0.35);
 
-      if (mOpenPx > 8) {
-        // Mouth is parted/open: Expressive capsule/oval aperture matching speech & gasp
+      if (isAngry) {
+        // Sharp chevron frown mouth ( ^ )
         ctx.lineWidth = 9;
         ctx.lineCap = 'round';
-        const openH = Math.min(46, mOpenPx);
+        ctx.lineJoin = 'round';
         ctx.beginPath();
-        // Dynamic smiling or neutral open mouth
-        ctx.roundRect(-baseMouthW * 0.5, mouthY - openH * 0.5, baseMouthW, openH, [openH * 0.5, openH * 0.5, openH * 0.4, openH * 0.4]);
+        ctx.moveTo(-16, 40);
+        ctx.lineTo(0, 28);
+        ctx.lineTo(16, 40);
         ctx.stroke();
-
-        // Glowing tongue / interior tooth bar inside robot mouth
-        if (openH > 18) {
-          ctx.fillStyle = avatarLedColor;
-          ctx.beginPath();
-          ctx.arc(0, mouthY + openH * 0.2, openH * 0.28, 0, Math.PI);
-          ctx.fill();
-        }
+      } else if (speechOpenH > 5) {
+        // Open Mouth: Direct proportional lip opening tracking user speech/gasp
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        const oH = Math.min(44, speechOpenH);
+        ctx.beginPath();
+        // Dynamic expressive lips matching user articulation
+        ctx.roundRect(-mouthWidthPx * 0.5, mouthY - oH * 0.5, mouthWidthPx, oH, [oH * 0.5, oH * 0.5, oH * 0.45, oH * 0.45]);
+        ctx.stroke();
       } else {
-        // Mouth is closed: Smooth cubic Bézier smile curve
-        // Upward arc when smileIndex > 0, neutral slight curve at 0, downturn if negative
+        // Closed / Rest Mouth: Responsive smile curve or subtle resting line
         ctx.lineWidth = 9;
         ctx.lineCap = 'round';
-        const smileLift = smileIndex * 28; // Upward pull on corners
-        const cornerY = mouthY - smileLift * 0.4;
-        const midY = mouthY + Math.max(3, 8 - smileLift * 0.2);
+        const smileLift = animSmile * 26;
+        const cornerY = mouthY - smileLift * 0.45;
+        const midY = mouthY + Math.max(2, 7 - smileLift * 0.2);
 
         ctx.beginPath();
-        ctx.moveTo(-baseMouthW * 0.5, cornerY);
-        ctx.quadraticCurveTo(0, midY, baseMouthW * 0.5, cornerY);
+        ctx.moveTo(-mouthWidthPx * 0.5, cornerY);
+        ctx.quadraticCurveTo(0, midY, mouthWidthPx * 0.5, cornerY);
         ctx.stroke();
       }
       ctx.restore();
 
-      // Cute Pink Blush Accents (Fades in stronger when smiling)
-      const blushOpacity = THREE.MathUtils.clamp(0.25 + smileIndex * 1.5, 0.2, 0.95);
-      ctx.save();
-      ctx.globalAlpha = blushOpacity;
-      drawBlushLines(ctx, -105, 36, 105, 36);
-      ctx.restore();
+      // Cute Pink Blush Accents (suppressed when angry)
+      if (!isAngry) {
+        const blushOpacity = THREE.MathUtils.clamp(0.20 + animSmile * 1.6, 0.15, 0.95);
+        ctx.save();
+        ctx.globalAlpha = blushOpacity;
+        drawBlushLines(ctx, -105, 36, 105, 36);
+        ctx.restore();
+      }
 
       ctx.restore(); // Restore rig translation
 
@@ -5281,14 +5302,14 @@
       ctx.strokeStyle = avatarLedColor;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(mx + 14, my + monitorSize - 28, 80, 18, 4);
+      ctx.roundRect(mx + 14, my + monitorSize - 28, 92, 18, 4);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = avatarLedColor;
       ctx.font = 'bold 9px "Share Tech Mono", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(smoothedEmotion.toUpperCase(), mx + 54, my + monitorSize - 16);
+      ctx.fillText(smoothedEmotion, mx + 60, my + monitorSize - 16);
 
       ctx.restore(); // Restore screen clipping
 
@@ -5332,6 +5353,30 @@
         const pScaleX = pipW;
         const pScaleY = pipH;
 
+        // Eyebrow contours in PIP so the user can visually confirm eyebrow detection
+        const leftBrowPts = [70, 63, 105, 66, 107, 55];
+        const rightBrowPts = [300, 293, 334, 296, 336, 285];
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        leftBrowPts.forEach((idx, i) => {
+          if (lm[idx]) {
+            const px = lm[idx].x * pScaleX;
+            const py = lm[idx].y * pScaleY;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+        });
+        rightBrowPts.forEach((idx, i) => {
+          if (lm[idx]) {
+            const px = lm[idx].x * pScaleX;
+            const py = lm[idx].y * pScaleY;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+        });
+        ctx.stroke();
+
         // Lip contour in Theme Primary
         const lipPts = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146, 61];
         ctx.strokeStyle = colors.primary;
@@ -5374,8 +5419,8 @@
         });
         ctx.stroke();
 
-        // Key feature nodes in Theme Alt
-        [1, 33, 263, 61, 291, 152].forEach(idx => {
+        // Key feature nodes in Theme Alt (Including inner eyebrows 55 and 285)
+        [1, 33, 263, 55, 285, 61, 291, 152].forEach(idx => {
           if (lm[idx]) {
             const px = lm[idx].x * pScaleX;
             const py = lm[idx].y * pScaleY;
