@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Project
-Pathfinder EYE (ESP32-S3 Vision Hub): Local camera feed ingest over USB NCM / UVC, decoupled asynchronous YOLOv11M detection, 3D facial biometric tracking, JSL & 21-joint skeletal hand gesture dictionary, touchless interactive 3D WebGL CAD viewer, append-only JSONL log, Ollama timeline interrogation, and responsive multi-theme web UI.
+Pathfinder EYE (ESP32-S3 Vision Hub): Local camera feed ingest over USB NCM / UVC, decoupled asynchronous YOLOv11M detection, 3D facial biometric tracking with dynamic holographic visor HUD, Japanese Sign Language (JSL) & 21-joint skeletal hand gesture dictionary, touchless interactive 3D WebGL CAD viewer (turbofan, robotic arm, planetary gearbox, drone), 45,000 GPU particle galaxy flow, Avian perimeter defense radar, live expressive cute robot avatar emotion mimicry, append-only JSONL log, Ollama timeline interrogation, and responsive multi-theme web UI.
 
 ## Structure
 - `crates/hubd`: Axum web server, live JPEG/telemetry streaming, API routing, and daemon orchestration.
@@ -12,7 +12,7 @@ Pathfinder EYE (ESP32-S3 Vision Hub): Local camera feed ingest over USB NCM / UV
 - `crates/vision`: MJPEG reader & frame boundary extraction.
 - `crates/detect`: ONNX YOLO inference & temporal debounce filtering.
 - `crates/store`: JSONL persistence & daily aggregation.
-- `ui`: Hardware-accelerated frontend with theme synchronization, 3D face mesh wiring, and live gesture telemetry.
+- `ui`: Hardware-accelerated frontend with theme synchronization, 3D face mesh wiring, interactive CAD models, GPU particle flow, live expressive avatar puppeteering, and live gesture telemetry.
 - `firmware`: ESP-IDF v5.3+ NCM + camera firmware.
 
 ## Permissions & Rules

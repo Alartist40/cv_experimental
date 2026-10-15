@@ -13,3 +13,7 @@
 - [x] Stage 11: Decoupled 30 FPS Ingest, Mazzaroth Multi-Theme Engine & 3D Facial Reticle [G11]
 - [x] Stage 12: Pathfinder EYE Rebranding, Tabular Metrics, & Japanese Sign Language (JSL) Dictionary [G12]
 - [x] Stage 13: Interactive 3D Holographic CAD Viewport & Touchless Control (OWNS: ui/index.html, crates/hand_detector.py, crates/detect_service.py) [G13]
+- [x] Stage 14: Avian Perimeter Defense Radar & Flight Vector CV (OWNS: ui/index.html, crates/detect_service.py) [G14]
+- [x] Stage 15: 45,000 GPU Particle Flow Simulation (OWNS: ui/index.html) [G15]
+- [x] Stage 16: Multi-Model 3D CAD Suite (Robotic Arm, Gearbox, Drone) (OWNS: ui/index.html) [G16]
+- [x] Stage 17: Live Cute Robot Avatar Emotion Reader & Dynamic Visor HUD (OWNS: ui/index.html) [G17]

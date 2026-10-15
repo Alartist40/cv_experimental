@@ -77,3 +77,28 @@
   EXPECT: G13 verified
   CWD: .
   EVIDENCE: G13 verified
+
+- [x] G14: Avian Perimeter Defense Radar
+  CHECK: grep -q "BIRD_DETECT" ui/index.html && grep -q "birdCanvas" ui/index.html && echo "G14 verified"
+  EXPECT: G14 verified
+  CWD: .
+  EVIDENCE: G14 verified
+
+- [x] G15: 45,000 GPU Particle Flow Simulation
+  CHECK: grep -q "PARTICLE_FLOW" ui/index.html && grep -q "45000" ui/index.html && echo "G15 verified"
+  EXPECT: G15 verified
+  CWD: .
+  EVIDENCE: G15 verified
+
+- [x] G16: Multi-Model 3D CAD Suite (Robotic Arm, Gearbox, Drone)
+  CHECK: grep -q "createRobotArmGroup" ui/index.html && grep -q "createGearboxGroup" ui/index.html && grep -q "createDroneGroup" ui/index.html && echo "G16 verified"
+  EXPECT: G16 verified
+  CWD: .
+  EVIDENCE: G16 verified
+
+- [x] G17: Live Cute Robot Avatar Emotion Reader & Dynamic Visor HUD
+  CHECK: grep -q "EMOTION_READER" ui/index.html && grep -q "renderAvatarEye" ui/index.html && grep -q "boxW = mouthWidth" ui/index.html && echo "G17 verified"
+  EXPECT: G17 verified
+  CWD: .
+  EVIDENCE: G17 verified
+

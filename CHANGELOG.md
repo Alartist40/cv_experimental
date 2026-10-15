@@ -2,7 +2,30 @@
 
 All notable changes to the Vision Hub project are documented in this file.
 
+## [Emotion Reader Avatar, Avian Radar, GPU Galaxy & Face Visor Upgrades] - 2026-10-15
+
+### Added
+- **Cute Robot Avatar Emotion Mimicry (`EMOTION_READER`)**:
+  - Real-time expressive facial mimicry mirroring the user's face onto a cute cybernetic robot avatar:
+    - Morphing eyes: happy/smiling arches (`∩ ◡ ∩`), playful winking (`∩ ◡ ⌒` / `⌒ ◡ ∩`), blinking/squinting slits (`— ◡ —`), and angry chevrons (`> ^ <`).
+    - Speech & mouth mimicry: direct lip opening and phonetic articulation matching user speech and mouth dimensions.
+    - Floating corner Picture-in-Picture (PIP) camera feed with live 3D landmark tracing and eyebrow geometry.
+  - CRT scanlines, screen vignette, and responsive theme synchronization across all Mazzaroth palettes.
+- **Dynamic Visor HUD & Facial Tracking (`FACE_BIOMETRIC`)**:
+  - High-contrast borderless holographic visor with `.ID` center callout and procedural corner markers.
+  - Independent pupil tracking reticles with cyan/amber glow cores and blink suppression.
+  - Dynamically scaling and stretching mouth box matching user mouth dimensions.
+- **Avian Perimeter Defense Radar (`BIRD_DETECT`)**:
+  - Real-time avian robotics CV tracking flight vectors, radial distance, and perimeter defense rings.
+- **45,000 GPU Particle Flow Simulation (`PARTICLE_FLOW`)**:
+  - High-performance WebGL GPU particle system dynamically morphing between a concentrated cybernetic core and a 4-arm spiral galaxy driven by hand motion and dual-hand expansion.
+- **3D CAD Multi-Model Suite (`INTERACTIVE_3D`)**:
+  - Expanded interactive WebGL CAD models: **Turbofan Jet Engine**, **Robotic Arm**, **Planetary Gearbox**, and **Quadcopter Drone**.
+  - Touchless single-hand orbit, dual-hand twist roll, distance zoom, and fist-to-palm component explosion.
+  - Disambiguated Kitsune 🦊 and Rock 🤘 detection based on knuckle curl ratios.
+
 ## [Interactive 3D Holographic CAD Viewport & Touchless Control] - 2026-10-11
+
 
 ### Added
 - **Touchless 3D Holographic CAD Viewer (`ui/index.html`)**:

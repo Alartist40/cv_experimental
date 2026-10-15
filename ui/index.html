@@ -5155,13 +5155,15 @@
       const pupilX = THREE.MathUtils.clamp(emotionGazeX * 0.45, -13, 13);
       const pupilY = THREE.MathUtils.clamp(emotionGazeY * 0.45, -11, 11);
 
-      // Helper to render robot eyes with parametric squint/blink and angry brow polyline
+      // Draw eyes with responsive expression morphing
+      const isSmiling = animSmile > 0.16;
+
       const renderAvatarEye = (cx, cy, eW, eH, isLeft) => {
         ctx.save();
         ctx.translate(cx, cy);
 
         if (isAngry) {
-          // Sharp angular polyline eye (> <) when angry as defined in Robot Studio
+          // Sharp angular polyline eye (> <) when angry
           ctx.lineWidth = 15;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
@@ -5176,25 +5178,49 @@
             ctx.lineTo(31, 24);
           }
           ctx.stroke();
-        } else if (eH < 12) {
-          // Closed / Blink slit arc
+        } else if (eH < 14) {
+          // Closed / Blink / Wink slit
           ctx.lineWidth = 14;
           ctx.lineCap = 'round';
           ctx.beginPath();
-          ctx.arc(0, 0, eW * 0.45, 0.15 * Math.PI, 0.85 * Math.PI, animSmile > 0.12);
+          if (isSmiling) {
+            // Cute inverted happy arch ( ∩ )
+            ctx.arc(0, 8, eW * 0.44, Math.PI, 0, false);
+          } else {
+            // Calm relaxed slit ( — )
+            ctx.moveTo(-eW * 0.42, 0);
+            ctx.lineTo(eW * 0.42, 0);
+          }
           ctx.stroke();
 
           // Outer eyelash tick
           ctx.lineWidth = 6;
           ctx.beginPath();
           if (isLeft) {
-            ctx.moveTo(-eW * 0.45, 0); ctx.lineTo(-eW * 0.45 - 20, -10);
+            ctx.moveTo(-eW * 0.42, 0); ctx.lineTo(-eW * 0.42 - 18, -10);
           } else {
-            ctx.moveTo(eW * 0.45, 0); ctx.lineTo(eW * 0.45 + 20, -10);
+            ctx.moveTo(eW * 0.42, 0); ctx.lineTo(eW * 0.42 + 18, -10);
+          }
+          ctx.stroke();
+        } else if (isSmiling && eH < 34) {
+          // Smiling squint: Inverted arch eyes ( ∩ ) matching the happy robot studio reference
+          ctx.lineWidth = 16;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.arc(0, 10, eW * 0.46, Math.PI, 0, false);
+          ctx.stroke();
+
+          // Outer lash tick
+          ctx.lineWidth = 7;
+          ctx.beginPath();
+          if (isLeft) {
+            ctx.moveTo(-eW * 0.44, -8); ctx.lineTo(-eW * 0.44 - 22, -18);
+          } else {
+            ctx.moveTo(eW * 0.44, -8); ctx.lineTo(eW * 0.44 + 22, -18);
           }
           ctx.stroke();
         } else {
-          // Open capsule eye with dynamic rounded corners
+          // Open capsule eye with dynamic rounded corners based on height
           const cr = Math.min(eW * 0.5, eH * 0.5);
           ctx.lineWidth = 14;
           ctx.lineCap = 'round';
@@ -5212,8 +5238,8 @@
           }
           ctx.stroke();
 
-          // Responsive glowing pupil
-          const pR = Math.min(11, eH * 0.35);
+          // Responsive glowing pupil that tracks user gaze
+          const pR = Math.min(12, eH * 0.35);
           if (pR > 3) {
             const pClampX = THREE.MathUtils.clamp(pupilX, -(eW * 0.5 - pR - 4), (eW * 0.5 - pR - 4));
             const pClampY = THREE.MathUtils.clamp(pupilY, -(eH * 0.5 - pR - 4), (eH * 0.5 - pR - 4));
@@ -5234,7 +5260,7 @@
         ctx.lineWidth = 6;
         ctx.lineCap = 'round';
         const browTiltY = browFurrowClamped * 16 - animBrowRaise * 14;
-        const browElevY = -animBrowRaise * 10;
+        const browElevY = -animBrowRaise * 12;
         ctx.beginPath();
         // Left eyebrow
         ctx.moveTo(-94, -62 + browElevY);
@@ -5251,8 +5277,8 @@
       // =========================================================================
       ctx.save();
       const mouthY = 32;
-      const speechOpenH = Math.max(0, (animMouthOpen - 0.08) * 85); // Direct mm opening proportional height
-      const mouthWidthPx = Math.min(68, 30 + (animSmile > 0 ? animSmile * 22 : 0) + speechOpenH * 0.35);
+      const speechOpenH = Math.max(0, (animMouthOpen - 0.05) * 110); // Direct responsive opening height
+      const mouthWidthPx = Math.min(80, 32 + (animSmile > 0 ? animSmile * 26 : 0) + speechOpenH * 0.4);
 
       if (isAngry) {
         // Sharp chevron frown mouth ( ^ )
@@ -5264,22 +5290,29 @@
         ctx.lineTo(0, 28);
         ctx.lineTo(16, 40);
         ctx.stroke();
-      } else if (speechOpenH > 5) {
-        // Open Mouth: Direct proportional lip opening tracking user speech/gasp
+      } else if (speechOpenH > 4) {
+        // Open Mouth: Direct proportional lip opening tracking user speech, gasp, or laughter
         ctx.lineWidth = 8;
         ctx.lineCap = 'round';
-        const oH = Math.min(44, speechOpenH);
+        const oH = Math.min(48, speechOpenH);
         ctx.beginPath();
-        // Dynamic expressive lips matching user articulation
         ctx.roundRect(-mouthWidthPx * 0.5, mouthY - oH * 0.5, mouthWidthPx, oH, [oH * 0.5, oH * 0.5, oH * 0.45, oH * 0.45]);
         ctx.stroke();
+
+        if (oH > 18) {
+          // Inner glowing tongue / tooth accent matching avatar LED
+          ctx.fillStyle = avatarLedColor;
+          ctx.beginPath();
+          ctx.arc(0, mouthY + oH * 0.22, oH * 0.26, 0, Math.PI);
+          ctx.fill();
+        }
       } else {
         // Closed / Rest Mouth: Responsive smile curve or subtle resting line
         ctx.lineWidth = 9;
         ctx.lineCap = 'round';
-        const smileLift = animSmile * 26;
+        const smileLift = animSmile * 28;
         const cornerY = mouthY - smileLift * 0.45;
-        const midY = mouthY + Math.max(2, 7 - smileLift * 0.2);
+        const midY = mouthY + Math.max(2, 7 - smileLift * 0.25);
 
         ctx.beginPath();
         ctx.moveTo(-mouthWidthPx * 0.5, cornerY);
