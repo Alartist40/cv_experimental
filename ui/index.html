@@ -4635,11 +4635,11 @@
               ctx.strokeRect(px - 2.5, py - 2, 5, 4);
             });
 
-            // 4. Central Incisor Holographic Wireframe Tooth Box (Image 1 & 2)
+            // 4. Central Incisor Holographic Wireframe Tooth Box (Dynamically stretches with mouth)
             const mMidX = (lm[13].x * canvas.width + lm[14].x * canvas.width) / 2;
             const mMidY = (lm[13].y * canvas.height + lm[14].y * canvas.height) / 2;
-            const boxW = Math.min(38, mouthWidth * canvas.width * 0.28);
-            const boxH = Math.min(32, mouthOpenDist * canvas.height * 0.75);
+            const boxW = mouthWidth * canvas.width * 0.32;
+            const boxH = mouthOpenDist * canvas.height * 0.85;
 
             ctx.save();
             ctx.strokeStyle = '#00f0ff';
@@ -4918,7 +4918,8 @@
           // Height of corners (61, 291) relative to lip center (0, 17)
           const cornerAvgY = (lm[61].y + lm[291].y) * 0.5;
           const centerLipY = (lm[0].y + lm[17].y) * 0.5;
-          targetSmile = (centerLipY - cornerAvgY) * 16;
+          // Normalized smile intensity: positive when corners lift above rest
+          targetSmile = (centerLipY - cornerAvgY) * 22;
         }
 
         // 3. Eyebrow Motion Tracking: Furrow (Angry) and Raise (Surprised)
@@ -4927,42 +4928,43 @@
           const eyeDist = Math.hypot(lm[263].x - lm[33].x, lm[263].y - lm[33].y);
           const browInnerDist = Math.hypot(lm[285].x - lm[55].x, lm[285].y - lm[55].y);
 
-          // Normalized brow inner gap (decreases when furrowing/angry)
+          // Normalized brow inner gap (typical rest is ~0.35-0.42; deep furrow drops below 0.32)
           const browGapRatio = browInnerDist / Math.max(1e-4, eyeDist);
 
-          // Vertical distance between brow and eyelid (decreases when frowning/angry, increases when raising brows)
-          const browEyeDistL = (lm[159].y - lm[107].y) / Math.max(1e-4, eyeDist);
-          const browEyeDistR = (lm[386].y - lm[336].y) / Math.max(1e-4, eyeDist);
-          const browEyeAvg = (browEyeDistL + browEyeDistR) * 0.5;
-
           // Brow slant: inner brow pulled down relative to outer brow
+          // In neutral, outer brow 70 is slightly lower or level with inner brow 55
+          // When angry, inner brow 55 drops sharply below outer brow 70 (lm[55].y - lm[70].y becomes positive)
           const browSlantL = (lm[55].y - lm[70].y) / Math.max(1e-4, eyeDist);
           const browSlantR = (lm[285].y - lm[300].y) / Math.max(1e-4, eyeDist);
           const browSlantAvg = (browSlantL + browSlantR) * 0.5;
 
-          // Furrow / Angry intensity (0.0 to 1.0+)
-          // When furrowed: browGapRatio drops below 0.38, browEyeAvg drops, or browSlantAvg increases
-          targetBrowFurrow = Math.max(0, (0.39 - browGapRatio) * 6.5 + browSlantAvg * 4.0);
+          // Brow-eye gap for surprise/raise
+          const browEyeDistL = (lm[159].y - lm[107].y) / Math.max(1e-4, eyeDist);
+          const browEyeDistR = (lm[386].y - lm[336].y) / Math.max(1e-4, eyeDist);
+          const browEyeAvg = (browEyeDistL + browEyeDistR) * 0.5;
+
+          // Target Brow Furrow requires deliberate downward slant + narrowed gap
+          targetBrowFurrow = Math.max(0, (browSlantAvg - 0.04) * 8.0 + Math.max(0, 0.34 - browGapRatio) * 6.0);
 
           // Raise / Surprised intensity
-          targetBrowRaise = Math.max(0, (browEyeAvg - 0.24) * 8.0);
+          targetBrowRaise = Math.max(0, (browEyeAvg - 0.23) * 7.0);
         }
 
         // 4. Head Gaze & Tilt
         if (lm[1] && lm[33] && lm[263]) {
           const eyeMidX = (lm[33].x + lm[263].x) * 0.5;
           const eyeMidY = (lm[33].y + lm[263].y) * 0.5;
-          emotionGazeX = THREE.MathUtils.lerp(emotionGazeX, (lm[1].x - eyeMidX) * 35, 0.20);
-          emotionGazeY = THREE.MathUtils.lerp(emotionGazeY, (lm[1].y - eyeMidY) * 35, 0.20);
+          emotionGazeX = THREE.MathUtils.lerp(emotionGazeX, (lm[1].x - eyeMidX) * 35, 0.25);
+          emotionGazeY = THREE.MathUtils.lerp(emotionGazeY, (lm[1].y - eyeMidY) * 35, 0.25);
           targetHeadTilt = Math.atan2(lm[263].y - lm[33].y, lm[263].x - lm[33].x);
         }
       }
 
-      // Smooth temporal lerp (0.28 lerp factor eliminates jitter/stutter while maintaining snappy response)
-      const lerpSpd = 0.28;
+      // Responsive temporal lerp (0.35 factor ensures immediate tracking of expressions)
+      const lerpSpd = 0.35;
       animEarL = THREE.MathUtils.lerp(animEarL, targetEarL, lerpSpd);
       animEarR = THREE.MathUtils.lerp(animEarR, targetEarR, lerpSpd);
-      animMouthOpen = THREE.MathUtils.lerp(animMouthOpen, targetMouthOpen, 0.35); // Mouth moves quickly with speech
+      animMouthOpen = THREE.MathUtils.lerp(animMouthOpen, targetMouthOpen, 0.45); // Snappy mouth tracking for live speech
       animSmile = THREE.MathUtils.lerp(animSmile, targetSmile, lerpSpd);
       animBrowFurrow = THREE.MathUtils.lerp(animBrowFurrow, targetBrowFurrow, lerpSpd);
       animBrowRaise = THREE.MathUtils.lerp(animBrowRaise, targetBrowRaise, lerpSpd);
@@ -4970,15 +4972,15 @@
 
       // Determine active expression telemetry status label
       if (lm) {
-        if (animBrowFurrow > 0.45) {
+        if (animBrowFurrow > 0.65) {
           detectedEm = 'ANGRY';
         } else if (animEarL < 0.13 && animEarR < 0.13) {
           detectedEm = 'BLINK';
         } else if (animEarL < 0.13 || animEarR < 0.13) {
           detectedEm = 'WINK';
-        } else if (animMouthOpen > 0.14) {
+        } else if (animMouthOpen > 0.16) {
           detectedEm = animMouthOpen > 0.38 ? 'SURPRISED' : 'SPEAKING';
-        } else if (animSmile > 0.15) {
+        } else if (animSmile > 0.18) {
           detectedEm = 'SMILING';
         } else if (animEarL < 0.20 && animEarR < 0.20) {
           detectedEm = 'SQUINT';
