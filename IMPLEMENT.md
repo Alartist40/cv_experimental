@@ -21,3 +21,5 @@
 - 2026-10-14: Completed Stage 16 Multi-Model 3D CAD Suite (Expanded CAD models with 6-DOF Robotic Arm, Planetary Gearbox, and Quadcopter Drone; added drag-and-drop STL/GLB/GLTF loading; disambiguated Kitsune and Rock gestures).
 
 - 2026-10-15: Completed Stage 17 Live Cute Robot Avatar Emotion Reader & Dynamic Visor HUD (Parametric cybernetic robot avatar reflecting user facial expressions: smiling arches, winks, blinks, speaking lip mimicry, angry chevrons; borderless visor with .ID callout and dynamic stretching mouth box; comprehensive multi-theme propagation).
+
+- 2026-10-19: Completed Stage 18 Touchless 3D CAD Pinch Zoom & Holographic Model Selector (Calibrated base 3D CAD model scale down to 0.58x; single-hand dynamic pinch zoom shrinking on pinch and expanding on finger spread; bimanual pinch distance zoom; holographic two-finger dropdown menu with middle-finger vertical scroll and thumbs-up confirm).

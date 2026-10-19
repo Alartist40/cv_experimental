@@ -102,3 +102,10 @@
   CWD: .
   EVIDENCE: G17 verified
 
+- [x] G18: Touchless 3D CAD Pinch Zoom & Holographic Model Selector
+  CHECK: grep -q "threeCadMenuOpen" ui/index.html && grep -q "CAD_PRESET_OPTIONS" ui/index.html && grep -q "threeTargetScale = 0.58" ui/index.html && echo "G18 verified"
+  EXPECT: G18 verified
+  CWD: .
+  EVIDENCE: G18 verified
+
+

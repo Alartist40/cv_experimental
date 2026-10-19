@@ -2,6 +2,19 @@
 
 All notable changes to the Vision Hub project are documented in this file.
 
+## [Touchless 3D CAD Pinch Zoom & Holographic Model Selector] - 2026-10-19
+
+### Added
+- **Dynamic Touchless 3D CAD Gesture Controls (`INTERACTIVE_3D`)**:
+  - **Calibrated Base Model Scaling**: Scaled default 3D CAD model initialization, preset switching, and view resets from `1.0x` down to `0.58x`, perfectly framing CAD models in the viewport without occluding the operator's face or background stream.
+  - **Single-Hand Pinch & Spread Dynamic Zoom**: Continuous distance tracking between index tip (#8) and thumb tip (#4); pinching together smoothly shrinks the 3D model down to `0.22x`, while spreading fingers apart enlarges the model up to `2.5x`.
+  - **Dual-Hand Pinch Distance Zoom**: Bimanual pinch-distance tracking adjusting model scale dynamically as hands are moved closer together or further apart.
+  - **Holographic Gesture-Driven Dropdown Selector**:
+    - **Open Menu (✌️ Two Fingers Up)**: Raising index and middle fingers together summons an on-screen cyberpunk holographic model selection menu.
+    - **Scroll Down (🖕 Dropping Middle Finger)**: Lowering the middle finger or increasing vertical/angular distance from the index finger scrolls down through the 5 CAD models (`✈️ Turbofan Engine`, `🚁 Cyber Drone`, `🤖 Robot Arm`, `🛰️ Orbital Satellite`, `⚙️ Planetary Gears`).
+    - **Confirm & Load (👍 Thumbs Up)**: Flashing a Thumbs Up confirms the highlighted item, closes the menu, instantly loads the model, and displays an on-screen verification notification banner (`✓ CONFIRMED: ...`).
+  - **Updated Sidebar 3D Interaction Guide**: Synchronized sidebar guide cards with new gesture actions (`🤏 PINCH IN / OUT`, `✌️ 2 FINGERS UP`, `🖕 DROP MIDDLE FINGER`, `👍 THUMBS UP`, `👐 2-HAND PINCH DIST`).
+
 ## [Emotion Reader Avatar, Avian Radar, GPU Galaxy & Face Visor Upgrades] - 2026-10-15
 
 ### Added

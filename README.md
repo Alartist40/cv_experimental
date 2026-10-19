@@ -46,8 +46,10 @@ graph TD
    - Dual-hand 21-joint skeletal tracking with interactive sidebar gesture dictionary.
    - Disambiguated Kitsune 🦊 and Rock 🤘 detection based on ring/middle knuckle curl ratios.
 5. **Interactive 3D Holographic CAD Viewport (`INTERACTIVE_3D`)**:
-   - WebGL Three.js multi-component models: **Turbofan Jet Engine**, **Robotic Arm**, **Planetary Gearbox**, and **Quadcopter Drone**.
-   - Touchless controls: single-hand orbit, dual-hand bimanual roll/twist, stretch zoom, and fist-to-palm component disassembly explosion.
+   - WebGL Three.js multi-component models: **Turbofan Jet Engine**, **Robotic Arm**, **Planetary Gearbox**, and **Quadcopter Drone** (calibrated default base scale: `0.58x`).
+   - Touchless single-hand dynamic pinch zoom (pinch shrink down to `0.22x` vs finger-thumb spread expansion up to `2.5x`) and bimanual dual-hand pinch distance zoom.
+   - Touchless orbital rotation with mirrored delta tracking and fist-to-palm component disassembly explosion (`0%` to `100%`).
+   - Holographic gesture-driven dropdown selector: two fingers up (✌️) opens menu, dropping middle finger (🖕) scrolls through presets, and thumbs up (👍) confirms and loads the CAD model.
    - Drag-and-drop ingestion of custom `.glb`, `.gltf`, and `.stl` models.
 6. **45,000 GPU Particle Flow Simulation (`PARTICLE_FLOW`)**:
    - Dual-state GPU particle system morphing dynamically between a dense cybernetic energy core and an expansive 4-arm spiral galaxy driven by hand gestures.

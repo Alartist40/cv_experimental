@@ -17,3 +17,4 @@
 - [x] Stage 15: 45,000 GPU Particle Flow Simulation (OWNS: ui/index.html) [G15]
 - [x] Stage 16: Multi-Model 3D CAD Suite (Robotic Arm, Gearbox, Drone) (OWNS: ui/index.html) [G16]
 - [x] Stage 17: Live Cute Robot Avatar Emotion Reader & Dynamic Visor HUD (OWNS: ui/index.html) [G17]
+- [x] Stage 18: Touchless 3D CAD Pinch Zoom & Holographic Model Selector (OWNS: ui/index.html) [G18]
