@@ -1,15 +1,20 @@
 use axum::{
-    extract::{Query, State},
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        Query, State,
+    },
     http::header,
     response::{IntoResponse, Json, Response},
     routing::{get, post},
     Router,
 };
 use chrono::Utc;
+use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::process::Stdio;
 use std::sync::Arc;
+use std::time::Duration;
 use store::{DetectionEvent, DetectionStore};
 use tokio::process::Command;
 use tower_http::services::ServeDir;
@@ -17,19 +22,6 @@ use tower_http::services::ServeDir;
 #[derive(Clone)]
 struct AppState {
     store: Arc<DetectionStore>,
-    ollama_url: String,
-    ollama_model: String,
-}
-
-#[derive(Deserialize)]
-struct AskRequest {
-    prompt: String,
-    date: Option<String>,
-}
-
-#[derive(Serialize)]
-struct AskResponse {
-    response: String,
 }
 
 #[derive(Deserialize)]
@@ -58,17 +50,13 @@ async fn main() -> anyhow::Result<()> {
     });
 
     let store = Arc::new(DetectionStore::new("data/detections"));
-    let state = AppState {
-        store,
-        ollama_url: std::env::var("OLLAMA_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()),
-        ollama_model: std::env::var("OLLAMA_MODEL").unwrap_or_else(|_| "qwen2.5:3b-instruct".to_string()),
-    };
+    let state = AppState { store };
 
     let app = Router::new()
         .route("/frame.jpg", get(live_frame_handler))
         .route("/api/live_detections", get(live_detections_handler))
+        .route("/ws/stream", get(ws_stream_handler))
         .route("/api/events", get(get_events_handler))
-        .route("/api/ask", post(ask_handler))
         .route("/api/face/scan", post(face_scan_handler))
         .route("/api/face/enroll", post(face_enroll_handler))
         .route("/api/face/list", get(face_list_handler))
@@ -95,6 +83,58 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+async fn ws_stream_handler(ws: WebSocketUpgrade) -> Response {
+    ws.on_upgrade(handle_socket)
+}
+
+async fn handle_socket(mut socket: WebSocket) {
+    let mut interval = tokio::time::interval(Duration::from_millis(33)); // ~30 FPS
+    let mut last_frame_hash: u64 = 0;
+    let mut last_det_hash: u64 = 0;
+
+    loop {
+        tokio::select! {
+            _ = interval.tick() => {
+                // Check and stream live frame
+                if let Ok(bytes) = tokio::fs::read("data/live_frame.jpg").await {
+                    let len = bytes.len() as u64;
+                    // Simple hash using length + first/last bytes to detect changes
+                    let hash = len.wrapping_add(
+                        if !bytes.is_empty() { (bytes[0] as u64) | ((bytes[bytes.len() - 1] as u64) << 8) } else { 0 }
+                    );
+                    if hash != last_frame_hash {
+                        last_frame_hash = hash;
+                        if socket.send(Message::Binary(bytes)).await.is_err() {
+                            break;
+                        }
+                    }
+                }
+
+                // Check and stream live detections JSON
+                if let Ok(text) = tokio::fs::read_to_string("data/live_detections.json").await {
+                    let len = text.len() as u64;
+                    let hash = len.wrapping_add(
+                        if !text.is_empty() { (text.as_bytes()[0] as u64) | ((text.as_bytes()[text.len() - 1] as u64) << 8) } else { 0 }
+                    );
+                    if hash != last_det_hash {
+                        last_det_hash = hash;
+                        if socket.send(Message::Text(text)).await.is_err() {
+                            break;
+                        }
+                    }
+                }
+            }
+            msg = socket.next() => {
+                match msg {
+                    Some(Ok(Message::Close(_))) | None => break,
+                    Some(Err(_)) => break,
+                    _ => {}
+                }
+            }
+        }
+    }
 }
 
 async fn live_frame_handler() -> Response {
@@ -129,51 +169,6 @@ async fn get_events_handler(
     let date = query.date.unwrap_or_else(|| Utc::now().format("%Y-%m-%d").to_string());
     let events = state.store.read_day_events(&date).await.unwrap_or_default();
     Json(events)
-}
-
-async fn ask_handler(
-    State(state): State<AppState>,
-    Json(payload): Json<AskRequest>,
-) -> impl IntoResponse {
-    let date = payload.date.unwrap_or_else(|| Utc::now().format("%Y-%m-%d").to_string());
-    let events = state.store.read_day_events(&date).await.unwrap_or_default();
-    let summary = DetectionStore::summarize_for_slm(&events);
-
-    let system_prompt = format!(
-        "You are Vision Hub SLM. Answer user questions based strictly on this detection summary:\n{}",
-        summary
-    );
-
-    let client = reqwest::Client::new();
-    let ollama_req = serde_json::json!({
-        "model": state.ollama_model,
-        "prompt": format!("{}\n\nUser Question: {}", system_prompt, payload.prompt),
-        "stream": false,
-        "keep_alive": 0
-    });
-
-    let resp_res = client
-        .post(format!("{}/api/generate", state.ollama_url))
-        .json(&ollama_req)
-        .send()
-        .await;
-
-    match resp_res {
-        Ok(res) if res.status().is_success() => {
-            if let Ok(body) = res.json::<serde_json::Value>().await {
-                let answer = body["response"].as_str().unwrap_or("No response generated").to_string();
-                return Json(AskResponse { response: answer });
-            }
-        }
-        _ => {}
-    }
-
-    Json(AskResponse {
-        response: format!(
-            "[Ollama dormant/unreachable] Daily summary for {}:\n{}",
-            date, summary
-        ),
-    })
 }
 
 #[derive(Deserialize)]

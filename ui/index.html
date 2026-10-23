@@ -229,10 +229,16 @@
         </div>
       </div>
 
-      <!-- Timeline SLM Trigger -->
-      <button onclick="toggleSlmDrawer()" class="flex items-center gap-1.5 px-2.5 py-1.5 border rounded font-semibold transition text-purple-300" style="background-color: rgba(147, 51, 234, 0.15); border-color: rgba(147, 51, 234, 0.4);">
-        <i data-lucide="bot" class="w-3.5 h-3.5"></i>
-        <span>SLM</span>
+      <!-- Cyber Audio Synthesizer Mute / Unmute Toggle -->
+      <button id="cyberAudioBtn" onclick="toggleCyberAudio()" class="flex items-center gap-1.5 px-2.5 py-1.5 border rounded font-semibold transition text-emerald-400" style="background-color: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4);" title="Toggle Procedural Cyber Audio Synthesizer">
+        <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+        <span id="cyberAudioStatusText">AUDIO</span>
+      </button>
+
+      <!-- 3D CAD Inspection Shader Toggle (Thermal / X-Ray / Standard) -->
+      <button id="cadShaderBtn" onclick="cycleCadShaderMode()" class="flex items-center gap-1.5 px-2.5 py-1.5 border rounded font-semibold transition text-cyan-400" style="background-color: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4);" title="Toggle CAD Thermal Aerodynamic Stress / X-Ray / Solid Shader">
+        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+        <span id="cadShaderModeText">SOLID</span>
       </button>
     </div>
   </header>
@@ -676,9 +682,9 @@
 
         <div class="p-2 bg-black/40 border rounded text-[10px] space-y-1.5" style="border-color: var(--panel-border); color: var(--text-muted);">
           <div class="flex items-center justify-between">
-            <span class="text-slate-300 font-semibold">VOICE SPEECH (TTS JA-JP):</span>
-            <button id="ttsToggleBtn" onclick="toggleTtsSpeech()" class="px-2 py-0.5 rounded text-[10px] font-bold border transition bg-emerald-500/20 text-emerald-400 border-emerald-500/40">
-              ON [JA]
+            <span class="text-slate-300 font-semibold">SENTENCE RIBBON:</span>
+            <button onclick="clearJslSentenceRibbon()" class="px-2 py-0.5 rounded text-[10px] font-bold border transition hover:bg-white/10" style="border-color: var(--panel-border); color: var(--accent-secondary);">
+              CLEAR
             </button>
           </div>
           <button onclick="toggleJslStudioModal()" class="w-full py-1 border rounded text-[10px] font-bold flex items-center justify-center gap-1.5 transition hover:brightness-125" style="background-color: rgba(236, 72, 153, 0.15); border-color: var(--accent-primary); color: var(--accent-primary);">
@@ -831,28 +837,6 @@
     </div>
   </footer>
 
-  <!-- SLM TIMELINE INTERROGATION DRAWER -->
-  <div id="slmDrawer" class="fixed left-4 bottom-16 z-50 w-96 max-h-[480px] bg-black/95 border rounded-xl p-4 shadow-2xl backdrop-blur-md transform -translate-x-[450px] transition-transform duration-300 flex flex-col font-mono text-xs" style="border-color: var(--panel-border);">
-    <div class="flex items-center justify-between border-b pb-2 mb-2" style="border-color: var(--panel-border);">
-      <div class="flex items-center gap-2 text-purple-300 font-bold font-industrial">
-        <i data-lucide="bot" class="w-4 h-4"></i>
-        <span>TIMELINE INTERROGATOR (Qwen2.5:3B)</span>
-      </div>
-      <button onclick="toggleSlmDrawer()" class="text-purple-400 hover:text-white">
-        <i data-lucide="x" class="w-4 h-4"></i>
-      </button>
-    </div>
-    
-    <div id="chatBox" class="bg-black/80 border p-2.5 rounded-lg text-purple-200 text-[11px] overflow-y-auto flex-1 font-mono leading-relaxed space-y-2 h-64" style="border-color: var(--panel-border);">
-      <div class="text-cyan-400/80">✦ AERIS Timeline Memory ready. Ask what was seen today.</div>
-    </div>
-
-    <form id="chatForm" class="mt-2.5 pt-2 border-t flex gap-1" style="border-color: var(--panel-border);">
-      <input id="chatInput" type="text" placeholder="e.g. When did you see a person?" class="flex-1 bg-black/80 border rounded px-2 py-1 text-[11px] text-purple-200 outline-none" style="border-color: var(--panel-border);">
-      <button type="submit" class="px-3 py-1 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-200 rounded font-bold">ASK</button>
-    </form>
-  </div>
-
   <!-- JSL TRAINING STUDIO & DATASET RECORDER MODAL -->
   <div id="jslStudioModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
     <div class="relative w-full max-w-2xl bg-black/95 border rounded-xl p-5 shadow-2xl flex flex-col space-y-4 max-h-[90vh] overflow-y-auto" style="border-color: var(--panel-border);">
@@ -923,15 +907,15 @@
         </div>
       </div>
 
-      <!-- Quick JSL Sign Prompter for Practice with Reviewer -->
+      <!-- Continuous JSL Visual Sentence Ribbon -->
       <div class="p-3 bg-black/60 border rounded-lg flex items-center justify-between text-xs" style="border-color: var(--panel-border);">
         <div class="flex items-center gap-2 text-slate-300">
-          <i data-lucide="mic" class="w-4 h-4 text-cyan-400"></i>
-          <span>SIGN PROMPTER (SPEECH-TO-TEXT):</span>
-          <span id="sttPromptText" class="text-amber-400 font-bold">READY</span>
+          <i data-lucide="sparkles" class="w-4 h-4 text-cyan-400"></i>
+          <span>SENTENCE RIBBON (VISUAL ONLY):</span>
+          <span id="sttPromptText" class="text-amber-400 font-bold font-mono">READY</span>
         </div>
-        <button onclick="listenForPromptStt()" class="px-3 py-1 border rounded text-[11px] font-bold text-cyan-400 hover:bg-white/10" style="border-color: var(--accent-secondary);">
-          LISTEN MIC
+        <button onclick="clearJslSentenceRibbon()" class="px-3 py-1 border rounded text-[11px] font-bold text-cyan-400 hover:bg-white/10" style="border-color: var(--accent-secondary);">
+          CLEAR
         </button>
       </div>
     </div>
@@ -961,13 +945,23 @@
       detectedHands: [],
       detectedFaceLandmarks: null,
       lastHandDetectedTime: 0,
-      lastGestureTriggerTime: 0,
       customModelLoaded: false,
       customModelName: null,
-      ttsEnabled: true,
-      lastSpokenSign: null,
-      lastSpokenTime: 0,
-      trainedJslModel: null
+      trainedJslModel: null,
+
+      // Cyber Audio Synthesizer State
+      audioEnabled: true,
+
+      // 3D CAD Inspection Shader State: 'SOLID' | 'THERMAL' | 'XRAY'
+      cadShaderMode: 'SOLID',
+
+      // Continuous JSL Sentence Ribbon Buffer
+      jslSentenceBuffer: [],
+      lastJslBufferWord: '',
+      lastJslBufferTime: 0,
+
+      // Tactical Trajectory History & Velocity Vectors (Track ID -> [{x, y, time}])
+      trajectoryHistory: new Map()
     };
 
     const canvas = document.getElementById('viewCanvas');
@@ -1073,32 +1067,168 @@
       } catch (e) {}
     }
 
-    // 3. CONTINUOUS LIVE CAMERA FEED INGEST
+    // =========================================================================
+    // PROCEDURAL CYBER AUDIO ENGINE (ZERO ASSETS, WEB AUDIO OSCILLATORS)
+    // =========================================================================
+    const CyberAudio = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+      playTone(freq, type = 'sine', duration = 0.08, gainVal = 0.05, pitchEnd = null) {
+        if (!AppState.audioEnabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          const now = this.ctx.currentTime;
+          osc.frequency.setValueAtTime(freq, now);
+          if (pitchEnd) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, pitchEnd), now + duration);
+          }
+          gain.gain.setValueAtTime(gainVal, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + duration);
+        } catch (e) {}
+      },
+      // Pinch Zoom Pitch Modulation (frequency mapped to scale 0.3 - 3.5)
+      pinchZoom(scale) {
+        const freq = 220 + (scale - 0.3) * 160;
+        this.playTone(freq, 'triangle', 0.04, 0.03);
+      },
+      // Two-Finger Holographic Menu Dropdown Tick
+      menuTick() {
+        this.playTone(880, 'sine', 0.03, 0.04, 1100);
+      },
+      // Holographic Menu Item Select Confirmation
+      menuSelect() {
+        this.playTone(523.25, 'triangle', 0.08, 0.06, 1046.5);
+      },
+      // Biometric Scan / Lock Chime
+      bioChime(authorized = true) {
+        if (authorized) {
+          this.playTone(587.33, 'sine', 0.1, 0.06);
+          setTimeout(() => this.playTone(880.0, 'sine', 0.16, 0.07), 80);
+        } else {
+          this.playTone(260.0, 'sawtooth', 0.14, 0.08, 140.0);
+          setTimeout(() => this.playTone(180.0, 'sawtooth', 0.22, 0.09, 90.0), 120);
+        }
+      },
+      // Cute Robot Avatar Mouth Chirp / Blip
+      avatarChirp(pitchOffset = 0) {
+        const base = 650 + (pitchOffset % 200);
+        this.playTone(base, 'sine', 0.035, 0.025, base + 240);
+      }
+    };
+
+    function toggleCyberAudio() {
+      AppState.audioEnabled = !AppState.audioEnabled;
+      const btn = document.getElementById('cyberAudioBtn');
+      const text = document.getElementById('cyberAudioStatusText');
+      if (btn && text) {
+        if (AppState.audioEnabled) {
+          btn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 border rounded font-semibold transition text-emerald-400';
+          btn.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+          btn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+          text.innerText = 'AUDIO';
+          CyberAudio.playTone(660, 'sine', 0.06, 0.05);
+        } else {
+          btn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 border rounded font-semibold transition text-slate-500';
+          btn.style.backgroundColor = 'rgba(0,0,0,0.4)';
+          btn.style.borderColor = 'var(--panel-border)';
+          text.innerText = 'MUTED';
+        }
+      }
+    }
+
+    // 3. CONTINUOUS LIVE CAMERA FEED INGEST (WEBSOCKET STREAM WITH HTTP FALLBACK)
     let isProcessingHands = false;
     let isProcessingFace = false;
+    let wsStreamSocket = null;
+    let wsFrameBlobUrl = null;
+
+    function handleIncomingFrame(imageSource) {
+      currentFrameImg = imageSource;
+      if (liveImg) {
+        liveImg.src = imageSource.src;
+      }
+
+      // Feed frame directly into active MediaPipe clients
+      if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D' || AppState.currentMode === 'PARTICLE_FLOW') && AppState.hands && !isProcessingHands) {
+        isProcessingHands = true;
+        AppState.hands.send({ image: imageSource })
+          .catch((err) => { console.warn("MediaPipe Hands inference error:", err); })
+          .finally(() => { isProcessingHands = false; });
+      } else if ((AppState.currentMode === 'FACE_BIOMETRIC' || AppState.currentMode === 'EMOTION_READER') && AppState.faceMesh && !isProcessingFace) {
+        isProcessingFace = true;
+        AppState.faceMesh.send({ image: imageSource })
+          .catch((err) => { console.warn("MediaPipe FaceMesh inference error:", err); })
+          .finally(() => { isProcessingFace = false; });
+      }
+    }
+
+    function initWebSocketStream() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws/stream`;
+
+      try {
+        wsStreamSocket = new WebSocket(wsUrl);
+        wsStreamSocket.binaryType = 'blob';
+
+        wsStreamSocket.onopen = () => {
+          console.log("✦ WebSocket Stream connected to", wsUrl);
+        };
+
+        wsStreamSocket.onmessage = (event) => {
+          if (event.data instanceof Blob) {
+            // Binary JPEG frame message
+            if (wsFrameBlobUrl) URL.revokeObjectURL(wsFrameBlobUrl);
+            wsFrameBlobUrl = URL.createObjectURL(event.data);
+            const img = new Image();
+            img.onload = () => handleIncomingFrame(img);
+            img.src = wsFrameBlobUrl;
+          } else if (typeof event.data === 'string') {
+            // Live JSON telemetry message
+            try {
+              const data = JSON.parse(event.data);
+              processLiveTelemetryData(data);
+            } catch (e) {}
+          }
+        };
+
+        wsStreamSocket.onerror = () => {
+          if (!wsStreamSocket || wsStreamSocket.readyState !== WebSocket.OPEN) {
+            loopLiveFeed();
+          }
+        };
+
+        wsStreamSocket.onclose = () => {
+          setTimeout(initWebSocketStream, 2000);
+        };
+      } catch (e) {
+        loopLiveFeed();
+      }
+    }
 
     function loopLiveFeed() {
+      if (wsStreamSocket && wsStreamSocket.readyState === WebSocket.OPEN) return;
       const nextImg = new Image();
       nextImg.crossOrigin = "anonymous";
       nextImg.onload = () => {
-        currentFrameImg = nextImg;
-        if (liveImg) {
-          liveImg.src = nextImg.src;
-        }
-
-        // Process frames through active client-side MediaPipe detector
-        if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D' || AppState.currentMode === 'PARTICLE_FLOW') && AppState.hands && !isProcessingHands) {
-          isProcessingHands = true;
-          AppState.hands.send({ image: nextImg })
-            .catch((err) => { console.warn("MediaPipe Hands inference error:", err); })
-            .finally(() => { isProcessingHands = false; });
-        } else if ((AppState.currentMode === 'FACE_BIOMETRIC' || AppState.currentMode === 'EMOTION_READER') && AppState.faceMesh && !isProcessingFace) {
-          isProcessingFace = true;
-          AppState.faceMesh.send({ image: nextImg })
-            .catch((err) => { console.warn("MediaPipe FaceMesh inference error:", err); })
-            .finally(() => { isProcessingFace = false; });
-        }
-
+        handleIncomingFrame(nextImg);
         setTimeout(loopLiveFeed, 33);
       };
       nextImg.onerror = () => {
@@ -1106,7 +1236,9 @@
       };
       nextImg.src = '/frame.jpg?t=' + performance.now();
     }
-    loopLiveFeed();
+
+    // Launch WebSocket stream immediately
+    initWebSocketStream();
 
     // 4. MEDIAPIPE INITIALIZATION (HANDS & FACE MESH)
     function initMediaPipe() {
@@ -2738,20 +2870,58 @@
       reader.readAsArrayBuffer(file);
     }
 
+    // 3D CAD Inspection Shader Mode Switcher (SOLID, THERMAL, XRAY)
+    function cycleCadShaderMode() {
+      const modes = ['SOLID', 'THERMAL', 'XRAY'];
+      let idx = modes.indexOf(AppState.cadShaderMode);
+      idx = (idx + 1) % modes.length;
+      AppState.cadShaderMode = modes[idx];
+
+      const textEl = document.getElementById('cadShaderModeText');
+      if (textEl) textEl.innerText = AppState.cadShaderMode;
+
+      CyberAudio.menuTick();
+      updateThreeThemeColors();
+    }
+
     function updateThreeThemeColors() {
       const colors = getThemeColors();
       const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0xf59e0b;
       const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x38bdf8;
       const altHex = parseInt(colors.alt.replace('#', '0x')) || 0x10b981;
 
-      // 1. Update 3D CAD Engine Meshes
+      // 1. Update 3D CAD Engine Meshes with active Shader inspection mode
       if (threeEngineGroup) {
         threeEngineGroup.traverse((child) => {
           if (child.isMesh && child.material) {
-            if (child.material.wireframe) {
-              child.material.color.setHex(primaryHex);
+            if (AppState.cadShaderMode === 'THERMAL') {
+              // Thermal Aerodynamic Stress Heatmap: Radial color interpolation (Cyan -> Yellow -> Red)
+              child.material.wireframe = false;
+              child.material.transparent = true;
+              child.material.opacity = 0.90;
+              const yVal = Math.abs(child.position.y || child.position.x || 0.5);
+              if (yVal > 1.2) {
+                child.material.color.setHex(0xef4444); // Thermal high stress (Red)
+              } else if (yVal > 0.6) {
+                child.material.color.setHex(0xf59e0b); // Medium friction (Amber/Yellow)
+              } else {
+                child.material.color.setHex(0x06b6d4); // Cool intake flow (Cyan)
+              }
+            } else if (AppState.cadShaderMode === 'XRAY') {
+              // X-Ray Wireframe Glass Mode: High transparency with glowing structural wireframe
+              child.material.wireframe = true;
+              child.material.transparent = true;
+              child.material.opacity = 0.65;
+              child.material.color.setHex(0x38bdf8);
             } else {
-              child.material.color.setHex(secondaryHex);
+              // SOLID CAD Mode: Theme-synchronized metallic finish
+              child.material.transparent = false;
+              child.material.opacity = 1.0;
+              if (child.material.wireframe) {
+                child.material.color.setHex(primaryHex);
+              } else {
+                child.material.color.setHex(secondaryHex);
+              }
             }
           }
         });
@@ -2837,6 +3007,9 @@
       // GESTURE-DRIVEN HOLOGRAPHIC CAD MODEL SELECTION DROPDOWN
       // =========================================================================
       if (isTwoFingersUp1) {
+        if (!threeCadMenuOpen) {
+          CyberAudio.menuTick();
+        }
         threeCadMenuOpen = true;
         threeCadMenuTimer = performance.now();
 
@@ -2849,10 +3022,14 @@
 
         // Map scrollMetric (roughly 0.15 to 0.75) across 5 options
         const targetIdx = Math.min(CAD_PRESET_OPTIONS.length - 1, Math.max(0, Math.floor((scrollMetric - 0.12) / 0.13)));
+        if (targetIdx !== threeCadMenuIndex) {
+          CyberAudio.menuTick();
+        }
         threeCadMenuIndex = targetIdx;
       } else if (threeCadMenuOpen) {
         if (isThumbsUp1) {
           // Thumbs up selects and confirms the highlighted model
+          CyberAudio.menuSelect();
           const chosenOption = CAD_PRESET_OPTIONS[threeCadMenuIndex];
           if (chosenOption && AppState.active3dPreset !== chosenOption.id) {
             selectCadPreset(chosenOption.id);
@@ -2926,6 +3103,7 @@
           if (Math.abs(dDist) > 0.004 && Math.abs(dDist) < 0.25) {
             // Bringing hands closer shrinks, spreading hands apart grows
             threeTargetScale = Math.min(2.5, Math.max(0.22, threeTargetScale + dDist * 2.2));
+            CyberAudio.pinchZoom(threeTargetScale);
           }
         }
         threeLastTwoHandDist = twoHandPinchDist;
@@ -2965,6 +3143,7 @@
         if (Math.abs(dPinch) > 0.005 && Math.abs(dPinch) < 0.45) {
           // Positive delta (expanding index & thumb) enlarges; negative delta (pinching closer) shrinks
           threeTargetScale = Math.min(2.5, Math.max(0.22, threeTargetScale + dPinch * 1.8));
+          CyberAudio.pinchZoom(threeTargetScale);
         }
       }
       threeLastPinchDist1 = normalizedPinch1;
@@ -3110,8 +3289,8 @@
         }
         txtElem.innerText = displayLabel;
 
-        // Web Speech API Text-to-Speech (TTS) Voice Synthesis
-        speakSignName(displayLabel);
+        // Continuous JSL Visual Sentence Ribbon Ingest
+        appendToJslSentenceRibbon(displayLabel);
 
         if (activeKey === 'peace') {
           if (Date.now() - AppState.lastGestureTriggerTime > 2500) {
@@ -3174,7 +3353,7 @@
 
       if (dualJslMatch) {
         txtElem.innerText = `🇯🇵 BIMANUAL JSL: ${dualJslMatch.label}`;
-        speakSignName(dualJslMatch.label);
+        appendToJslSentenceRibbon(dualJslMatch.label);
       } else {
         txtElem.innerText = `[${l1.charAt(0)}] ${desc1} • [${l2.charAt(0)}] ${desc2}`;
       }
@@ -3472,88 +3651,134 @@
       }
     }
 
-    // 6. TELEMETRY POLLING LOOP WITH STRICT MODE SEGREGATION
+    // Process Live Telemetry from WebSocket or HTTP Polling
+    function processLiveTelemetryData(data) {
+      if (!data) return;
+      AppState.liveLatency = data.latency_ms || 18.0;
+      const latEl = document.getElementById('telemetryLatency');
+      if (latEl) latEl.innerText = `${AppState.liveLatency}ms`;
+      const timeVal = document.getElementById('inferTimeVal');
+      if (timeVal) timeVal.innerText = `${AppState.liveLatency}ms`;
+      const bar = document.getElementById('inferBar');
+      if (bar) bar.style.width = `${Math.min(100, AppState.liveLatency * 2.5)}%`;
+
+      if (AppState.currentMode === 'OBJECT_DETECT') {
+        AppState.liveDetections = data.detections || [];
+        updateObjectInventoryUI(AppState.liveDetections);
+        updateTrajectoryHistory(AppState.liveDetections);
+        AppState.backendGesture = null;
+        AppState.backendFace = null;
+      } else if (AppState.currentMode === 'BIRD_DETECT') {
+        AppState.liveDetections = data.detections || [];
+        updateBirdRadarUI(AppState.liveDetections);
+        updateTrajectoryHistory(AppState.liveDetections);
+        AppState.backendGesture = null;
+        AppState.backendFace = null;
+      } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
+        AppState.liveDetections = [];
+        AppState.backendFace = data.face || null;
+        AppState.backendGesture = null;
+      } else if (AppState.currentMode === 'HAND_GESTURE') {
+        AppState.liveDetections = [];
+        AppState.backendFace = null;
+        const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
+        if (data.gesture) {
+          AppState.backendGesture = data.gesture;
+          if (!clientHandFresh) {
+            if (data.gesture.hands && data.gesture.hands.length >= 2) {
+              updateDualGestureMenuUI(data.gesture.hands[0], data.gesture.hands[1]);
+            } else {
+              updateGestureMenuUI(data.gesture.gesture);
+            }
+          }
+        } else {
+          AppState.backendGesture = null;
+          if (!clientHandFresh) {
+            AppState.detectedHandLandmarks = null;
+            AppState.detectedHands = [];
+            updateGestureMenuUI(null);
+          }
+        }
+      } else if (AppState.currentMode === 'INTERACTIVE_3D') {
+        AppState.liveDetections = [];
+        AppState.backendFace = null;
+        const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
+        if (data.gesture) {
+          AppState.backendGesture = data.gesture;
+          if (!clientHandFresh) {
+            processBackendGestureFor3D(data.gesture);
+          }
+        } else {
+          AppState.backendGesture = null;
+          if (!clientHandFresh) {
+            AppState.detectedHandLandmarks = null;
+            AppState.detectedHands = [];
+            processBackendGestureFor3D(null);
+          }
+        }
+      } else if (AppState.currentMode === 'PARTICLE_FLOW') {
+        AppState.liveDetections = [];
+        AppState.backendFace = null;
+        const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
+        if (data.gesture) {
+          AppState.backendGesture = data.gesture;
+          if (!clientHandFresh) {
+            processBackendGestureFor3D(data.gesture);
+          }
+        } else {
+          AppState.backendGesture = null;
+          if (!clientHandFresh) {
+            AppState.detectedHandLandmarks = null;
+            AppState.detectedHands = [];
+            processBackendGestureFor3D(null);
+          }
+        }
+      }
+    }
+
+    // Record historical tracking points for glowing trajectory ribbons
+    function updateTrajectoryHistory(detections) {
+      const now = Date.now();
+      const activeIds = new Set();
+
+      (detections || []).forEach((det, idx) => {
+        const id = det.track_id != null ? `track_${det.track_id}` : `det_${det.class_name || 'obj'}_${idx}`;
+        activeIds.add(id);
+
+        let cx = 0, cy = 0;
+        if (det.box && det.box.length === 4) {
+          cx = (det.box[0] + det.box[2]) / 2;
+          cy = (det.box[1] + det.box[3]) / 2;
+        }
+
+        if (!AppState.trajectoryHistory.has(id)) {
+          AppState.trajectoryHistory.set(id, []);
+        }
+        const trail = AppState.trajectoryHistory.get(id);
+        trail.push({ x: cx, y: cy, time: now, label: det.class_name || 'object' });
+        if (trail.length > 25) trail.shift();
+      });
+
+      // Cleanup stale tracks older than 1.5 seconds
+      for (const [id, trail] of AppState.trajectoryHistory.entries()) {
+        if (!activeIds.has(id)) {
+          const fresh = trail.filter(pt => (now - pt.time) < 1500);
+          if (fresh.length === 0) {
+            AppState.trajectoryHistory.delete(id);
+          } else {
+            AppState.trajectoryHistory.set(id, fresh);
+          }
+        }
+      }
+    }
+
+    // 6. TELEMETRY POLLING LOOP (HTTP FALLBACK WHEN WS IS CLOSED)
     async function fetchTelemetry() {
+      if (wsStreamSocket && wsStreamSocket.readyState === WebSocket.OPEN) return;
       try {
         const res = await fetch('/api/live_detections');
         const data = await res.json();
-        if (data) {
-          AppState.liveLatency = data.latency_ms || 18.0;
-          document.getElementById('telemetryLatency').innerText = `${AppState.liveLatency}ms`;
-          document.getElementById('inferTimeVal').innerText = `${AppState.liveLatency}ms`;
-          document.getElementById('inferBar').style.width = `${Math.min(100, AppState.liveLatency * 2.5)}%`;
-
-          if (AppState.currentMode === 'OBJECT_DETECT') {
-            AppState.liveDetections = data.detections || [];
-            updateObjectInventoryUI(AppState.liveDetections);
-            AppState.backendGesture = null;
-            AppState.backendFace = null;
-          } else if (AppState.currentMode === 'BIRD_DETECT') {
-            AppState.liveDetections = data.detections || [];
-            updateBirdRadarUI(AppState.liveDetections);
-            AppState.backendGesture = null;
-            AppState.backendFace = null;
-          } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
-            AppState.liveDetections = [];
-            AppState.backendFace = data.face || null;
-            AppState.backendGesture = null;
-          } else if (AppState.currentMode === 'HAND_GESTURE') {
-            AppState.liveDetections = [];
-            AppState.backendFace = null;
-            const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
-            if (data.gesture) {
-              AppState.backendGesture = data.gesture;
-              if (!clientHandFresh) {
-                if (data.gesture.hands && data.gesture.hands.length >= 2) {
-                  updateDualGestureMenuUI(data.gesture.hands[0], data.gesture.hands[1]);
-                } else {
-                  updateGestureMenuUI(data.gesture.gesture);
-                }
-              }
-            } else {
-              AppState.backendGesture = null;
-              if (!clientHandFresh) {
-                AppState.detectedHandLandmarks = null;
-                AppState.detectedHands = [];
-                updateGestureMenuUI(null);
-              }
-            }
-          } else if (AppState.currentMode === 'INTERACTIVE_3D') {
-            AppState.liveDetections = [];
-            AppState.backendFace = null;
-            const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
-            if (data.gesture) {
-              AppState.backendGesture = data.gesture;
-              if (!clientHandFresh) {
-                processBackendGestureFor3D(data.gesture);
-              }
-            } else {
-              AppState.backendGesture = null;
-              if (!clientHandFresh) {
-                AppState.detectedHandLandmarks = null;
-                AppState.detectedHands = [];
-                processBackendGestureFor3D(null);
-              }
-            }
-          } else if (AppState.currentMode === 'PARTICLE_FLOW') {
-            AppState.liveDetections = [];
-            AppState.backendFace = null;
-            const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
-            if (data.gesture) {
-              AppState.backendGesture = data.gesture;
-              if (!clientHandFresh) {
-                processBackendGestureFor3D(data.gesture);
-              }
-            } else {
-              AppState.backendGesture = null;
-              if (!clientHandFresh) {
-                AppState.detectedHandLandmarks = null;
-                AppState.detectedHands = [];
-                processBackendGestureFor3D(null);
-              }
-            }
-          }
-        }
+        processLiveTelemetryData(data);
       } catch (e) {}
     }
     setInterval(fetchTelemetry, 60);
@@ -3580,6 +3805,13 @@
           status.innerText = 'BIOMETRIC LOCK';
           status.className = 'font-bold text-emerald-400';
 
+          CyberAudio.bioChime(true);
+
+          // Auto-load Commander profile preferences (Theme & CAD preset)
+          if (data.name && (data.name.toUpperCase().includes('XANDER') || data.name.toUpperCase().includes('COMMANDER'))) {
+            setTheme('synth-magenta');
+          }
+
           AppState.activeFaceAlert = {
             authorized: true,
             name: data.name,
@@ -3590,19 +3822,21 @@
           };
         } else if (data.status === 'unauthorized') {
           pill.innerText = 'DENIED';
-          pill.className = 'text-xs font-bold font-mono text-pink-400 animate-pulse';
+          pill.className = 'text-xs font-bold font-mono text-rose-500 animate-pulse font-black';
           name.innerText = 'UNKNOWN ENTITY';
           id.innerText = `#UNMATCHED (${data.confidence}%)`;
-          status.innerText = 'UNAUTHORIZED';
-          status.className = 'font-bold text-pink-400';
+          status.innerText = 'SECURITY LOCKDOWN';
+          status.className = 'font-bold text-rose-500';
+
+          CyberAudio.bioChime(false);
 
           AppState.activeFaceAlert = {
             authorized: false,
-            name: 'UNKNOWN SUBJECT',
+            name: 'UNKNOWN SUBJECT // QUARANTINE',
             clearance: 'RESTRICTED',
-            role: 'TRESPASSER',
+            role: 'UNVERIFIED ENTITY',
             box: data.face_box,
-            expiry: Date.now() + 6000
+            expiry: Date.now() + 6500
           };
         } else {
           pill.innerText = 'NO FACE';
@@ -3657,48 +3891,49 @@
       }
     }
 
-    function toggleTtsSpeech() {
-      AppState.ttsEnabled = !AppState.ttsEnabled;
-      const btn = document.getElementById('ttsToggleBtn');
-      if (btn) {
-        if (AppState.ttsEnabled) {
-          btn.innerText = 'ON [JA]';
-          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
-        } else {
-          btn.innerText = 'MUTED';
-          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition bg-slate-800 text-slate-400 border-slate-700';
-        }
-      }
-    }
+    // =========================================================================
+    // CONTINUOUS JSL SENTENCE RIBBON (VISUAL ONLY)
+    // =========================================================================
+    function appendToJslSentenceRibbon(rawText) {
+      if (!rawText) return;
+      const clean = rawText.replace(/^[^\w\s\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+/, '').trim();
+      if (!clean) return;
 
-    function speakSignName(text) {
-      if (!AppState.ttsEnabled || !text || typeof window.speechSynthesis === 'undefined') return;
-      const clean = text.replace(/^[^\w\s\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+/, '').trim();
       const now = Date.now();
-      if (AppState.lastSpokenSign === clean && (now - AppState.lastSpokenTime) < 3200) {
+      // Debounce repetitive gesture triggers (1.8s per gesture)
+      if (AppState.lastJslBufferWord === clean && (now - AppState.lastJslBufferTime) < 1800) {
         return;
       }
-      AppState.lastSpokenSign = clean;
-      AppState.lastSpokenTime = now;
+      AppState.lastJslBufferWord = clean;
+      AppState.lastJslBufferTime = now;
 
-      try {
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(clean);
-        utter.rate = 1.0;
-        utter.pitch = 1.05;
+      AppState.jslSentenceBuffer.push({
+        text: clean,
+        time: now,
+        fade: 1.0
+      });
 
-        // Prefer Japanese voice if available
-        const voices = window.speechSynthesis.getVoices();
-        const jaVoice = voices.find(v => v.lang.startsWith('ja') || v.lang.includes('JP'));
-        if (jaVoice) {
-          utter.voice = jaVoice;
-          utter.lang = 'ja-JP';
-        } else {
-          utter.lang = 'en-US';
-        }
-        window.speechSynthesis.speak(utter);
-      } catch (e) {
-        console.warn("TTS speak failed:", e);
+      // Keep maximum 6 words on the sliding ribbon
+      if (AppState.jslSentenceBuffer.length > 6) {
+        AppState.jslSentenceBuffer.shift();
+      }
+
+      // Update HUD status text in JSL modal
+      const sttPromptText = document.getElementById('sttPromptText');
+      if (sttPromptText) {
+        sttPromptText.innerText = AppState.jslSentenceBuffer.map(w => w.text).join(' → ');
+      }
+
+      // Zero-asset zero-speech tactile cyber tick
+      CyberAudio.menuTick();
+    }
+
+    function clearJslSentenceRibbon() {
+      AppState.jslSentenceBuffer = [];
+      AppState.lastJslBufferWord = '';
+      const sttPromptText = document.getElementById('sttPromptText');
+      if (sttPromptText) {
+        sttPromptText.innerText = 'BUFFER CLEARED';
       }
     }
 
@@ -3786,9 +4021,7 @@
       barEl.style.width = '0%';
       isJslRecording = false;
       btnEl.disabled = false;
-      btnEl.classList.remove('opacity-50');
-
-      speakSignName(`Recorded ${label}`);
+      CyberAudio.menuSelect();
       await refreshJslDatasetList();
       trainJslModelNow();
     }
@@ -3858,86 +4091,7 @@
       } catch (e) {}
     }
 
-    // Web Speech API Speech-to-Text (STT) Sign Prompter
-    function listenForPromptStt() {
-      const promptEl = document.getElementById('sttPromptText');
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Speech Recognition not supported in this browser. Please use Chrome/Edge.");
-        return;
-      }
 
-      promptEl.innerText = 'LISTENING... SPEAK A SIGN!';
-      promptEl.className = 'text-cyan-400 font-bold animate-pulse';
-
-      try {
-        const rec = new SpeechRecognition();
-        rec.lang = 'ja-JP';
-        rec.interimResults = false;
-        rec.maxAlternatives = 1;
-
-        rec.onresult = (evt) => {
-          const phrase = evt.results[0][0].transcript;
-          promptEl.innerText = `PROMPT: "${phrase}"`;
-          promptEl.className = 'text-amber-400 font-bold';
-          speakSignName(phrase);
-        };
-        rec.onerror = () => {
-          promptEl.innerText = 'MIC ERROR OR TIMEOUT';
-          promptEl.className = 'text-red-400 font-bold';
-        };
-        rec.start();
-      } catch (e) {
-        promptEl.innerText = 'MIC INITIALIZE ERROR';
-      }
-    }
-
-    // 9. SLM TIMELINE INTERROGATION DRAWER
-    function toggleSlmDrawer() {
-      const drawer = document.getElementById('slmDrawer');
-      if (!drawer) return;
-      const isOpen = drawer.style.transform === 'translateX(0px)';
-      drawer.style.transform = isOpen ? 'translateX(-450px)' : 'translateX(0px)';
-    }
-
-    const chatFormEl = document.getElementById('chatForm');
-    if (chatFormEl) {
-      chatFormEl.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const input = document.getElementById('chatInput');
-        if (!input) return;
-        const text = input.value.trim();
-        if (!text) return;
-
-        const chatBox = document.getElementById('chatBox');
-        if (chatBox) {
-          chatBox.innerHTML += `<div class="text-right"><span class="bg-black/60 border px-2.5 py-1 rounded" style="border-color: var(--panel-border); color: var(--accent-secondary);">${text}</span></div>`;
-        }
-        input.value = '';
-
-        const waitDiv = document.createElement('div');
-        waitDiv.className = 'text-purple-300/80 italic';
-        waitDiv.innerText = 'Interrogating timeline with Qwen2.5...';
-        if (chatBox) {
-          chatBox.appendChild(waitDiv);
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        try {
-          const res = await fetch('/api/ask', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ prompt: text })
-          });
-          const data = await res.json();
-          waitDiv.className = 'text-purple-300';
-          waitDiv.innerText = `✦ ${data.response}`;
-        } catch (err) {
-          waitDiv.className = 'text-red-400';
-          waitDiv.innerText = `Offline: ${err.message}`;
-        }
-      });
-    }
 
     window.downloadJsonFile = function() {
       const blob = new Blob([JSON.stringify(AppState.jsonTelemetryBuffer, null, 2)], { type: 'application/json' });
@@ -5077,6 +5231,9 @@
           detectedEm = 'WINK';
         } else if (animMouthOpen > 0.16) {
           detectedEm = animMouthOpen > 0.38 ? 'SURPRISED' : 'SPEAKING';
+          if (Math.random() < 0.15) {
+            CyberAudio.avatarChirp(Math.round(animMouthOpen * 500));
+          }
         } else if (animSmile > 0.18) {
           detectedEm = 'SMILING';
         } else if (animEarL < 0.20 && animEarR < 0.20) {
@@ -5648,13 +5805,37 @@
         threeRenderer.render(threeScene, threeCamera);
       }
 
-      // 2. Render lightweight 2D Hand Landmark Skeleton Over the Viewport (Multi-Hand)
+      // 2. Render Hand Depth Occlusion Mask & 2D Hand Landmark Skeleton Over the Viewport (Multi-Hand)
       const activeHands = (AppState.detectedHands && AppState.detectedHands.length > 0)
         ? AppState.detectedHands
         : (AppState.detectedHandLandmarks ? [{ landmarks: AppState.detectedHandLandmarks, label: 'Right' }] : []);
 
       if (activeHands.length > 0) {
         ctx.save();
+
+        // Holographic Depth Occlusion Mask: Draw hand palm hull to visually occlude 3D CAD background
+        activeHands.forEach(h => {
+          const lm = h.landmarks;
+          if (!lm || lm.length < 21) return;
+
+          // Palm & finger perimeter contour for depth occlusion
+          const hullIndices = [0, 1, 2, 3, 4, 8, 12, 16, 20, 17, 0];
+          ctx.beginPath();
+          hullIndices.forEach((idx, i) => {
+            const px = lm[idx].x * canvas.width;
+            const py = lm[idx].y * canvas.height;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          });
+          ctx.closePath();
+          // Subtle cyber silhouette occlusion with glowing perimeter
+          ctx.fillStyle = 'rgba(7, 12, 20, 0.45)';
+          ctx.fill();
+          ctx.strokeStyle = colors.primary;
+          ctx.lineWidth = 1.0;
+          ctx.stroke();
+        });
+
         activeHands.forEach(h => {
           const lm = h.landmarks;
           renderHandSkeletonOnCanvas(ctx, lm, h.label || 'Hand', colors, threeIsPinching);
@@ -5864,24 +6045,204 @@
 
         if (AppState.currentMode === 'OBJECT_DETECT') {
           renderImage2MultiSquareDesign(ctx, AppState.liveDetections);
+          renderTacticalTrajectoryRibbons(ctx);
         } else if (AppState.currentMode === 'BIRD_DETECT') {
           renderBirdRadarAndTracks(ctx, AppState.liveDetections);
+          renderTacticalTrajectoryRibbons(ctx);
         } else if (AppState.currentMode === 'FACE_BIOMETRIC') {
           render3DFaceWiring(ctx);
         } else if (AppState.currentMode === 'EMOTION_READER') {
           renderEmotionReaderMode(ctx);
         } else if (AppState.currentMode === 'HAND_GESTURE') {
           renderHandGestureMode(ctx);
+          renderContinuousJslSentenceRibbon(ctx);
         } else if (AppState.currentMode === 'INTERACTIVE_3D') {
           renderInteractive3DMode(ctx);
         } else if (AppState.currentMode === 'PARTICLE_FLOW') {
           renderParticleFlowMode(ctx);
         }
+
+        // Global Red-Alert Security Quarantine HUD Overlay
+        renderRedAlertQuarantineHUD(ctx);
       } catch (err) {
         console.error("RenderEngine loop error:", err);
       }
 
       requestAnimationFrame(renderEngine);
+    }
+
+    /*
+     * =========================================================================
+     * TACTICAL TRAJECTORY GHOSTING & VELOCITY VECTORS
+     * =========================================================================
+     */
+    function renderTacticalTrajectoryRibbons(ctx) {
+      if (!AppState.trajectoryHistory || AppState.trajectoryHistory.size === 0) return;
+      const colors = getThemeColors();
+      const now = Date.now();
+
+      ctx.save();
+      for (const [id, trail] of AppState.trajectoryHistory.entries()) {
+        if (!trail || trail.length < 2) continue;
+
+        // Glowing decaying ribbon
+        ctx.beginPath();
+        for (let i = 0; i < trail.length; i++) {
+          const pt = trail[i];
+          const age = now - pt.time;
+          const alpha = Math.max(0.05, 1.0 - (age / 1500));
+          const px = pt.x * canvas.width;
+          const py = pt.y * canvas.height;
+
+          if (i === 0) {
+            ctx.moveTo(px, py);
+          } else {
+            ctx.lineTo(px, py);
+          }
+        }
+        ctx.strokeStyle = colors.secondary;
+        ctx.lineWidth = 2.0;
+        ctx.shadowColor = colors.secondary;
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+
+        // Lead Velocity Vector from latest point
+        const latest = trail[trail.length - 1];
+        const prev = trail[trail.length - 2];
+        const dt = Math.max(1, latest.time - prev.time);
+        const vx = ((latest.x - prev.x) / dt) * 1200;
+        const vy = ((latest.y - prev.y) / dt) * 1200;
+
+        const lx = latest.x * canvas.width;
+        const ly = latest.y * canvas.height;
+
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.lineTo(lx + vx * 12, ly + vy * 12);
+        ctx.stroke();
+
+        // Velocity magnitude tag
+        const speed = Math.hypot(vx, vy);
+        if (speed > 0.05) {
+          ctx.fillStyle = colors.primary;
+          ctx.font = '8px "Share Tech Mono", monospace';
+          ctx.fillText(`v=${speed.toFixed(1)}px/s`, lx + vx * 12 + 4, ly + vy * 12 - 2);
+        }
+      }
+      ctx.restore();
+    }
+
+    /*
+     * =========================================================================
+     * CONTINUOUS JSL VISUAL SENTENCE TIMELINE RIBBON HUD
+     * =========================================================================
+     */
+    function renderContinuousJslSentenceRibbon(ctx) {
+      if (!AppState.jslSentenceBuffer || AppState.jslSentenceBuffer.length === 0) return;
+      const colors = getThemeColors();
+      const now = Date.now();
+
+      ctx.save();
+      const ribbonH = 38;
+      const ribbonY = canvas.height - ribbonH - 20;
+      const ribbonW = Math.min(540, canvas.width - 40);
+      const ribbonX = (canvas.width - ribbonW) / 2;
+
+      // Dark cyber glass backing
+      ctx.fillStyle = 'rgba(7, 12, 20, 0.90)';
+      ctx.fillRect(ribbonX, ribbonY, ribbonW, ribbonH);
+      ctx.strokeStyle = colors.primary;
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(ribbonX, ribbonY, ribbonW, ribbonH);
+
+      // Header Tag
+      ctx.fillStyle = colors.primary;
+      ctx.font = 'bold 8px "Share Tech Mono", monospace';
+      ctx.fillText('JSL CONTINUOUS SENTENCE RIBBON (VISUAL BUFFER)', ribbonX + 8, ribbonY - 4);
+
+      // Draw word chips horizontally
+      let curX = ribbonX + 12;
+      AppState.jslSentenceBuffer.forEach((item, idx) => {
+        const age = now - item.time;
+        const alpha = Math.max(0.35, 1.0 - (age / 12000));
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = 'bold 12px "Share Tech Mono", monospace';
+        const textMetrics = ctx.measureText(item.text);
+        const chipW = textMetrics.width + 16;
+        const chipH = 22;
+        const chipY = ribbonY + (ribbonH - chipH) / 2;
+
+        ctx.fillStyle = (idx === AppState.jslSentenceBuffer.length - 1) ? colors.primary : 'rgba(255,255,255,0.08)';
+        ctx.fillRect(curX, chipY, chipW, chipH);
+        ctx.strokeStyle = colors.border;
+        ctx.strokeRect(curX, chipY, chipW, chipH);
+
+        ctx.fillStyle = (idx === AppState.jslSentenceBuffer.length - 1) ? '#000000' : colors.text;
+        ctx.fillText(item.text, curX + 8, chipY + 15);
+        ctx.restore();
+
+        curX += chipW + 6;
+
+        if (idx < AppState.jslSentenceBuffer.length - 1 && curX < ribbonX + ribbonW - 20) {
+          ctx.fillStyle = colors.secondary;
+          ctx.font = '10px "Share Tech Mono", monospace';
+          ctx.fillText('→', curX, ribbonY + 24);
+          curX += 14;
+        }
+      });
+
+      ctx.restore();
+    }
+
+    /*
+     * =========================================================================
+     * RED-ALERT SECURITY QUARANTINE HUD OVERLAY
+     * =========================================================================
+     */
+    function renderRedAlertQuarantineHUD(ctx) {
+      if (!AppState.activeFaceAlert) return;
+      const alert = AppState.activeFaceAlert;
+      if (Date.now() > alert.expiry) {
+        AppState.activeFaceAlert = null;
+        return;
+      }
+
+      const colors = getThemeColors();
+      ctx.save();
+
+      if (!alert.authorized) {
+        // Red-Alert Vignette flashing border
+        const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.008);
+        ctx.strokeStyle = `rgba(239, 68, 68, ${0.4 + pulse * 0.5})`;
+        ctx.lineWidth = 8;
+        ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+
+        // Warning Banner at top
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.92)';
+        ctx.fillRect(0, 0, canvas.width, 32);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px "Share Tech Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚠ SECURITY QUARANTINE // UNAUTHORIZED SUBJECT DETECTED // BIOMETRIC LOCKDOWN', canvas.width / 2, 20);
+      } else {
+        // Commander Welcome HUD
+        ctx.strokeStyle = colors.alt;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.90)';
+        ctx.fillRect(0, 0, canvas.width, 28);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px "Share Tech Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`✦ CLEARANCE VERIFIED: ${alert.name} [${alert.role}] // PROFILE LOADED`, canvas.width / 2, 18);
+      }
+
+      ctx.restore();
     }
 
     /*

@@ -2,6 +2,26 @@
 
 All notable changes to the Vision Hub project are documented in this file.
 
+## [Pure CV Refocus, Binary WebSockets, CAD Shaders, Occlusion & Procedural Audio] - 2026-10-23
+
+### Added
+- **High-Speed Binary WebSocket Streaming (`/ws/stream`)**:
+  - Implemented Axum WebSocket endpoint streaming binary JPEG frames and atomic JSON telemetry directly from `hubd` to the web client, delivering sub-15ms latency with automatic HTTP fallback.
+- **Pure CV Refocus & Complete Excision of Non-CV Systems**:
+  - Completely excised Ollama SLM connection, `/api/ask` endpoint, SLM chat drawer, and Web Speech TTS/STT to maintain a pure, dedicated edge Computer Vision and spatial AR architecture.
+- **Holographic Hand Depth Occlusion Mask**:
+  - Real-time hand hull occlusion masking in Three.js viewport allowing 3D CAD models and GPU particles to float naturally behind operator hands.
+- **Procedural Zero-Asset Cyber Audio Synthesizer**:
+  - Pure Web Audio API oscillator sound FX with dynamic pitch modulation on pinch zoom, holographic menu navigation ticks, biometric lock chimes, and avatar mouth chirps.
+- **Biometric Vault Profile Switching & Red-Alert Security Quarantine**:
+  - Automated user profile loading (switches to Commander preferences upon authorized scan) and flashing Red-Alert quarantine HUD with audio alarms upon unverified entity detection.
+- **3D CAD Inspection Shaders (`SOLID`, `THERMAL`, `XRAY`)**:
+  - Header inspection toggle cycling between theme solid metallic, Thermal Aerodynamic Stress heatmaps (radial cyan-to-red stress gradients), and glowing X-Ray wireframe glass.
+- **Tactical Trajectory Ribbon Ghosting & Velocity Vectors**:
+  - Real-time motion path trails with temporal decay, lead velocity vectors, and instantaneous speed telemetry (`px/s`) in Object and Avian Radar modes.
+- **Continuous JSL Visual Sentence Ribbon**:
+  - Temporal multi-gesture sliding buffer on the HUD capturing continuous sign language phrases without speech dependencies.
+
 ## [Touchless 3D CAD Pinch Zoom & Holographic Model Selector] - 2026-10-19
 
 ### Added

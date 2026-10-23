@@ -108,4 +108,10 @@
   CWD: .
   EVIDENCE: G18 verified
 
+- [x] G19: Pure CV Refocus, Binary WebSockets, CAD Shaders, Occlusion & Procedural Audio
+  CHECK: cargo check -p hubd && grep -q "ws/stream" ui/index.html && grep -q "CyberAudio" ui/index.html && grep -q "cycleCadShaderMode" ui/index.html && grep -q "renderTacticalTrajectoryRibbons" ui/index.html && echo "G19 verified"
+  EXPECT: G19 verified
+  CWD: .
+  EVIDENCE: G19 verified
+
 

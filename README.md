@@ -1,6 +1,6 @@
 # Pathfinder EYE (ESP32-S3 Vision Hub)
 
-A high-performance computer vision, biometric, robotics CAD, and telemetry edge hub bridging an ESP32-S3 camera module (over USB NCM Ethernet or UVC) with a host-side Rust orchestration daemon, decoupled YOLOv11M ONNX inference engine, 3D facial biometric tracking, 21-joint skeletal hand tracking with Japanese Sign Language (JSL) dictionary, touchless interactive WebGL CAD models, 45,000 GPU particle galaxy flow, cute robot avatar emotion mimicry, append-only JSONL event persistence, and local SLM (Small Language Model) timeline interrogation.
+A specialized, pure edge Computer Vision (CV), biometric, robotics CAD, and telemetry hub bridging an ESP32-S3 camera module (over USB NCM Ethernet or UVC) with a host-side Rust orchestration daemon, decoupled YOLOv11M ONNX inference engine, binary WebSocket streaming, tactical trajectory ribbon tracking, 3D facial biometric tracking with biometric vault profile switching and red-alert quarantine, 21-joint skeletal hand tracking with Japanese Sign Language (JSL) dictionary and continuous visual sentence ribbon buffer, touchless interactive WebGL CAD models with holographic depth occlusion and inspection shaders (Thermal Aerodynamic Stress & X-Ray Wireframe), zero-asset procedural Web Audio synthesizer, 45,000 GPU particle galaxy flow, cute robot avatar emotion mimicry, and append-only JSONL event persistence.
 
 ---
 
@@ -13,13 +13,12 @@ graph TD
     DETECT -->|"live_frame.jpg"| HUBD
     DETECT -->|"live_detections.json"| HUBD
     DETECT -->|"Daily Append Log"| STORE["data/detections/YYYY-MM-DD.jsonl"]
-    HUBD -->|"Proxy Stream & Events"| UI["Pathfinder EYE Multi-Theme Web UI"]
-    HUBD -->|"Interrogate Timeline"| SLM["Ollama (Qwen2.5:3b-instruct)"]
+    HUBD -->|"Binary WebSocket & Events (/ws/stream)"| UI["Pathfinder EYE Pure CV Web UI"]
 ```
 
 ### Components
 - **`firmware/`**: ESP-IDF v5.3+ firmware for Seeed Studio XIAO ESP32-S3 Sense. Configures USB High-Speed NCM (CDC-NCM) with a built-in LwIP DHCP server (`192.168.4.1`) streaming camera frames over HTTP port 81.
-- **`crates/hubd/`**: Core orchestrator and web server built with Axum and Tokio. Serves live JPEG proxies, atomic JSON telemetry, mode switching, timeline querying, and forwards natural language questions to Ollama. Automatically manages detector background workers.
+- **`crates/hubd/`**: Core orchestrator and web server built with Axum and Tokio. Serves high-speed binary WebSocket stream (`/ws/stream`) and HTTP JPEG proxies, atomic JSON telemetry, mode switching, and biometric authorization. Automatically manages detector background workers.
 - **`crates/detect_service.py`**: High-performance vision service running a 30 FPS ingest thread decoupled from asynchronous background YOLOv11M inference, YuNet face tracking, and MediaPipe hand tracking. Includes exposure filters (DARK / NORM / BRIGHT / AUTO / CLAHE).
 - **`crates/hand_detector.py`**: MediaPipe ONNX 21-landmark neural geometry detector with custom Japanese Sign Language (JSL) and symbolic gesture classifier (JSL 1–5, Kitsune 🦊, Pinky Promise 🤙, OK/Money 👌, Thumbs Up 👍, Fist ✊).
 - **`crates/face_service.py`**: YuNet & SFace biometric pipeline providing 128-dimensional facial embeddings and persistent subject enrollment.
@@ -54,8 +53,17 @@ graph TD
 6. **45,000 GPU Particle Flow Simulation (`PARTICLE_FLOW`)**:
    - Dual-state GPU particle system morphing dynamically between a dense cybernetic energy core and an expansive 4-arm spiral galaxy driven by hand gestures.
 7. **Avian Perimeter Defense Radar (`BIRD_DETECT`)**:
-   - Real-time avian robotics CV tracking flight vectors, radial distance, and perimeter defense zones.
-8. **Mazzaroth Color Themes**:
+   - Real-time avian robotics CV tracking flight vectors, radial distance, decaying trajectory ribbons, and perimeter defense zones.
+8. **Tactical Trajectory Ribbon Ghosting & Velocity Vectors**:
+   - Real-time decaying trail ribbons tracking motion paths across continuous frames with lead velocity vectors and instantaneous speed tags (`px/s`).
+9. **Biometric Vault & Profile Switching**:
+   - Autonomous personalization engine switching themes and view presets upon authorized scan; launches Red-Alert Security Quarantine HUD on unverified subjects.
+10. **3D CAD Inspection Shaders & Depth Occlusion**:
+   - Toggle between **Solid**, **Thermal Aerodynamic Stress Heatmap**, and **X-Ray Wireframe Glass** modes.
+   - Real-time hand hull depth occlusion rendering models behind operator hands.
+11. **Zero-Asset Procedural Web Audio Synthesizer**:
+   - Pure Web Audio API oscillators producing dynamic frequency modulation for pinch zoom, holographic menu ticks, biometric chimes, and avatar mouth chirps.
+12. **Mazzaroth Color Themes**:
    - Instant live palette switching (`Midnight Gold`, `Synth Magenta`, `Obsidian Mono`, `Technical Paper`) propagating seamlessly across 2D canvases, Three.js CAD shaders, particle systems, and web controls.
 
 ---
@@ -64,8 +72,7 @@ graph TD
 
 ### Prerequisites
 - Rust 1.78+ (`cargo`)
-- Python 3.10+ in `.venv` with `ultralytics`, `onnxruntime`, `opencv-python-headless`
-- Local Ollama running `qwen2.5:3b-instruct` (optional, for AI timeline queries)
+- Python 3.10+ in `.venv` with `ultralytics`, `onnxruntime`, `opencv-python-headless`, `supervision`
 
 ### Running the System
 ```bash
