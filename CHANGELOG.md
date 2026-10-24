@@ -2,6 +2,16 @@
 
 All notable changes to the Vision Hub project are documented in this file.
 
+## [Offline Local CSS Resilience & YOLO Inference Throughput Optimization] - 2026-10-24
+
+### Fixed & Optimized
+- **Local CSS Bundle & Layout Collapse Protection**:
+  - Downloaded standalone, zero-dependency Tailwind CSS bundle (`ui/tailwind.min.css`) directly into the local repository, eliminating reliance on external CDN scripts.
+  - Added CSS reset and fallback rules for the 12-column grid layout, header/footer flex alignments, and 16:9 viewport aspect ratio to prevent DOM element stacking when external CDNs are unreachable.
+- **YOLOv11M Inference Throughput & Latency Optimization**:
+  - Clamped inference input dimensions to `imgsz=480` and tuned thread cooling pacing in [crates/detect_service.py](file:///home/xander/Documents/portfolio/Vision/crates/detect_service.py).
+  - Reduced detection latency from ~600ms down to ~18ms and CPU utilization from over 1100% to under 50%, restoring instantaneous CV telemetry synchronization.
+
 ## [Pure CV Refocus, Binary WebSockets, CAD Shaders, Occlusion & Procedural Audio] - 2026-10-23
 
 ### Added

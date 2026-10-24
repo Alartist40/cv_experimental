@@ -60,13 +60,13 @@ def yolo_worker():
         if frame_copy is not None:
             t0 = time.time()
             try:
-                # Mode-adaptive classes and confidence:
+                # Mode-adaptive classes and confidence with imgsz=480 for real-time edge CV throughput:
                 # In BIRD_DETECT mode: target specifically class 14 ('bird') with high sensitivity (conf=0.28)
                 # In OBJECT_DETECT mode: general detection with conf=0.45
                 if current_target_mode == "BIRD_DETECT":
-                    results = model(frame_copy, verbose=False, conf=0.28, classes=[14])
+                    results = model(frame_copy, verbose=False, conf=0.28, imgsz=480, classes=[14])
                 else:
-                    results = model(frame_copy, verbose=False, conf=0.45)
+                    results = model(frame_copy, verbose=False, conf=0.45, imgsz=480)
                 raw_boxes = []
                 raw_confs = []
                 raw_cids = []
@@ -122,7 +122,7 @@ def yolo_worker():
                     yolo_last_latency = round((time.time() - t0) * 1000, 1)
             except Exception:
                 pass
-            time.sleep(0.06)  # Paced cooling delay prevents 100% continuous CPU burn
+            time.sleep(0.08)  # Paced cooling delay prevents high continuous CPU burn
         else:
             time.sleep(0.05)
 
