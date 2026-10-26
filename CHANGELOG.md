@@ -2,6 +2,22 @@
 
 All notable changes to the Vision Hub project are documented in this file.
 
+## [3D CAD Gesture Smoothing, EMA Low-Pass Filtering & Overlay Architecture] - 2026-10-26
+
+### Fixed & Optimized
+- **EMA Low-Pass Filtered Pinch & Zoom Gestures (`INTERACTIVE_3D`)**:
+  - Replaced erratic frame-to-frame delta thresholds with Exponential Moving Average (EMA) smoothing (`0.72 / 0.28`) across both single-hand pinch distance and dual-hand bimanual distance.
+  - Eliminated high-frequency landmark jitter and dropped-frame deadband lockouts, restoring continuous, buttery-smooth touchless shrinking (pinching fingers / hands closer) and zooming (spreading fingers / hands apart).
+  - Expanded dynamic scaling range from `0.18x` to `3.50x` with snappier `0.18` Three.js scale lerping.
+- **Dedicated Top-Level Overlay Canvas (`#overlayCanvas`) & Zero-Flicker Depth Occlusion**:
+  - Introduced `#overlayCanvas` stacked atop `#threeCanvas` with `pointer-events-none` to separate the camera stream background (`#viewCanvas`), WebGL 3D CAD model layer (`#threeCanvas`), and top 2D graphics.
+  - Routed 2D hand landmark skeletons, pinch vector indicators, holographic model selection dropdowns, and hand depth occlusion masks to `#overlayCanvas`, completely resolving canvas layer contention, flickering, and occluded HUD text.
+- **Gesture Mode Isolation & Telemetry Debouncing**:
+  - Isolated the holographic CAD dropdown menu from background model rotation and scaling: model transforms are gracefully suspended while navigating the model menu.
+  - Raised client MediaPipe hand telemetry freshness debounce threshold from `300ms` to `1000ms`, preventing backend telemetry contention from abruptly resetting active tracking anchors.
+  - Synchronized sidebar explosion sliders and percentage indicators live as hands compact or explode model assemblies.
+  - Added acoustic rate-limiting to `CyberAudio.pinchZoom` to prevent oscillator buffer overload during high-frequency gesture updates.
+
 ## [Offline Local CSS Resilience & YOLO Inference Throughput Optimization] - 2026-10-24
 
 ### Fixed & Optimized

@@ -453,6 +453,7 @@
         <img id="liveFeedImg" class="hidden" alt="Live Camera Feed">
         <canvas id="viewCanvas" class="w-full h-full object-contain block"></canvas>
         <canvas id="threeCanvas" class="hidden absolute inset-0 w-full h-full object-contain pointer-events-auto cursor-grab active:cursor-grabbing"></canvas>
+        <canvas id="overlayCanvas" class="hidden absolute inset-0 w-full h-full object-contain pointer-events-none"></canvas>
 
         <!-- Fixed Tactical Bezel Frame -->
         <div class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
@@ -1243,10 +1244,14 @@
           osc.stop(now + duration);
         } catch (e) {}
       },
-      // Pinch Zoom Pitch Modulation (frequency mapped to scale 0.3 - 3.5)
+      _lastPinchZoomAudioTime: 0,
+      // Pinch Zoom Pitch Modulation (frequency mapped to scale 0.2 - 3.5)
       pinchZoom(scale) {
-        const freq = 220 + (scale - 0.3) * 160;
-        this.playTone(freq, 'triangle', 0.04, 0.03);
+        const now = performance.now();
+        if (now - this._lastPinchZoomAudioTime < 80) return;
+        this._lastPinchZoomAudioTime = now;
+        const freq = 220 + Math.min(3.5, Math.max(0.2, scale) - 0.2) * 160;
+        this.playTone(freq, 'triangle', 0.04, 0.025);
       },
       // Two-Finger Holographic Menu Dropdown Tick
       menuTick() {
@@ -3094,6 +3099,10 @@
 
     let threeLastTwoHandAngle = null;
     let threeLastTwoHandDist = null;
+    let threeSmoothPinchDist1 = null;
+    let threeSmoothPinchDist2 = null;
+    let threeSmoothTwoHandDist = null;
+    let threeSmoothTrackPos = null;
 
     function processInteractive3DLandmarks(multiHands) {
       if (!multiHands || multiHands.length === 0) {
@@ -3105,6 +3114,10 @@
         threeLastTwoHandDist = null;
         threeLastPinchDist1 = null;
         threeLastPinchDist2 = null;
+        threeSmoothPinchDist1 = null;
+        threeSmoothPinchDist2 = null;
+        threeSmoothTwoHandDist = null;
+        threeSmoothTrackPos = null;
         return;
       }
 
@@ -3165,6 +3178,9 @@
           CyberAudio.menuTick();
         }
         threeCadMenuIndex = targetIdx;
+        threeSmoothPinchDist1 = null;
+        threeSmoothTrackPos = null;
+        return;
       } else if (threeCadMenuOpen) {
         if (isThumbsUp1) {
           // Thumbs up selects and confirms the highlighted model
@@ -3180,6 +3196,9 @@
           // Auto-close menu if inactive for 4 seconds
           threeCadMenuOpen = false;
         }
+        threeSmoothPinchDist1 = null;
+        threeSmoothTrackPos = null;
+        return;
       }
 
       // =========================================================================
@@ -3204,18 +3223,23 @@
         const midX = (wrist1.x + wrist2.x) / 2;
         const midY = (wrist1.y + wrist2.y) / 2;
 
-        // Translational orbit of the two-hand frame
-        if (threeLastTrackPos) {
-          const dx = midX - threeLastTrackPos.x;
-          const dy = midY - threeLastTrackPos.y;
-          if (Math.abs(dx) > 0.003 && Math.abs(dx) < 0.35) {
+        // Translational orbit of the two-hand frame with EMA smoothing
+        if (threeSmoothTrackPos === null) {
+          threeSmoothTrackPos = { x: midX, y: midY };
+        } else {
+          const prevX = threeSmoothTrackPos.x;
+          const prevY = threeSmoothTrackPos.y;
+          threeSmoothTrackPos.x = threeSmoothTrackPos.x * 0.68 + midX * 0.32;
+          threeSmoothTrackPos.y = threeSmoothTrackPos.y * 0.68 + midY * 0.32;
+          const dx = threeSmoothTrackPos.x - prevX;
+          const dy = threeSmoothTrackPos.y - prevY;
+          if (Math.abs(dx) > 0.0006 && Math.abs(dx) < 0.35) {
             threeTargetRotY += -dx * Math.PI * 3.2;
           }
-          if (Math.abs(dy) > 0.003 && Math.abs(dy) < 0.35) {
+          if (Math.abs(dy) > 0.0006 && Math.abs(dy) < 0.35) {
             threeTargetRotX += dy * Math.PI * 2.8;
           }
         }
-        threeLastTrackPos = { x: midX, y: midY };
 
         // Two-hand angular twist / roll (Z-axis rotation)
         const curAngle = Math.atan2(wrist2.y - wrist1.y, wrist2.x - wrist1.x);
@@ -3223,7 +3247,7 @@
           let dAngle = curAngle - threeLastTwoHandAngle;
           if (dAngle > Math.PI) dAngle -= Math.PI * 2;
           if (dAngle < -Math.PI) dAngle += Math.PI * 2;
-          if (Math.abs(dAngle) > 0.01 && Math.abs(dAngle) < 0.4) {
+          if (Math.abs(dAngle) > 0.008 && Math.abs(dAngle) < 0.4) {
             if (threeEngineGroup) {
               threeEngineGroup.rotation.z += dAngle * 1.2;
             }
@@ -3237,15 +3261,23 @@
           (thumbTip1.y + indexTip1.y) / 2 - (thumbTip2.y + indexTip2.y) / 2
         );
 
-        if (threeLastTwoHandDist !== null) {
-          const dDist = twoHandPinchDist - threeLastTwoHandDist;
-          if (Math.abs(dDist) > 0.004 && Math.abs(dDist) < 0.25) {
-            // Bringing hands closer shrinks, spreading hands apart grows
-            threeTargetScale = Math.min(2.5, Math.max(0.22, threeTargetScale + dDist * 2.2));
-            CyberAudio.pinchZoom(threeTargetScale);
+        const isDualPinchZoom = isPinch1 || isPinch2 || (normalizedPinch1 < 0.52 && normalizedPinch2 < 0.52);
+        if (isDualPinchZoom) {
+          if (threeSmoothTwoHandDist === null) {
+            threeSmoothTwoHandDist = twoHandPinchDist;
+          } else {
+            const prevDist = threeSmoothTwoHandDist;
+            threeSmoothTwoHandDist = threeSmoothTwoHandDist * 0.72 + twoHandPinchDist * 0.28;
+            const dDist = threeSmoothTwoHandDist - prevDist;
+            if (Math.abs(dDist) > 0.0006 && Math.abs(dDist) < 0.3) {
+              // Bringing hands closer shrinks, spreading hands apart grows
+              threeTargetScale = Math.min(3.5, Math.max(0.18, threeTargetScale + dDist * 3.4));
+              CyberAudio.pinchZoom(threeTargetScale);
+            }
           }
+        } else {
+          threeSmoothTwoHandDist = null;
         }
-        threeLastTwoHandDist = twoHandPinchDist;
 
         // Combined extension for component explosion (fist compacts, open palm explodes)
         const tips = [4, 8, 12, 16, 20];
@@ -3257,8 +3289,8 @@
         const normExt1 = (ext1 / 5) / handScale1;
         const normExt2 = (ext2 / 5) / handScale2;
         const avgExt = (normExt1 + normExt2) / 2;
-        const rawExplode = Math.min(1.0, Math.max(0.0, (avgExt - 1.10) / 0.45));
-        threeTargetExplode = threeTargetExplode * 0.75 + rawExplode * 0.25;
+        const rawExplode = Math.min(1.0, Math.max(0.0, (avgExt - 1.05) / 0.50));
+        threeTargetExplode = threeTargetExplode * 0.80 + rawExplode * 0.20;
 
         threeLastPinchDist1 = normalizedPinch1;
         threeLastPinchDist2 = normalizedPinch2;
@@ -3268,6 +3300,7 @@
       // Reset two-hand roll / dist tracking when single-handed
       threeLastTwoHandAngle = null;
       threeLastTwoHandDist = null;
+      threeSmoothTwoHandDist = null;
 
       // =========================================================================
       // 2. SINGLE-HAND MANIPULATION
@@ -3277,31 +3310,39 @@
 
       // Single-Hand Dynamic Pinch Zoom:
       // Pinching index & thumb closer shrinks the 3D model; spreading them apart enlarges it.
-      if (threeLastPinchDist1 !== null) {
-        const dPinch = normalizedPinch1 - threeLastPinchDist1;
-        if (Math.abs(dPinch) > 0.005 && Math.abs(dPinch) < 0.45) {
+      if (threeSmoothPinchDist1 === null) {
+        threeSmoothPinchDist1 = normalizedPinch1;
+      } else {
+        const prevPinch = threeSmoothPinchDist1;
+        threeSmoothPinchDist1 = threeSmoothPinchDist1 * 0.72 + normalizedPinch1 * 0.28;
+        const dPinch = threeSmoothPinchDist1 - prevPinch;
+        if (Math.abs(dPinch) > 0.0006 && Math.abs(dPinch) < 0.28) {
           // Positive delta (expanding index & thumb) enlarges; negative delta (pinching closer) shrinks
-          threeTargetScale = Math.min(2.5, Math.max(0.22, threeTargetScale + dPinch * 1.8));
+          threeTargetScale = Math.min(3.5, Math.max(0.18, threeTargetScale + dPinch * 3.2));
           CyberAudio.pinchZoom(threeTargetScale);
         }
       }
-      threeLastPinchDist1 = normalizedPinch1;
 
       const trackAnchor = threeIsPinching
         ? { x: (thumbTip1.x + indexTip1.x) / 2, y: (thumbTip1.y + indexTip1.y) / 2 }
         : { x: mcpMiddle1.x, y: mcpMiddle1.y };
 
-      if (threeLastTrackPos) {
-        const dx = trackAnchor.x - threeLastTrackPos.x;
-        const dy = trackAnchor.y - threeLastTrackPos.y;
-        if (Math.abs(dx) > 0.003 && Math.abs(dx) < 0.35) {
+      if (threeSmoothTrackPos === null) {
+        threeSmoothTrackPos = { x: trackAnchor.x, y: trackAnchor.y };
+      } else {
+        const prevX = threeSmoothTrackPos.x;
+        const prevY = threeSmoothTrackPos.y;
+        threeSmoothTrackPos.x = threeSmoothTrackPos.x * 0.70 + trackAnchor.x * 0.30;
+        threeSmoothTrackPos.y = threeSmoothTrackPos.y * 0.70 + trackAnchor.y * 0.30;
+        const dx = threeSmoothTrackPos.x - prevX;
+        const dy = threeSmoothTrackPos.y - prevY;
+        if (Math.abs(dx) > 0.0006 && Math.abs(dx) < 0.30) {
           threeTargetRotY += -dx * Math.PI * 3.2;
         }
-        if (Math.abs(dy) > 0.003 && Math.abs(dy) < 0.35) {
+        if (Math.abs(dy) > 0.0006 && Math.abs(dy) < 0.30) {
           threeTargetRotX += dy * Math.PI * 2.8;
         }
       }
-      threeLastTrackPos = { x: trackAnchor.x, y: trackAnchor.y };
 
       // Single-hand open palm vs fist component explosion:
       // Fist compacts components (0%), open palm expands components (100%)
@@ -3312,8 +3353,8 @@
       });
       avgTipDist /= tips.length;
       const normalizedExtension = avgTipDist / handScale1;
-      const singleRawExplode = Math.min(1.0, Math.max(0.0, (normalizedExtension - 1.10) / 0.45));
-      threeTargetExplode = threeTargetExplode * 0.75 + singleRawExplode * 0.25;
+      const singleRawExplode = Math.min(1.0, Math.max(0.0, (normalizedExtension - 1.05) / 0.50));
+      threeTargetExplode = threeTargetExplode * 0.80 + singleRawExplode * 0.20;
     }
 
     function processBackendGestureFor3D(bg) {
@@ -3324,6 +3365,10 @@
         threeLastTrackPos = null;
         threeLastTwoHandAngle = null;
         threeLastTwoHandDist = null;
+        threeSmoothPinchDist1 = null;
+        threeSmoothPinchDist2 = null;
+        threeSmoothTwoHandDist = null;
+        threeSmoothTrackPos = null;
         return;
       }
 
@@ -3584,9 +3629,20 @@
       if (particleCard) particleCard.classList.toggle('hidden', newMode !== 'PARTICLE_FLOW');
 
       const threeC = document.getElementById('threeCanvas');
+      const overlayC = document.getElementById('overlayCanvas');
       const cadBtn = document.getElementById('cadUploadBtn');
       const cadSelector = document.getElementById('cadModelSelector');
       const cadExplodeBtn = document.getElementById('cadExplodeToggleBtn');
+
+      if (overlayC) {
+        if (newMode === 'INTERACTIVE_3D') {
+          overlayC.classList.remove('hidden');
+        } else {
+          overlayC.classList.add('hidden');
+          const oCtx = overlayC.getContext('2d');
+          if (oCtx) oCtx.clearRect(0, 0, overlayC.width, overlayC.height);
+        }
+      }
 
       if (newMode === 'OBJECT_DETECT') {
         if (threeC) threeC.classList.add('hidden');
@@ -3820,7 +3876,7 @@
       } else if (AppState.currentMode === 'HAND_GESTURE') {
         AppState.liveDetections = [];
         AppState.backendFace = null;
-        const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
+        const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 1000;
         if (data.gesture) {
           AppState.backendGesture = data.gesture;
           if (!clientHandFresh) {
@@ -3841,7 +3897,7 @@
       } else if (AppState.currentMode === 'INTERACTIVE_3D') {
         AppState.liveDetections = [];
         AppState.backendFace = null;
-        const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
+        const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 1000;
         if (data.gesture) {
           AppState.backendGesture = data.gesture;
           if (!clientHandFresh) {
@@ -3858,7 +3914,7 @@
       } else if (AppState.currentMode === 'PARTICLE_FLOW') {
         AppState.liveDetections = [];
         AppState.backendFace = null;
-        const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 300;
+        const clientHandFresh = (Date.now() - AppState.lastHandDetectedTime) < 1000;
         if (data.gesture) {
           AppState.backendGesture = data.gesture;
           if (!clientHandFresh) {
@@ -4257,6 +4313,12 @@
       if (tCanvas && w > 0 && h > 0 && (tCanvas.width !== w || tCanvas.height !== h)) {
         tCanvas.width = w;
         tCanvas.height = h;
+      }
+
+      const oCanvas = document.getElementById('overlayCanvas');
+      if (oCanvas && w > 0 && h > 0 && (oCanvas.width !== w || oCanvas.height !== h)) {
+        oCanvas.width = w;
+        oCanvas.height = h;
       }
 
       if (threeRenderer && threeCamera) {
@@ -5910,21 +5972,23 @@
      */
     function renderInteractive3DMode(ctx) {
       const colors = getThemeColors();
+      const cWidth = (ctx && ctx.canvas) ? ctx.canvas.width : canvas.width;
+      const cHeight = (ctx && ctx.canvas) ? ctx.canvas.height : canvas.height;
 
       // 1. Advance Three.js Physics & Lerp Transforms
       if (threeRenderer && threeScene && threeCamera && threeEngineGroup) {
         // Smooth lerping on rotation
-        threeEngineGroup.rotation.y = THREE.MathUtils.lerp(threeEngineGroup.rotation.y, threeTargetRotY, 0.12);
-        threeEngineGroup.rotation.x = THREE.MathUtils.lerp(threeEngineGroup.rotation.x, threeTargetRotX, 0.12);
+        threeEngineGroup.rotation.y = THREE.MathUtils.lerp(threeEngineGroup.rotation.y, threeTargetRotY, 0.16);
+        threeEngineGroup.rotation.x = THREE.MathUtils.lerp(threeEngineGroup.rotation.x, threeTargetRotX, 0.16);
 
         // Slow auto idle drift only when no hand is detected in viewport
         if (!AppState.detectedHandLandmarks && !threeIsRotating && !threeIsPinching) {
           threeTargetRotY += 0.003;
         }
 
-        // Smooth lerping on scale
+        // Smooth lerping on scale (0.18 factor eliminates stutter and jitter)
         const curScale = threeEngineGroup.scale.x;
-        const newScale = THREE.MathUtils.lerp(curScale, threeTargetScale, 0.12);
+        const newScale = THREE.MathUtils.lerp(curScale, threeTargetScale, 0.18);
         threeEngineGroup.scale.set(newScale, newScale, newScale);
 
         // Smooth exploded view displacement along component axes (3D radial)
@@ -5932,10 +5996,19 @@
           const targetX = item.origX + item.dirX * threeTargetExplode * 1.4;
           const targetY = item.origY + (item.dirY || 0) * threeTargetExplode * 1.4;
           const targetZ = item.origZ + (item.dirZ || 0) * threeTargetExplode * 1.4;
-          item.mesh.position.x = THREE.MathUtils.lerp(item.mesh.position.x, targetX, 0.15);
-          item.mesh.position.y = THREE.MathUtils.lerp(item.mesh.position.y, targetY, 0.15);
-          item.mesh.position.z = THREE.MathUtils.lerp(item.mesh.position.z, targetZ, 0.15);
+          item.mesh.position.x = THREE.MathUtils.lerp(item.mesh.position.x, targetX, 0.18);
+          item.mesh.position.y = THREE.MathUtils.lerp(item.mesh.position.y, targetY, 0.18);
+          item.mesh.position.z = THREE.MathUtils.lerp(item.mesh.position.z, targetZ, 0.18);
         });
+
+        // Sync sidebar explosion slider and percentage display live
+        const explodePct = Math.round(threeTargetExplode * 100);
+        const slider = document.getElementById('cadExplodeSlider');
+        if (slider && document.activeElement !== slider) slider.value = explodePct;
+        const disp = document.getElementById('cadExplodePercentDisp');
+        if (disp) disp.innerText = `${explodePct}%`;
+        const explodeBtn = document.getElementById('cadExplodeBtnText');
+        if (explodeBtn) explodeBtn.innerText = threeTargetExplode > 0.4 ? 'ASSEMBLE' : 'EXPLODE';
 
         // Enforce CAD visibility and Particle dormancy
         threeEngineGroup.visible = true;
@@ -5961,8 +6034,8 @@
           const hullIndices = [0, 1, 2, 3, 4, 8, 12, 16, 20, 17, 0];
           ctx.beginPath();
           hullIndices.forEach((idx, i) => {
-            const px = lm[idx].x * canvas.width;
-            const py = lm[idx].y * canvas.height;
+            const px = lm[idx].x * cWidth;
+            const py = lm[idx].y * cHeight;
             if (i === 0) ctx.moveTo(px, py);
             else ctx.lineTo(px, py);
           });
@@ -5980,10 +6053,10 @@
           renderHandSkeletonOnCanvas(ctx, lm, h.label || 'Hand', colors, threeIsPinching);
 
           // Highlight pinch indicator line between thumb tip #4 and index tip #8
-          const p4x = lm[4].x * canvas.width;
-          const p4y = lm[4].y * canvas.height;
-          const p8x = lm[8].x * canvas.width;
-          const p8y = lm[8].y * canvas.height;
+          const p4x = lm[4].x * cWidth;
+          const p4y = lm[4].y * cHeight;
+          const p8x = lm[8].x * cWidth;
+          const p8y = lm[8].y * cHeight;
 
           ctx.strokeStyle = threeIsPinching ? '#10b981' : colors.primary;
           ctx.lineWidth = threeIsPinching ? 3.0 : 1.2;
@@ -5999,7 +6072,7 @@
       ctx.save();
       const hudW = 280;
       const hudH = 80;
-      const hudX = canvas.width - hudW - 16;
+      const hudX = cWidth - hudW - 16;
       const hudY = 52;
 
       ctx.fillStyle = 'rgba(7, 12, 20, 0.88)';
@@ -6128,7 +6201,7 @@
         ctx.save();
         const noticeW = 280;
         const noticeH = 34;
-        const noticeX = (canvas.width - noticeW) / 2;
+        const noticeX = (cWidth - noticeW) / 2;
         const noticeY = 24;
 
         ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
@@ -6140,7 +6213,7 @@
         ctx.fillStyle = '#10b981';
         ctx.font = 'bold 11px "Share Tech Mono", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(`✓ ${threeCadConfirmNotice}`, canvas.width / 2, noticeY + 22);
+        ctx.fillText(`✓ ${threeCadConfirmNotice}`, cWidth / 2, noticeY + 22);
         ctx.restore();
       }
     }
@@ -6196,7 +6269,12 @@
           renderHandGestureMode(ctx);
           renderContinuousJslSentenceRibbon(ctx);
         } else if (AppState.currentMode === 'INTERACTIVE_3D') {
-          renderInteractive3DMode(ctx);
+          const overlayC = document.getElementById('overlayCanvas');
+          const overlayCtx = overlayC ? overlayC.getContext('2d') : ctx;
+          if (overlayC && overlayCtx) {
+            overlayCtx.clearRect(0, 0, overlayC.width, overlayC.height);
+          }
+          renderInteractive3DMode(overlayCtx);
         } else if (AppState.currentMode === 'PARTICLE_FLOW') {
           renderParticleFlowMode(ctx);
         }
