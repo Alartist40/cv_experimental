@@ -1031,6 +1031,24 @@
               </div>
             </div>
 
+            <!-- Real Face Transparency & Glow Controls -->
+            <div class="p-2 bg-black/60 border rounded space-y-2" style="border-color: var(--panel-border);">
+              <div>
+                <div class="flex justify-between items-center text-[10px] mb-1">
+                  <span class="opacity-70 font-semibold">REAL FACE SEE-THROUGH:</span>
+                  <span id="xrayRealFaceDisp" class="font-mono text-cyan-400 font-bold">85%</span>
+                </div>
+                <input type="range" id="xrayRealFaceSlider" min="0" max="100" value="85" oninput="setXrayRealFace(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
+              </div>
+              <div>
+                <div class="flex justify-between items-center text-[10px] mb-1">
+                  <span class="opacity-70 font-semibold">X-RAY GLOW INTENSITY:</span>
+                  <span id="xrayBrightDisp" class="font-mono text-cyan-400 font-bold">115%</span>
+                </div>
+                <input type="range" id="xrayBrightSlider" min="40" max="220" value="115" oninput="setXrayBright(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
+              </div>
+            </div>
+
             <!-- Diagnostics Telemetry -->
             <div class="p-2 bg-black/50 border rounded text-[10px] space-y-1" style="border-color: var(--panel-border);">
               <div class="flex justify-between items-center text-slate-300">
@@ -6134,7 +6152,6 @@
     let xrayCamera = null;
     let xrayOrthoCamera = null;
     let xrayHeadGroup = null;
-    let xrayHandGroup = null;
     let xrayJawPivot = null;
     let xrayMeshes = {};
     let xrayHandRigs = [];
@@ -6153,7 +6170,8 @@
       reveal: "whole", // 'whole', 'lens', 'left', 'right'
       cut: 0.5,
       feather: 0.25,
-      bright: 1.0,
+      bright: 1.15,
+      real: 0.85, // 85% real face visibility -> natural AR blend without solid black head mask
       scale: 1.0,
       fitX: 0,
       fitY: 0,
@@ -6170,6 +6188,20 @@
       fitX: 0.0,
       fitY: 0.0
     };
+
+    const LABEL_COLOR = {
+      skull: "#bfe3ff",
+      brain: "#ff9fc0",
+      muscles: "#ffb3aa",
+      eyes: "#fff3a8",
+      hands: "#d9f0ff"
+    };
+    const HEAD_C = [0, 3.2, -4.8];
+    const labelState = {};
+    let frameNo = 0, headSplit = 0;
+    let lp = new THREE.Vector3(), ln = new THREE.Vector3(), lc = new THREE.Vector3();
+    let jawM = new THREE.Matrix4();
+    const clipState = { on: 0, x: 1, y: 0, w: 0 };
 
     const XRAY_BONES = [[1,2],[2,3],[3,4],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20]];
 
@@ -6318,7 +6350,7 @@
           return mesh;
         };
 
-        // Add Anatomical Head Meshes
+        // Add Anatomical Head Meshes with authentic medical color palette
         addMesh('veil', geos.skin, 'veil', 0x04070d, 0x04070d, -10, null, 2).material.uniforms.uFade.value = 1.0;
         addMesh('outline', geos.skin, 'outline', 0x6fb6ff, 0x6fb6ff, 1, null, 0).material.uniforms.uFade.value = 1.0;
         addMesh('muscles', geos.muscles, 'muscles', 0xff6b5e, 0xb5453c, 2);
@@ -6333,21 +6365,19 @@
         addMesh('cerebrum', geos.cerebrum, 'brain', 0xff9fc0, 0xe2a39d, 5);
         addMesh('hindbrain', geos.hindbrain, 'brain', 0xffc37a, 0xd6ad84, 5);
 
-        // Add Skeletal Hand Rigs (up to 2 hands in orthographic space)
-        xrayHandGroup = new THREE.Group();
-        xrayHandGroup.visible = false;
-        xrayHandScene.add(xrayHandGroup);
-
+        // Add Skeletal Hand Rigs (up to 2 hands directly in xrayHandScene in orthographic space)
         xrayHandRigs = [];
         for (let h = 0; h < 2; h++) {
           const group = new THREE.Group();
           group.visible = false;
-          xrayHandGroup.add(group);
+          xrayHandScene.add(group); // Direct child of xrayHandScene
 
           const mkHandMesh = (geo) => {
             if (!geo) return null;
             const m = new THREE.Mesh(geo, makeXrayMaterial(0xd9f0ff, 0xe9e2cf));
             m.material.uniforms.uOrtho.value = 1.0;
+            m.material.uniforms.uGain.value = 1.25;
+            m.material.uniforms.uOpacity.value = 1.0;
             m.matrixAutoUpdate = false;
             m.frustumCulled = false;
             group.add(m);
@@ -6374,38 +6404,84 @@
 
     function applyXrayThemeColors() {
       if (!xrayLoaded) return;
-      const colors = getThemeColors();
-      const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0x38bdf8;
-      const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x10b981;
+      const isSolid = xraySettings.style === 'solid';
+      const isThermal = xraySettings.style === 'thermal';
 
       for (const k in xrayMeshes) {
         const item = xrayMeshes[k];
         if (item.fixedMode !== undefined) continue;
         const u = item.mesh.material.uniforms;
-        if (xraySettings.style === 'thermal') {
-          if (k === 'cerebrum' || k === 'hindbrain') {
-            u.uColor.value.setHex(0xf43f5e);
-            u.uSolidColor.value.setHex(0xe11d48);
-          } else if (k === 'cranium' || k === 'jaw') {
-            u.uColor.value.setHex(0x06b6d4);
-            u.uSolidColor.value.setHex(0x0891b2);
-          } else if (k === 'muscles') {
-            u.uColor.value.setHex(0xf59e0b);
-            u.uSolidColor.value.setHex(0xd97706);
-          }
-        } else if (xraySettings.style === 'solid') {
-          u.uMode.value = 1.0;
-          item.mesh.material.blending = THREE.NormalBlending;
-        } else {
+
+        if (isThermal) {
           u.uMode.value = 0.0;
           item.mesh.material.blending = THREE.AdditiveBlending;
+          if (k === 'cerebrum' || k === 'hindbrain') {
+            u.uColor.value.setHex(0xf43f5e);
+          } else if (k === 'cranium' || k === 'jaw') {
+            u.uColor.value.setHex(0x06b6d4);
+          } else if (k === 'muscles') {
+            u.uColor.value.setHex(0xf59e0b);
+          } else if (k === 'eyes') {
+            u.uColor.value.setHex(0x10b981);
+          }
+        } else if (isSolid) {
+          u.uMode.value = 1.0;
+          item.mesh.material.blending = THREE.NormalBlending;
+          item.mesh.material.depthTest = true;
+          item.mesh.material.depthWrite = true;
+          if (item.origSolid) u.uSolidColor.value.setHex(item.origSolid);
+        } else {
+          // Authentic volumetric glowing X-Ray fluoroscopic palette
+          u.uMode.value = 0.0;
+          item.mesh.material.blending = THREE.AdditiveBlending;
+          item.mesh.material.depthTest = false;
+          item.mesh.material.depthWrite = false;
           if (k === 'cranium' || k === 'jaw') {
-            u.uColor.value.setHex(primaryHex);
-          } else if (k === 'cerebrum' || k === 'hindbrain') {
-            u.uColor.value.setHex(secondaryHex);
+            u.uColor.value.setHex(0xbfe3ff); // Fluoroscopic bone cyan
+          } else if (k === 'cerebrum') {
+            u.uColor.value.setHex(0xff9fc0); // Cortex pink glow
+          } else if (k === 'hindbrain') {
+            u.uColor.value.setHex(0xffc37a); // Cerebellum warm amber
+          } else if (k === 'eyes') {
+            u.uColor.value.setHex(0xfff3a8); // Ocular gold
+          } else if (k === 'muscles') {
+            u.uColor.value.setHex(0xff6b5e); // Muscle coral
           }
         }
       }
+
+      // Sync Skeletal Hands
+      for (const r of xrayHandRigs) {
+        for (const m of [r.palm, ...r.bones]) {
+          if (!m || !m.material) continue;
+          const u = m.material.uniforms;
+          if (isThermal) {
+            u.uMode.value = 0.0;
+            u.uColor.value.setHex(0x06b6d4);
+            m.material.blending = THREE.AdditiveBlending;
+          } else if (isSolid) {
+            u.uMode.value = 1.0;
+            u.uSolidColor.value.setHex(0xe9e2cf);
+            m.material.blending = THREE.NormalBlending;
+          } else {
+            u.uMode.value = 0.0;
+            u.uColor.value.setHex(0xd9f0ff);
+            m.material.blending = THREE.AdditiveBlending;
+          }
+        }
+      }
+    }
+
+    function setXrayRealFace(val) {
+      xraySettings.real = parseInt(val, 10) / 100.0;
+      const disp = document.getElementById('xrayRealFaceDisp');
+      if (disp) disp.innerText = `${val}%`;
+    }
+
+    function setXrayBright(val) {
+      xraySettings.bright = parseInt(val, 10) / 100.0;
+      const disp = document.getElementById('xrayBrightDisp');
+      if (disp) disp.innerText = `${val}%`;
     }
 
     function setXrayStyle(style) {
@@ -6425,13 +6501,13 @@
 
     function toggleXrayLayer(layer, active) {
       xraySettings[layer] = active;
-      if (layer === 'skull' && xrayMeshes.cranium && xrayMeshes.jaw) {
-        xrayMeshes.cranium.mesh.visible = active;
-        xrayMeshes.jaw.mesh.visible = active;
+      if (layer === 'skull') {
+        if (xrayMeshes.cranium) xrayMeshes.cranium.mesh.visible = active;
+        if (xrayMeshes.jaw) xrayMeshes.jaw.mesh.visible = active;
       }
-      if (layer === 'brain' && xrayMeshes.cerebrum && xrayMeshes.hindbrain) {
-        xrayMeshes.cerebrum.mesh.visible = active;
-        xrayMeshes.hindbrain.mesh.visible = active;
+      if (layer === 'brain') {
+        if (xrayMeshes.cerebrum) xrayMeshes.cerebrum.mesh.visible = active;
+        if (xrayMeshes.hindbrain) xrayMeshes.hindbrain.mesh.visible = active;
       }
       if (layer === 'muscles' && xrayMeshes.muscles) {
         xrayMeshes.muscles.mesh.visible = active;
@@ -6439,8 +6515,10 @@
       if (layer === 'eyes' && xrayMeshes.eyes) {
         xrayMeshes.eyes.mesh.visible = active;
       }
-      if (layer === 'hands' && xrayHandGroup) {
-        xrayHandGroup.visible = active;
+      if (layer === 'hands') {
+        xrayHandRigs.forEach(rig => {
+          if (!active) rig.group.visible = false;
+        });
       }
     }
 
@@ -6470,6 +6548,17 @@
       if (reveal === "top")    { clipOn = 1; cx = 0; cy = 1;  cw = -9 + (1 - xraySettings.cut) * 22; }
       if (reveal === "bottom") { clipOn = 1; cx = 0; cy = -1; cw = -(-9 + xraySettings.cut * 22); }
 
+      clipState.on = clipOn;
+      clipState.x = cx;
+      clipState.y = cy;
+      clipState.w = cw;
+
+      if (xrayJawPivot && xrayMeshes.jaw) {
+        xrayJawPivot.updateMatrix();
+        xrayMeshes.jaw.mesh.updateMatrix();
+        jawM.copy(xrayJawPivot.matrix).multiply(xrayMeshes.jaw.mesh.matrix);
+      }
+
       const heavy = (xraySettings.skull ? 1 : 0) + (xraySettings.brain ? 1 : 0) + (xraySettings.muscles ? 1 : 0);
       const share = 1 / (0.4 + 0.6 * Math.max(1, heavy));
       const XRAY_GAIN = { outline: 0.55, muscles: 0.5, cerebrum: 0.36, hindbrain: 0.6, eyes: 0.9 };
@@ -6477,20 +6566,214 @@
       for (const k in xrayMeshes) {
         const { mesh, layer } = xrayMeshes[k];
         const u = mesh.material.uniforms;
-        mesh.visible = layer === "veil" ? true : !!xraySettings[layer];
+
+        // Veil transparency: default 85% real face visibility -> natural AR blend without solid black head mask
+        if (layer === "veil") {
+          const realFace = xraySettings.real !== undefined ? xraySettings.real : 0.85;
+          mesh.visible = (1.0 - realFace) > 0.02;
+          u.uOpacity.value = Math.max(0.0, 1.0 - realFace);
+        } else {
+          mesh.visible = !!xraySettings[layer];
+          u.uOpacity.value = 1.0;
+        }
+
         u.uGain.value = (xraySettings.style === "solid" && k !== "outline")
           ? Math.min(1.25, 0.6 + 0.4 * xraySettings.bright)
           : xraySettings.bright * (XRAY_GAIN[k] || 1.0) * (layer === "outline" ? 1.0 : share);
-        u.uOpacity.value = 1.0;
         u.uClipOn.value = clipOn;
         u.uClip.value.set(cx, cy, cz, cw);
         u.uFeather.value = xraySettings.feather * 0.75;
         u.uCutSoft.value = xraySettings.feather * 5.0;
+
         if (k === "jaw" && xrayJawPivot) {
           u.uToHead.value.copy(xrayJawPivot.matrix).multiply(mesh.matrix);
         } else {
           u.uToHead.value.identity();
         }
+      }
+    }
+
+    // Screen projection from Three.js world/camera coordinates to 2D Canvas pixels
+    function toScreen(v, W, H) {
+      if (!xrayCamera) return { x: 0, y: 0 };
+      lc.copy(v).project(xrayCamera);
+      return { x: (lc.x * 0.5 + 0.5) * W, y: (-lc.y * 0.5 + 0.5) * H };
+    }
+
+    // Dynamic Anatomical Head Label Collector (all 26 structures from META.labels)
+    function collectHeadLabels(lens, W, H) {
+      const out = [];
+      if (!xrayMeta || !xrayMeta.labels || !xrayHeadGroup) return out;
+
+      const solid = xraySettings.style === "solid";
+      const M = xrayHeadGroup.matrixWorld;
+
+      for (const L of xrayMeta.labels) {
+        if (!xraySettings[L.layer]) continue;
+        if (solid && xraySettings.muscles && (L.layer === "skull" || L.layer === "brain")) continue;
+        if (solid && xraySettings.skull && L.layer === "brain") continue;
+
+        let best = null;
+        for (const p of L.pts) {
+          lp.fromArray(p);
+          if (L.jaw && xrayJawPivot && xrayMeshes.jaw) {
+            lp.applyMatrix4(jawM);
+          }
+          if (clipState.on && clipState.x * lp.x + clipState.y * lp.y < clipState.w) continue;
+
+          ln.set(lp.x - HEAD_C[0], lp.y - HEAD_C[1], lp.z - HEAD_C[2]).transformDirection(M);
+          lp.applyMatrix4(M);
+
+          const facing = -(ln.x * lp.x + ln.y * lp.y + ln.z * lp.z) / (lp.length() || 1.0);
+          if (solid && facing < 0.12) continue; // Far side of face
+
+          const s = toScreen(lp, W, H);
+          if (lens && Math.hypot(s.x - lens.x, s.y - lens.y) > lens.r) continue;
+
+          if (!best || facing > best.facing) {
+            best = { text: L.t, color: LABEL_COLOR[L.layer] || "#bfe3ff", ax: s.x, ay: s.y, facing };
+          }
+        }
+        if (best) out.push(best);
+      }
+      return out;
+    }
+
+    // Balanced Dual-Column Label Layout with Collision Avoidance & Smooth Glide
+    function layoutLabels(g, items, cx, halfWidth, key, splitX, W, H) {
+      if (splitX === undefined) splitX = cx;
+      const cols = { left: [], right: [] };
+
+      for (const it of items) {
+        const st = labelState[key + it.text] || (labelState[key + it.text] = { side: it.ax < splitX ? "left" : "right", y: null, seen: 0 });
+        if (st.side === "left" && it.ax > splitX + halfWidth * 0.15) st.side = "right";
+        else if (st.side === "right" && it.ax < splitX - halfWidth * 0.15) st.side = "left";
+        it.st = st;
+        cols[st.side].push(it);
+      }
+
+      g.save();
+      g.font = '600 11px "Share Tech Mono", monospace';
+      g.textBaseline = "middle";
+      g.lineJoin = "round";
+
+      for (const side of ["left", "right"]) {
+        const list = cols[side], gap = 17;
+        for (const it of list) {
+          const st = it.st;
+          if (st.wy === undefined || frameNo - st.seen > 4) {
+            st.wy = it.ay;
+            st.rank = undefined;
+          } else {
+            st.wy += (it.ay - st.wy) * 0.5;
+          }
+          st.seen = frameNo;
+        }
+
+        list.sort((p, q) => (p.st.rank === undefined || q.st.rank === undefined || p.st.side !== p.st.rankSide || q.st.side !== q.st.rankSide)
+          ? p.st.wy - q.st.wy : p.st.rank - q.st.rank);
+
+        for (let swapped = true, guard = 0; swapped && guard < 35; guard++) {
+          swapped = false;
+          for (let i = 0; i + 1 < list.length; i++) {
+            if (list[i].st.wy > list[i + 1].st.wy + 7) {
+              const tmp = list[i];
+              list[i] = list[i + 1];
+              list[i + 1] = tmp;
+              swapped = true;
+            }
+          }
+        }
+
+        list.forEach((it, i) => { it.st.rank = i; it.st.rankSide = side; });
+        let prev = -1e9;
+        for (const it of list) {
+          it.ty = Math.max(it.st.wy, prev + gap);
+          prev = it.ty;
+        }
+        const over = prev - (H - 24);
+        if (over > 0) for (const it of list) it.ty -= over;
+
+        const tx = side === "left" ? Math.max(12, cx - halfWidth - 28) : Math.min(W - 12, cx + halfWidth + 28);
+
+        for (const it of list) {
+          const y = it.ty;
+          g.strokeStyle = it.color;
+          g.globalAlpha = 0.75;
+          g.lineWidth = 1.0;
+          g.beginPath();
+          g.moveTo(it.ax, it.ay);
+          g.lineTo(tx + (side === "left" ? 5 : -5), y);
+          g.stroke();
+
+          g.globalAlpha = 1.0;
+          g.fillStyle = it.color;
+          g.beginPath();
+          g.arc(it.ax, it.ay, 2.5, 0, Math.PI * 2);
+          g.fill();
+
+          g.textAlign = side === "left" ? "right" : "left";
+          g.strokeStyle = "rgba(4, 7, 13, 0.95)";
+          g.lineWidth = 3.5;
+          g.strokeText(it.text.toUpperCase(), tx, y);
+          g.fillText(it.text.toUpperCase(), tx, y);
+        }
+      }
+      g.restore();
+    }
+
+    // Dynamic Multi-Structure Anatomical Labels Coordinator (Head + Hand Bones)
+    function drawLabels(g, W, H) {
+      frameNo++;
+      let hx = W / 2, halfW = W * 0.16;
+
+      // 1. Head Anatomical Labels
+      if (xrayHeadState.found && xrayHeadGroup && xrayHeadGroup.visible && xrayMeta && xrayMeta.labels) {
+        lp.fromArray(HEAD_C).applyMatrix4(xrayHeadGroup.matrixWorld);
+        const c = toScreen(lp, W, H);
+        lp.x += 10.5 * (xrayHeadState.scale || 1.0);
+        const e = toScreen(lp, W, H);
+        hx = c.x;
+        halfW = Math.max(W * 0.12, Math.abs(e.x - c.x));
+
+        const items = collectHeadLabels(null, W, H);
+        const xs = items.map(it => it.ax).sort((a, b) => a - b);
+        const med = xs.length ? xs[xs.length >> 1] : hx;
+        headSplit += ((hx + med) / 2 - headSplit) * 0.2;
+        layoutLabels(g, items, hx, halfW, "h:", headSplit, W, H);
+      }
+
+      // 2. Hand Anatomical Labels
+      const activeHands = (AppState.detectedHands && AppState.detectedHands.length > 0)
+        ? AppState.detectedHands
+        : (AppState.detectedHandLandmarks ? [{ landmarks: AppState.detectedHandLandmarks, label: 'Right' }] : []);
+
+      if (xraySettings.hands && activeHands.length > 0) {
+        xrayHandRigs.forEach((rig, i) => {
+          if (!rig.group.visible || !rig.pts) return;
+          const P = rig.pts;
+          const at = (a, b, k) => ({
+            ax: P[a].x + (P[b].x - P[a].x) * k,
+            ay: H - (P[a].y + (P[b].y - P[a].y) * k)
+          });
+          const items = [
+            ["Distal phalanx", 11, 12, 0.5],
+            ["Middle phalanx", 10, 11, 0.5],
+            ["Proximal phalanx", 9, 10, 0.5],
+            ["Metacarpal", 0, 9, 0.62],
+            ["Carpal bones (wrist)", 0, 9, 0.1]
+          ].map(([text, a, b, k]) => Object.assign({ text, color: LABEL_COLOR.hands }, at(a, b, k)));
+
+          let lo = 1e9, hi = -1e9;
+          for (const p of P) {
+            lo = Math.min(lo, p.x);
+            hi = Math.max(hi, p.x);
+          }
+          const mid = (lo + hi) / 2;
+          const outerRight = mid > hx;
+          const far = outerRight ? lo - 1e4 : hi + 1e4;
+          layoutLabels(g, items, far, outerRight ? hi - far : far - lo, "hand" + i + ":", undefined, W, H);
+        });
       }
     }
 
@@ -6511,7 +6794,7 @@
       const P = rig.pts;
       const sign = isRight ? 1 : -1;
 
-      // Palm basis
+      // Palm basis (wrist 0, index knuckle 5, pinky knuckle 17)
       xrayHandE1.subVectors(P[5], P[0]);
       xrayHandE2.subVectors(P[17], P[0]);
       xrayHandE3.crossVectors(xrayHandE1, xrayHandE2).normalize().multiplyScalar(sign * Math.sqrt(Math.max(1e-4, xrayHandE1.length() * xrayHandE2.length())));
@@ -6536,30 +6819,16 @@
         rig.bones[i].matrix.copy(xrayHandHM);
         rig.bones[i].matrixWorldNeedsUpdate = true;
       });
-      rig.group.visible = true;
-    }
 
-    // 2D Dark Veil Silhouette behind glowing bones
-    function drawHandVeil(g, lms, alpha, W, H) {
-      if (!lms || lms.length < 21) return;
-      const px = i => lms[i].x * W, py = i => lms[i].y * H;
-      const d = Math.hypot(px(5) - px(17), py(5) - py(17)) || 1;
-      g.save();
-      g.fillStyle = g.strokeStyle = `rgba(4,7,13,${alpha.toFixed(3)})`;
-      g.lineJoin = g.lineCap = "round";
-      const path = new Path2D();
-      [0, 1, 2, 5, 9, 13, 17].forEach((i, k) => k ? path.lineTo(px(i), py(i)) : path.moveTo(px(i), py(i)));
-      path.closePath();
-      const fingers = new Path2D();
-      for (const c of [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19,20]]) {
-        c.forEach((i, k) => k ? fingers.lineTo(px(i), py(i)) : fingers.moveTo(px(i), py(i)));
+      const gain = xraySettings.style === "solid" ? Math.min(1.25, 0.6 + 0.4 * xraySettings.bright) : xraySettings.bright * 1.25;
+      for (const m of [rig.palm, ...rig.bones]) {
+        if (m && m.material && m.material.uniforms) {
+          m.material.uniforms.uGain.value = gain;
+          m.material.uniforms.uOpacity.value = 1.0;
+          m.material.uniforms.uOrtho.value = 1.0;
+        }
       }
-      g.lineWidth = d * 0.34;
-      g.fill(path);
-      g.stroke(path);
-      g.lineWidth = d * 0.36;
-      g.stroke(fingers);
-      g.restore();
+      rig.group.visible = true;
     }
 
     // Metric FaceMesh Camera Ray Projection & Horn Absolute Orientation Fit
@@ -6723,11 +6992,13 @@
         : (AppState.detectedHandLandmarks ? [{ landmarks: AppState.detectedHandLandmarks, label: 'Right' }] : []);
 
       if (xraySettings.hands && activeHands.length > 0) {
-        activeHands.forEach((h, i) => {
-          if (i < xrayHandRigs.length && h.landmarks) {
+        xrayHandRigs.forEach((rig, i) => {
+          const h = activeHands[i];
+          if (h && h.landmarks) {
             const isRight = (h.label || 'Right') === 'Right';
-            updateXrayHand(xrayHandRigs[i], h.landmarks, isRight, cWidth, cHeight);
-            if (ctx) drawHandVeil(ctx, h.landmarks, 0.85, cWidth, cHeight);
+            updateXrayHand(rig, h.landmarks, isRight, cWidth, cHeight);
+          } else {
+            rig.group.visible = false;
           }
         });
       } else {
@@ -6758,75 +7029,9 @@
         threeRenderer.autoClear = true;
       }
 
-      // 4. Render 2D AR Anatomical Callout Labels & HUD Reticles onto Canvas
-      if (ctx && xraySettings.labels && xrayHeadState.found && xrayCamera) {
-        ctx.save();
-        ctx.font = 'bold 10px "Share Tech Mono", monospace';
-        ctx.fillStyle = colors.primary;
-        ctx.strokeStyle = 'rgba(7, 12, 20, 0.85)';
-        ctx.lineWidth = 3.0;
-
-        const headPos = xrayHeadState.pos;
-        const headQuat = xrayHeadState.quat;
-        const headScale = xrayHeadState.scale;
-
-        const sampleLabels = [
-          { text: 'CRANIUM // FRONTAL BONE', pt: [0.1, 7.8, 4.3] },
-          { text: 'MAXILLA // UPPER JAW', pt: [0.0, -1.8, 5.8] },
-          { text: 'MANDIBLE // TEMPOROMANDIBULAR', pt: [0.0, -8.5, 4.2] },
-          { text: 'ORBITAL CAVITY // OPTICAL', pt: [-4.2, 2.5, 3.2] }
-        ];
-
-        sampleLabels.forEach((lbl, idx) => {
-          const p = new THREE.Vector3().fromArray(lbl.pt).applyQuaternion(headQuat).multiplyScalar(headScale).add(headPos);
-          const pScreen = p.clone().project(xrayCamera);
-          const px = (pScreen.x * 0.5 + 0.5) * cWidth;
-          const py = (-pScreen.y * 0.5 + 0.5) * cHeight;
-
-          if (px > 20 && px < cWidth - 20 && py > 20 && py < cHeight - 20) {
-            const side = idx % 2 === 0 ? -1 : 1;
-            const targetX = px + side * 90;
-            const targetY = py + (idx - 1.5) * 18;
-
-            ctx.strokeStyle = colors.secondary;
-            ctx.lineWidth = 1.0;
-            ctx.beginPath();
-            ctx.arc(px, py, 2.5, 0, Math.PI * 2);
-            ctx.moveTo(px, py);
-            ctx.lineTo(targetX + (side > 0 ? -4 : 4), targetY);
-            ctx.stroke();
-
-            ctx.strokeText(lbl.text, side > 0 ? targetX : targetX - ctx.measureText(lbl.text).width, targetY);
-            ctx.fillText(lbl.text, side > 0 ? targetX : targetX - ctx.measureText(lbl.text).width, targetY);
-          }
-        });
-
-        // 5. Tactical X-Ray Telemetry Callout Box (Top Right)
-        const hudW = 280;
-        const hudH = 75;
-        const hudX = cWidth - hudW - 16;
-        const hudY = 52;
-
-        ctx.fillStyle = 'rgba(7, 12, 20, 0.88)';
-        ctx.fillRect(hudX, hudY, hudW, hudH);
-        ctx.strokeStyle = colors.primary;
-        ctx.lineWidth = 1.2;
-        ctx.strokeRect(hudX, hudY, hudW, hudH);
-
-        ctx.fillStyle = colors.primary;
-        ctx.font = '10px "Share Tech Mono", monospace';
-        ctx.fillText('ANATOMICAL X-RAY // VOLUMETRIC BIO-VISION', hudX + 10, hudY + 16);
-
-        ctx.fillStyle = colors.secondary;
-        ctx.font = '9px "Share Tech Mono", monospace';
-        const styleName = (xraySettings.style || 'XRAY').toUpperCase();
-        ctx.fillText('STYLE: ' + styleName + ' • APERTURE: ' + xrayHeadState.jaw.toFixed(2), hudX + 10, hudY + 32);
-        ctx.fillText('LAYERS: SKULL • BRAIN • EYES • SKELETON', hudX + 10, hudY + 46);
-
-        ctx.fillStyle = colors.text;
-        ctx.fillText('REAL-TIME BIOMETRIC AR SKELETAL RIG', hudX + 10, hudY + 62);
-
-        ctx.restore();
+      // 4. Render Authentic Dynamic Multi-Structure Anatomical Labels (Head + Hand Bones)
+      if (ctx && xraySettings.labels) {
+        drawLabels(ctx, cWidth, cHeight);
       }
     }
 
