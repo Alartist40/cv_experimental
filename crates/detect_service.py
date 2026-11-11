@@ -306,9 +306,10 @@ while True:
                     f.write(json.dumps(evt) + "\n")
 
         # Sleep remaining time to guarantee low CPU temperature
+        target_int = 0.065 if current_mode == "XRAY_MIRROR" else TARGET_INTERVAL
         elapsed = time.time() - t_start
-        if elapsed < TARGET_INTERVAL:
-            time.sleep(TARGET_INTERVAL - elapsed)
+        if elapsed < target_int:
+            time.sleep(target_int - elapsed)
 
     except Exception as e:
         time.sleep(0.05)
