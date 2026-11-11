@@ -459,9 +459,10 @@
         <canvas id="viewCanvas" class="w-full h-full object-contain block"></canvas>
         <canvas id="threeCanvas" class="hidden absolute inset-0 w-full h-full object-contain pointer-events-auto cursor-grab active:cursor-grabbing"></canvas>
         <canvas id="overlayCanvas" class="hidden absolute inset-0 w-full h-full object-contain pointer-events-none"></canvas>
+        <iframe id="xrayFrame" class="hidden absolute inset-0 w-full h-full border-0 z-20" allow="camera; microphone; autoplay"></iframe>
 
         <!-- Fixed Tactical Bezel Frame -->
-        <div class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between">
+        <div class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between z-30">
           <div class="flex justify-between items-start">
             <div class="flex items-center gap-1.5">
               <div class="w-5 h-5 border-t-2 border-l-2" style="border-color: var(--accent-primary);"></div>
@@ -1067,10 +1068,14 @@
           </div>
         </div>
 
-        <div class="pt-2 border-t flex gap-1" style="border-color: var(--panel-border);">
-          <button onclick="resetXrayAlignment()" class="flex-1 py-1.5 border rounded text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 transition flex items-center justify-center gap-1" style="border-color: var(--accent-primary);">
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-            <span>RESET AR CALIBRATION</span>
+        <div class="pt-2 border-t flex flex-col gap-1.5" style="border-color: var(--panel-border);">
+          <a href="/xray.html" target="_blank" class="w-full py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400 text-cyan-300 font-bold rounded flex items-center justify-center gap-1.5 text-[11px] transition shadow-lg shadow-cyan-500/10">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            <span>OPEN DEDICATED X-RAY MIRROR</span>
+          </a>
+          <button onclick="startEmbeddedXrayCamera()" class="w-full py-1 border rounded text-[10px] font-bold text-slate-300 hover:text-white hover:bg-white/5 transition flex items-center justify-center gap-1" style="border-color: var(--panel-border);">
+            <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+            <span>RESTART CAMERA STREAM</span>
           </button>
         </div>
       </div>
@@ -1430,8 +1435,8 @@
 
       const now = performance.now();
 
-      // 1. Face tracking (FACE_BIOMETRIC, EMOTION_READER, XRAY_MIRROR) - runs at smooth 30 FPS
-      const needFace = (AppState.currentMode === 'FACE_BIOMETRIC' || AppState.currentMode === 'EMOTION_READER' || AppState.currentMode === 'XRAY_MIRROR');
+      // 1. Face tracking (FACE_BIOMETRIC, EMOTION_READER) - runs at smooth 30 FPS
+      const needFace = (AppState.currentMode === 'FACE_BIOMETRIC' || AppState.currentMode === 'EMOTION_READER');
       if (needFace && AppState.faceMesh && !isProcessingFace) {
         if (now - lastMediaPipeFaceTime >= 33) {
           lastMediaPipeFaceTime = now;
@@ -1442,11 +1447,10 @@
         }
       }
 
-      // 2. Hand tracking (HAND_GESTURE, INTERACTIVE_3D, PARTICLE_FLOW, and XRAY_MIRROR only if hands enabled)
-      const needHands = (AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D' || AppState.currentMode === 'PARTICLE_FLOW' || (AppState.currentMode === 'XRAY_MIRROR' && xraySettings && xraySettings.hands));
+      // 2. Hand tracking (HAND_GESTURE, INTERACTIVE_3D, PARTICLE_FLOW)
+      const needHands = (AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D' || AppState.currentMode === 'PARTICLE_FLOW');
       if (needHands && AppState.hands && !isProcessingHands) {
-        const handInterval = (AppState.currentMode === 'XRAY_MIRROR') ? 50 : 33;
-        if (now - lastMediaPipeHandsTime >= handInterval) {
+        if (now - lastMediaPipeHandsTime >= 33) {
           lastMediaPipeHandsTime = now;
           isProcessingHands = true;
           AppState.hands.send({ image: imageSource })
@@ -3773,8 +3777,23 @@
       const cadSelector = document.getElementById('cadModelSelector');
       const cadExplodeBtn = document.getElementById('cadExplodeToggleBtn');
 
+      const xrayF = document.getElementById('xrayFrame');
+      if (xrayF) {
+        if (newMode === 'XRAY_MIRROR') {
+          xrayF.classList.remove('hidden');
+          if (!xrayF.src || xrayF.src === 'about:blank' || !xrayF.src.includes('xray.html')) {
+            xrayF.src = '/xray.html?embed=1&autostart=1';
+          }
+        } else {
+          xrayF.classList.add('hidden');
+          if (xrayF.src && xrayF.src !== 'about:blank') {
+            xrayF.src = 'about:blank';
+          }
+        }
+      }
+
       if (overlayC) {
-        if (newMode === 'INTERACTIVE_3D' || newMode === 'XRAY_MIRROR') {
+        if (newMode === 'INTERACTIVE_3D') {
           overlayC.classList.remove('hidden');
         } else {
           overlayC.classList.add('hidden');
@@ -3865,22 +3884,15 @@
         document.getElementById('modeCardDesc').innerText = '45,000-point GPU particle system controlled in real time via hand gestures: clenched fist forms a dense core; open hand erupts into a spiral galaxy.';
         document.getElementById('modePipeline').innerText = 'THREE.JS GPU PARTICLES';
       } else if (newMode === 'XRAY_MIRROR') {
-        if (threeC) threeC.classList.remove('hidden');
+        if (threeC) threeC.classList.add('hidden');
         if (cadBtn) cadBtn.classList.add('hidden');
         if (cadSelector) cadSelector.classList.add('hidden');
         if (cadExplodeBtn) cadExplodeBtn.classList.add('hidden');
-        initInteractive3D();
-        initXraySystem();
-        if (threeEngineGroup) threeEngineGroup.visible = false;
-        if (threeParticleGroup) threeParticleGroup.visible = false;
-        if (xrayHeadGroup) xrayHeadGroup.visible = true;
-        if (xrayHandGroup) xrayHandGroup.visible = true;
-        updateThreeThemeColors();
         document.getElementById('activeModeBadge').innerText = 'ANATOMICAL X-RAY MIRROR';
         document.getElementById('trackerDetailText').innerText = 'BIO-VISION • 3D SKULL & BRAIN AR • SKELETAL RIG';
         document.getElementById('modeCardTitle').innerText = 'ANATOMICAL X-RAY // BIO-VISION';
-        document.getElementById('modeCardDesc').innerText = 'Real-time anatomical volumetric X-Ray AR: dynamically tracks skull, cerebrum, hindbrain, musculature, dynamic jaw hinging, and skeletal hand bones.';
-        document.getElementById('modePipeline').innerText = 'THREE.JS + MEDIAPIPE AR';
+        document.getElementById('modeCardDesc').innerText = 'Original MasterOfVFX2070 X-Ray Mirror: neural head pose metric matrix, real-time 3D skull, dynamic jaw, and skeletal hand bones.';
+        document.getElementById('modePipeline').innerText = 'MEDIAPIPE TASKS GPU';
       }
 
       lucide.createIcons();
@@ -6472,16 +6484,29 @@
       }
     }
 
+    function postToXray(msg) {
+      const f = document.getElementById('xrayFrame');
+      if (f && f.contentWindow) {
+        f.contentWindow.postMessage(msg, '*');
+      }
+    }
+
+    function startEmbeddedXrayCamera() {
+      postToXray({ type: 'START_CAMERA' });
+    }
+
     function setXrayRealFace(val) {
       xraySettings.real = parseInt(val, 10) / 100.0;
       const disp = document.getElementById('xrayRealFaceDisp');
       if (disp) disp.innerText = `${val}%`;
+      postToXray({ type: 'SET_SLIDER', key: 'real', value: (100 - parseInt(val, 10)) / 100.0 });
     }
 
     function setXrayBright(val) {
       xraySettings.bright = parseInt(val, 10) / 100.0;
       const disp = document.getElementById('xrayBrightDisp');
       if (disp) disp.innerText = `${val}%`;
+      postToXray({ type: 'SET_SLIDER', key: 'bright', value: parseInt(val, 10) / 100.0 });
     }
 
     function setXrayStyle(style) {
@@ -6496,23 +6521,25 @@
           }
         }
       });
-      applyXrayThemeColors();
+      postToXray({ type: 'SET_STYLE', style: style === 'thermal' ? 'xray' : style });
+      if (typeof applyXrayThemeColors === 'function') applyXrayThemeColors();
     }
 
     function toggleXrayLayer(layer, active) {
       xraySettings[layer] = active;
+      postToXray({ type: 'SET_LAYER', layer: layer, value: active });
       if (layer === 'skull') {
-        if (xrayMeshes.cranium) xrayMeshes.cranium.mesh.visible = active;
-        if (xrayMeshes.jaw) xrayMeshes.jaw.mesh.visible = active;
+        if (xrayMeshes && xrayMeshes.cranium) xrayMeshes.cranium.mesh.visible = active;
+        if (xrayMeshes && xrayMeshes.jaw) xrayMeshes.jaw.mesh.visible = active;
       }
       if (layer === 'brain') {
-        if (xrayMeshes.cerebrum) xrayMeshes.cerebrum.mesh.visible = active;
-        if (xrayMeshes.hindbrain) xrayMeshes.hindbrain.mesh.visible = active;
+        if (xrayMeshes && xrayMeshes.cerebrum) xrayMeshes.cerebrum.mesh.visible = active;
+        if (xrayMeshes && xrayMeshes.hindbrain) xrayMeshes.hindbrain.mesh.visible = active;
       }
-      if (layer === 'muscles' && xrayMeshes.muscles) {
+      if (layer === 'muscles' && xrayMeshes && xrayMeshes.muscles) {
         xrayMeshes.muscles.mesh.visible = active;
       }
-      if (layer === 'eyes' && xrayMeshes.eyes) {
+      if (layer === 'eyes' && xrayMeshes && xrayMeshes.eyes) {
         xrayMeshes.eyes.mesh.visible = active;
       }
       if (layer === 'hands') {
@@ -6524,6 +6551,7 @@
 
     function setXrayReveal(val) {
       xraySettings.reveal = val;
+      postToXray({ type: 'SET_REVEAL', reveal: val });
     }
 
     function resetXrayAlignment() {
@@ -7343,12 +7371,12 @@
         } else if (AppState.currentMode === 'PARTICLE_FLOW') {
           renderParticleFlowMode(ctx);
         } else if (AppState.currentMode === 'XRAY_MIRROR') {
+          // X-Ray Mirror runs inside its dedicated GPU-accelerated iframe
           const overlayC = document.getElementById('overlayCanvas');
-          const overlayCtx = overlayC ? overlayC.getContext('2d') : ctx;
-          if (overlayC && overlayCtx) {
-            overlayCtx.clearRect(0, 0, overlayC.width, overlayC.height);
+          if (overlayC) {
+            const overlayCtx = overlayC.getContext('2d');
+            if (overlayCtx) overlayCtx.clearRect(0, 0, overlayC.width, overlayC.height);
           }
-          renderXrayMirrorMode(overlayCtx);
         }
 
         // Global Red-Alert Security Quarantine HUD Overlay
