@@ -2,6 +2,18 @@
 
 All notable changes to the Vision Hub project are documented in this file.
 
+## [Anatomical X-Ray Mirror & Bio-Vision Integration] - 2026-11-11
+
+### Added
+- **Integrated Anatomical X-Ray Mirror AR Mode (`XRAY_MIRROR`)**:
+  - Embedded high-fidelity binary volumetric mesh assets ([ui/xray_mesh.bin](file:///home/xander/Documents/portfolio/Vision/ui/xray_mesh.bin), 2.0MB) and anatomical landmark anchor metadata ([ui/xray_meta.json](file:///home/xander/Documents/portfolio/Vision/ui/xray_meta.json)) with zero external network or cloud dependencies.
+  - Features 23 distinct anatomical sub-meshes (110,626 vertices) encompassing Cranium, dynamic hinging Mandible (Jaw), Cerebrum, Hindbrain, Facial Musculature, and Optical Globes.
+  - Implemented real-time 3D head fitting via closed-form Horn quaternion absolute orientation and Procrustes alignment across MediaPipe FaceMesh keypoints.
+  - Dynamic mouth aperture tracking calculating live jaw angle deflection from lip landmarks in real-time.
+  - Multi-style shader support: Quantum X-Ray with rim lighting, Solid metallic rendering, and Thermal Aerodynamic stress heatmaps, fully synchronized with active Mazzaroth color themes.
+  - Interactive layer isolation controls in right sidebar: toggle Skull, Brain, Musculature, Eyes, Skeletal Hands, and AR text callout ribbons.
+  - Full client/backend telemetry coordination in [crates/detect_service.py](file:///home/xander/Documents/portfolio/Vision/crates/detect_service.py) with dual-hand skeletal rigging.
+
 ## [3D CAD Gesture Smoothing, EMA Low-Pass Filtering & Overlay Architecture] - 2026-10-26
 
 ### Fixed & Optimized

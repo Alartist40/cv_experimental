@@ -253,7 +253,7 @@ while True:
 
             last_latency = round((time.time() - t0) * 1000, 1)
 
-        elif current_mode in ("FACE_BIOMETRIC", "EMOTION_READER"):
+        elif current_mode in ("FACE_BIOMETRIC", "EMOTION_READER", "XRAY_MIRROR"):
             # Mode 2 & Mode 2B: Biometric Face Tracking & Emotion Reader
             t0 = time.time()
             try:

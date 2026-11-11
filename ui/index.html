@@ -323,6 +323,11 @@
         <i data-lucide="crosshair" class="w-4 h-4"></i>
         <span class="hidden xl:inline text-[11px]">BIRD</span>
       </button>
+
+      <button id="modeBtnXray" onclick="switchSystemMode('XRAY_MIRROR')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all text-slate-400 hover:text-white" title="Anatomical X-Ray Mirror, Bio-Vision & Skeletal Hand Rigging">
+        <i data-lucide="activity" class="w-4 h-4"></i>
+        <span class="hidden xl:inline text-[11px]">X-RAY</span>
+      </button>
     </div>
 
     <!-- LIGHTING BUTTONS & THEME SELECTOR -->
@@ -960,6 +965,98 @@
         </button>
       </div>
 
+          <!-- 7. ANATOMICAL X-RAY BIO-VISION CARD -->
+      <div id="xrayControlCard" class="hidden theme-card p-3 rounded-lg flex-1 flex flex-col justify-between font-mono">
+        <div>
+          <div class="flex items-center justify-between border-b pb-1.5 mb-2" style="border-color: var(--panel-border);">
+            <div class="flex items-center gap-2 text-xs font-bold font-industrial text-cyan-400">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+              <span>ANATOMICAL X-RAY & BIO-VISION</span>
+            </div>
+            <span id="xrayStatusBadge" class="text-[10px] text-emerald-400 font-bold">ONLINE</span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <!-- Style Selector (X-Ray / Solid / Thermal) -->
+            <div class="p-2 bg-black/60 border rounded space-y-1.5" style="border-color: var(--panel-border);">
+              <div class="text-[9px] opacity-70 font-semibold">ANATOMICAL RENDER STYLE:</div>
+              <div class="grid grid-cols-3 gap-1" id="xrayStyleButtons">
+                <button onclick="setXrayStyle('xray')" id="xrayStyleBtn_xray" class="py-1 border rounded text-[10px] font-bold transition bg-cyan-500/20 text-cyan-300 border-cyan-400">X-RAY</button>
+                <button onclick="setXrayStyle('solid')" id="xrayStyleBtn_solid" class="py-1 border rounded text-[10px] font-bold transition text-slate-400 border-white/10 hover:bg-white/5">SOLID</button>
+                <button onclick="setXrayStyle('thermal')" id="xrayStyleBtn_thermal" class="py-1 border rounded text-[10px] font-bold transition text-slate-400 border-white/10 hover:bg-white/5">THERMAL</button>
+              </div>
+            </div>
+
+            <!-- Layer Toggles -->
+            <div class="p-2 bg-black/60 border rounded space-y-1.5" style="border-color: var(--panel-border);">
+              <div class="text-[9px] opacity-70 font-semibold">ACTIVE ANATOMICAL LAYERS:</div>
+              <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="xrayLayer_skull" checked onchange="toggleXrayLayer('skull', this.checked)" class="accent-cyan-400">
+                  <span class="text-slate-200">SKULL (CRANIUM)</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="xrayLayer_brain" checked onchange="toggleXrayLayer('brain', this.checked)" class="accent-cyan-400">
+                  <span class="text-slate-200">CEREBRUM</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="xrayLayer_muscles" checked onchange="toggleXrayLayer('muscles', this.checked)" class="accent-cyan-400">
+                  <span class="text-slate-200">MUSCULATURE</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="xrayLayer_eyes" checked onchange="toggleXrayLayer('eyes', this.checked)" class="accent-cyan-400">
+                  <span class="text-slate-200">OPTICAL GLOBES</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="xrayLayer_hands" checked onchange="toggleXrayLayer('hands', this.checked)" class="accent-cyan-400">
+                  <span class="text-slate-200">SKELETAL HANDS</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="xrayLayer_labels" checked onchange="toggleXrayLayer('labels', this.checked)" class="accent-cyan-400">
+                  <span class="text-slate-200">AR LABELS</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Reveal Window / Lens Option -->
+            <div class="p-2 bg-black/60 border rounded space-y-1.5" style="border-color: var(--panel-border);">
+              <div class="flex justify-between items-center text-[10px]">
+                <span class="opacity-70 font-semibold">REVEAL / CUT MODE:</span>
+                <select id="xrayRevealMode" onchange="setXrayReveal(this.value)" class="bg-black border rounded px-1.5 py-0.5 text-[10px] text-cyan-300 outline-none" style="border-color: var(--panel-border);">
+                  <option value="whole" selected>FULL BIO-SCAN</option>
+                  <option value="lens">INDEX FINGER LENS</option>
+                  <option value="left">LEFT HALF</option>
+                  <option value="right">RIGHT HALF</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Diagnostics Telemetry -->
+            <div class="p-2 bg-black/50 border rounded text-[10px] space-y-1" style="border-color: var(--panel-border);">
+              <div class="flex justify-between items-center text-slate-300">
+                <span>TRACKING STATUS:</span>
+                <span id="xrayTrackingDisp" class="font-bold text-emerald-400">AWAITING FACE</span>
+              </div>
+              <div class="flex justify-between items-center text-slate-400">
+                <span>JAW APERTURE:</span>
+                <span id="xrayJawDisp" class="font-mono text-cyan-400">0.00</span>
+              </div>
+              <div class="flex justify-between items-center text-slate-400">
+                <span>ANATOMICAL VERTICES:</span>
+                <span class="font-mono text-slate-300">110,626 PTS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t flex gap-1" style="border-color: var(--panel-border);">
+          <button onclick="resetXrayAlignment()" class="flex-1 py-1.5 border rounded text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 transition flex items-center justify-center gap-1" style="border-color: var(--accent-primary);">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>RESET AR CALIBRATION</span>
+          </button>
+        </div>
+      </div>
+
     </aside>
 
   </main>
@@ -1146,8 +1243,8 @@
       }
 
       // Re-apply active navbar button color
-      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'EMOTION_READER', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT'];
-      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnEmotion', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnParticles', 'modeBtnBird'];
+      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'EMOTION_READER', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT', 'XRAY_MIRROR'];
+      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnEmotion', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnParticles', 'modeBtnBird', 'modeBtnXray'];
       modes.forEach((m, idx) => {
         const btn = document.getElementById(btnIds[idx]);
         if (!btn) return;
@@ -1311,12 +1408,12 @@
       }
 
       // Feed frame directly into active MediaPipe clients
-      if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D' || AppState.currentMode === 'PARTICLE_FLOW') && AppState.hands && !isProcessingHands) {
+      if ((AppState.currentMode === 'HAND_GESTURE' || AppState.currentMode === 'INTERACTIVE_3D' || AppState.currentMode === 'PARTICLE_FLOW' || AppState.currentMode === 'XRAY_MIRROR') && AppState.hands && !isProcessingHands) {
         isProcessingHands = true;
         AppState.hands.send({ image: imageSource })
           .catch((err) => { console.warn("MediaPipe Hands inference error:", err); })
           .finally(() => { isProcessingHands = false; });
-      } else if ((AppState.currentMode === 'FACE_BIOMETRIC' || AppState.currentMode === 'EMOTION_READER') && AppState.faceMesh && !isProcessingFace) {
+      } else if ((AppState.currentMode === 'FACE_BIOMETRIC' || AppState.currentMode === 'EMOTION_READER' || AppState.currentMode === 'XRAY_MIRROR') && AppState.faceMesh && !isProcessingFace) {
         isProcessingFace = true;
         AppState.faceMesh.send({ image: imageSource })
           .catch((err) => { console.warn("MediaPipe FaceMesh inference error:", err); })
@@ -1534,7 +1631,7 @@
     }
 
     function onHandResults(results) {
-      if (AppState.currentMode !== 'HAND_GESTURE' && AppState.currentMode !== 'INTERACTIVE_3D' && AppState.currentMode !== 'PARTICLE_FLOW') {
+      if (AppState.currentMode !== 'HAND_GESTURE' && AppState.currentMode !== 'INTERACTIVE_3D' && AppState.currentMode !== 'PARTICLE_FLOW' && AppState.currentMode !== 'XRAY_MIRROR') {
         AppState.detectedHandLandmarks = null;
         AppState.detectedHands = [];
         return;
@@ -3562,7 +3659,7 @@
     }
 
     function onFaceMeshResults(results) {
-      if (AppState.currentMode !== 'FACE_BIOMETRIC' && AppState.currentMode !== 'EMOTION_READER') {
+      if (AppState.currentMode !== 'FACE_BIOMETRIC' && AppState.currentMode !== 'EMOTION_READER' && AppState.currentMode !== 'XRAY_MIRROR') {
         AppState.detectedFaceLandmarks = null;
         return;
       }
@@ -3594,8 +3691,8 @@
         });
       } catch (e) {}
 
-      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'EMOTION_READER', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT'];
-      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnEmotion', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnParticles', 'modeBtnBird'];
+      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'EMOTION_READER', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT', 'XRAY_MIRROR'];
+      const btnIds = ['modeBtnObject', 'modeBtnFace', 'modeBtnEmotion', 'modeBtnHand', 'modeBtnInteractive', 'modeBtnParticles', 'modeBtnBird', 'modeBtnXray'];
 
       modes.forEach((m, idx) => {
         const btn = document.getElementById(btnIds[idx]);
@@ -3619,6 +3716,7 @@
       const cadCard = document.getElementById('cadHierarchyCard');
       const birdCard = document.getElementById('birdRadarCard');
       const particleCard = document.getElementById('particleControlCard');
+      const xrayCard = document.getElementById('xrayControlCard');
 
       if (objCard) objCard.classList.toggle('hidden', newMode !== 'OBJECT_DETECT');
       if (bioCard) bioCard.classList.toggle('hidden', newMode !== 'FACE_BIOMETRIC');
@@ -3627,6 +3725,7 @@
       if (cadCard) cadCard.classList.toggle('hidden', newMode !== 'INTERACTIVE_3D');
       if (birdCard) birdCard.classList.toggle('hidden', newMode !== 'BIRD_DETECT');
       if (particleCard) particleCard.classList.toggle('hidden', newMode !== 'PARTICLE_FLOW');
+      if (xrayCard) xrayCard.classList.toggle('hidden', newMode !== 'XRAY_MIRROR');
 
       const threeC = document.getElementById('threeCanvas');
       const overlayC = document.getElementById('overlayCanvas');
@@ -3635,7 +3734,7 @@
       const cadExplodeBtn = document.getElementById('cadExplodeToggleBtn');
 
       if (overlayC) {
-        if (newMode === 'INTERACTIVE_3D') {
+        if (newMode === 'INTERACTIVE_3D' || newMode === 'XRAY_MIRROR') {
           overlayC.classList.remove('hidden');
         } else {
           overlayC.classList.add('hidden');
@@ -3702,6 +3801,8 @@
         initInteractive3D();
         if (threeEngineGroup) threeEngineGroup.visible = true;
         if (threeParticleGroup) threeParticleGroup.visible = false;
+        if (xrayHeadGroup) xrayHeadGroup.visible = false;
+        if (xrayHandGroup) xrayHandGroup.visible = false;
         updateThreeThemeColors();
         document.getElementById('activeModeBadge').innerText = 'INTERACTIVE 3D CAD';
         document.getElementById('trackerDetailText').innerText = 'DUAL-HAND: ROTATE/ROLL/STRETCH • PALM: EXPLODE';
@@ -3716,11 +3817,30 @@
         initInteractive3D();
         if (threeEngineGroup) threeEngineGroup.visible = false;
         if (threeParticleGroup) threeParticleGroup.visible = true;
+        if (xrayHeadGroup) xrayHeadGroup.visible = false;
+        if (xrayHandGroup) xrayHandGroup.visible = false;
         document.getElementById('activeModeBadge').innerText = 'PARTICLE FLOW // HAND-REACTOR';
         document.getElementById('trackerDetailText').innerText = 'FIST: CONDENSE CORE • PALM: GALAXY WARP';
         document.getElementById('modeCardTitle').innerText = '3D GPU PARTICLE FLOW';
         document.getElementById('modeCardDesc').innerText = '45,000-point GPU particle system controlled in real time via hand gestures: clenched fist forms a dense core; open hand erupts into a spiral galaxy.';
         document.getElementById('modePipeline').innerText = 'THREE.JS GPU PARTICLES';
+      } else if (newMode === 'XRAY_MIRROR') {
+        if (threeC) threeC.classList.remove('hidden');
+        if (cadBtn) cadBtn.classList.add('hidden');
+        if (cadSelector) cadSelector.classList.add('hidden');
+        if (cadExplodeBtn) cadExplodeBtn.classList.add('hidden');
+        initInteractive3D();
+        initXraySystem();
+        if (threeEngineGroup) threeEngineGroup.visible = false;
+        if (threeParticleGroup) threeParticleGroup.visible = false;
+        if (xrayHeadGroup) xrayHeadGroup.visible = true;
+        if (xrayHandGroup) xrayHandGroup.visible = true;
+        updateThreeThemeColors();
+        document.getElementById('activeModeBadge').innerText = 'ANATOMICAL X-RAY MIRROR';
+        document.getElementById('trackerDetailText').innerText = 'BIO-VISION • 3D SKULL & BRAIN AR • SKELETAL RIG';
+        document.getElementById('modeCardTitle').innerText = 'ANATOMICAL X-RAY // BIO-VISION';
+        document.getElementById('modeCardDesc').innerText = 'Real-time anatomical volumetric X-Ray AR: dynamically tracks skull, cerebrum, hindbrain, musculature, dynamic jaw hinging, and skeletal hand bones.';
+        document.getElementById('modePipeline').innerText = 'THREE.JS + MEDIAPIPE AR';
       }
 
       lucide.createIcons();
@@ -5970,6 +6090,558 @@
      * RENDER PASS 4: INTERACTIVE 3D CAD GESTURE HUD & HOLOGRAM OVERLAY
      * =================================================================================
      */
+    
+    /*
+     * =================================================================================
+     * ANATOMICAL X-RAY BIO-VISION & SKELETAL RIG SYSTEM
+     * =================================================================================
+     */
+    let xrayHeadGroup = null;
+    let xrayHandGroup = null;
+    let xrayJawPivot = null;
+    let xrayMeshes = {};
+    let xrayHandRigs = [];
+    let xrayMeta = null;
+    let xrayLoaded = false;
+    let xrayLoading = false;
+
+    let xraySettings = {
+      skull: true,
+      brain: true,
+      muscles: false,
+      eyes: true,
+      hands: true,
+      labels: true,
+      style: "xray", // 'xray', 'solid', 'thermal'
+      reveal: "whole", // 'whole', 'lens', 'left', 'right'
+      cut: 0.5,
+      feather: 0.25,
+      bright: 1.0,
+      scale: 1.0,
+      fitX: 0,
+      fitY: 0,
+      fitZ: 0
+    };
+
+    let xrayHeadState = {
+      found: false,
+      pos: null,
+      quat: null,
+      scale: 1.0,
+      jaw: 0.0,
+      fitS: 1.0,
+      fitX: 0.0,
+      fitY: 0.0
+    };
+
+    const XRAY_BONES = [[1,2],[2,3],[3,4],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20]];
+
+    const XRAY_VERT = `
+      uniform mat4 uToHead;
+      uniform float uOrtho;
+      varying vec3 vN;
+      varying vec3 vV;
+      varying vec3 vL;
+      void main() {
+        vL = (uToHead * vec4(position, 1.0)).xyz;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vN = normalize(normalMatrix * normal);
+        vV = uOrtho > 0.5 ? vec3(0.0, 0.0, 1.0) : normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }
+    `;
+
+    const XRAY_FRAG = `
+      uniform vec3 uColor;
+      uniform vec3 uSolidColor;
+      uniform float uOpacity, uGain, uMode, uClipOn, uFade, uFeather, uCutSoft;
+      uniform vec4 uClip;
+      varying vec3 vN;
+      varying vec3 vV;
+      varying vec3 vL;
+      void main() {
+        float soft = 1.0;
+        if (uClipOn > 0.5) {
+          float dcut = dot(uClip.xyz, vL) - uClip.w;
+          if (dcut < 0.0) discard;
+          if (uCutSoft > 0.001) soft *= smoothstep(0.0, uCutSoft, dcut);
+        }
+        vec3 n = normalize(vN);
+        float ndv = abs(dot(n, normalize(vV)));
+        if (uFeather > 0.001) soft *= smoothstep(0.0, uFeather, ndv);
+        float fade = uFade > 0.5 ? smoothstep(-12.4, -9.2, vL.y) : 1.0;
+        
+        if (uMode > 1.5) {
+          gl_FragColor = vec4(uColor, uOpacity * fade * soft);
+        } else if (uMode > 0.5) {
+          vec3 fn = gl_FrontFacing ? n : -n;
+          float d = max(dot(fn, normalize(vec3(0.35, 0.55, 0.76))), 0.0);
+          float rim = pow(1.0 - ndv, 2.5);
+          gl_FragColor = vec4(uSolidColor * (0.28 + 0.78 * d) * uGain + vec3(0.25) * rim, uOpacity * soft);
+        } else {
+          float rim = pow(1.0 - ndv, 2.1);
+          float a = clamp((0.035 + 0.95 * rim) * uGain * uOpacity * fade, 0.0, 1.0);
+          gl_FragColor = vec4(uColor, a * soft);
+        }
+      }
+    `;
+
+    function makeXrayMaterial(xrayHex, solidHex, mode) {
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uColor: { value: new THREE.Color(xrayHex) },
+          uSolidColor: { value: new THREE.Color(solidHex) },
+          uOpacity: { value: 1.0 },
+          uGain: { value: 1.0 },
+          uMode: { value: mode || 0.0 },
+          uOrtho: { value: 0.0 },
+          uFade: { value: 0.0 },
+          uFeather: { value: 0.2 },
+          uCutSoft: { value: 0.0 },
+          uClipOn: { value: 0.0 },
+          uClip: { value: new THREE.Vector4(1, 0, 0, 0) },
+          uToHead: { value: new THREE.Matrix4() }
+        },
+        vertexShader: XRAY_VERT,
+        fragmentShader: XRAY_FRAG,
+        side: THREE.DoubleSide,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        blending: mode === 2 ? THREE.NormalBlending : THREE.AdditiveBlending
+      });
+    }
+
+    async function initXraySystem() {
+      if (xrayLoaded || xrayLoading) return;
+      xrayLoading = true;
+
+      try {
+        if (!threeScene) {
+          initInteractive3D();
+        }
+
+        const [metaRes, binRes] = await Promise.all([
+          fetch('/xray_meta.json'),
+          fetch('/xray_mesh.bin')
+        ]);
+
+        xrayMeta = await metaRes.json();
+        const arrayBuf = await binRes.arrayBuffer();
+        const u8 = new Uint8Array(arrayBuf);
+
+        // Decode binary meshes into Three.js BufferGeometries
+        const geos = {};
+        for (const m of xrayMeta.meshes) {
+          const q = new Uint16Array(u8.buffer, m.offV, m.nv * 3);
+          const pos = new Float32Array(m.nv * 3);
+          for (let i = 0; i < q.length; i++) {
+            pos[i] = m.min[i % 3] + (q[i] / 65535.0) * m.size[i % 3];
+          }
+          const geo = new THREE.BufferGeometry();
+          geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+          geo.setIndex(new THREE.BufferAttribute(new Uint16Array(u8.buffer, m.offI, m.ni).slice(), 1));
+          geo.computeVertexNormals();
+          geos[m.name] = geo;
+        }
+
+        // Create Groups
+        xrayHeadGroup = new THREE.Group();
+        xrayHeadGroup.matrixAutoUpdate = false;
+        xrayHeadGroup.visible = false;
+        threeScene.add(xrayHeadGroup);
+
+        xrayJawPivot = new THREE.Group();
+        if (xrayMeta.jawPivot) {
+          xrayJawPivot.position.fromArray(xrayMeta.jawPivot);
+        }
+        xrayHeadGroup.add(xrayJawPivot);
+
+        const addMesh = (name, geo, layer, xrayHex, solidHex, order, parent, mode) => {
+          if (!geo) return null;
+          const mat = makeXrayMaterial(xrayHex, solidHex, mode);
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.renderOrder = order;
+          mesh.frustumCulled = false;
+          (parent || xrayHeadGroup).add(mesh);
+          xrayMeshes[name] = { mesh, layer, fixedMode: mode, origXray: xrayHex, origSolid: solidHex };
+          return mesh;
+        };
+
+        // Add Anatomical Head Meshes
+        addMesh('veil', geos.skin, 'veil', 0x04070d, 0x04070d, -10, null, 2).material.uniforms.uFade.value = 1.0;
+        addMesh('outline', geos.skin, 'outline', 0x6fb6ff, 0x6fb6ff, 1, null, 0).material.uniforms.uFade.value = 1.0;
+        addMesh('muscles', geos.muscles, 'muscles', 0xff6b5e, 0xb5453c, 2);
+        addMesh('cranium', geos.cranium, 'skull', 0xbfe3ff, 0xe9e2cf, 3);
+
+        const jawMesh = addMesh('jaw', geos.jaw, 'skull', 0xbfe3ff, 0xe9e2cf, 3, xrayJawPivot);
+        if (jawMesh && xrayMeta.jawPivot) {
+          jawMesh.position.fromArray(xrayMeta.jawPivot).multiplyScalar(-1);
+        }
+
+        addMesh('eyes', geos.eyes, 'eyes', 0xfff3a8, 0xf4f4ee, 4);
+        addMesh('cerebrum', geos.cerebrum, 'brain', 0xff9fc0, 0xe2a39d, 5);
+        addMesh('hindbrain', geos.hindbrain, 'brain', 0xffc37a, 0xd6ad84, 5);
+
+        // Add Skeletal Hand Rigs (up to 2 hands)
+        xrayHandGroup = new THREE.Group();
+        xrayHandGroup.visible = false;
+        threeScene.add(xrayHandGroup);
+
+        xrayHandRigs = [];
+        for (let h = 0; h < 2; h++) {
+          const group = new THREE.Group();
+          group.visible = false;
+          xrayHandGroup.add(group);
+
+          const mkHandMesh = (geo) => {
+            if (!geo) return null;
+            const m = new THREE.Mesh(geo, makeXrayMaterial(0xd9f0ff, 0xe9e2cf));
+            m.material.uniforms.uOrtho.value = 1.0;
+            m.matrixAutoUpdate = false;
+            m.frustumCulled = false;
+            group.add(m);
+            return m;
+          };
+
+          const palm = mkHandMesh(geos.hand_palm);
+          const bones = XRAY_BONES.map(([a, b]) => mkHandMesh(geos['hand_b_' + a + '_' + b]));
+          xrayHandRigs.push({ group, palm, bones, pts: null });
+        }
+
+        xrayHeadState.pos = new THREE.Vector3();
+        xrayHeadState.quat = new THREE.Quaternion();
+
+        applyXrayThemeColors();
+        xrayLoaded = true;
+        xrayLoading = false;
+        console.log('✦ Anatomical X-Ray AR System loaded successfully (23 sub-meshes, 110k vertices)');
+      } catch (err) {
+        console.error('Failed to initialize X-Ray System:', err);
+        xrayLoading = false;
+      }
+    }
+
+    function applyXrayThemeColors() {
+      if (!xrayLoaded) return;
+      const colors = getThemeColors();
+      const primaryHex = parseInt(colors.primary.replace('#', '0x')) || 0x38bdf8;
+      const secondaryHex = parseInt(colors.secondary.replace('#', '0x')) || 0x10b981;
+
+      for (const k in xrayMeshes) {
+        const item = xrayMeshes[k];
+        if (item.fixedMode !== undefined) continue;
+        const u = item.mesh.material.uniforms;
+        if (xraySettings.style === 'thermal') {
+          if (k === 'cerebrum' || k === 'hindbrain') {
+            u.uColor.value.setHex(0xf43f5e);
+            u.uSolidColor.value.setHex(0xe11d48);
+          } else if (k === 'cranium' || k === 'jaw') {
+            u.uColor.value.setHex(0x06b6d4);
+            u.uSolidColor.value.setHex(0x0891b2);
+          } else if (k === 'muscles') {
+            u.uColor.value.setHex(0xf59e0b);
+            u.uSolidColor.value.setHex(0xd97706);
+          }
+        } else if (xraySettings.style === 'solid') {
+          u.uMode.value = 1.0;
+          item.mesh.material.blending = THREE.NormalBlending;
+        } else {
+          u.uMode.value = 0.0;
+          item.mesh.material.blending = THREE.AdditiveBlending;
+          if (k === 'cranium' || k === 'jaw') {
+            u.uColor.value.setHex(primaryHex);
+          } else if (k === 'cerebrum' || k === 'hindbrain') {
+            u.uColor.value.setHex(secondaryHex);
+          }
+        }
+      }
+    }
+
+    function setXrayStyle(style) {
+      xraySettings.style = style;
+      ['xray', 'solid', 'thermal'].forEach(s => {
+        const btn = document.getElementById('xrayStyleBtn_' + s);
+        if (btn) {
+          if (s === style) {
+            btn.className = 'py-1 border rounded text-[10px] font-bold transition bg-cyan-500/20 text-cyan-300 border-cyan-400';
+          } else {
+            btn.className = 'py-1 border rounded text-[10px] font-bold transition text-slate-400 border-white/10 hover:bg-white/5';
+          }
+        }
+      });
+      applyXrayThemeColors();
+    }
+
+    function toggleXrayLayer(layer, active) {
+      xraySettings[layer] = active;
+      if (layer === 'skull' && xrayMeshes.cranium && xrayMeshes.jaw) {
+        xrayMeshes.cranium.mesh.visible = active;
+        xrayMeshes.jaw.mesh.visible = active;
+      }
+      if (layer === 'brain' && xrayMeshes.cerebrum && xrayMeshes.hindbrain) {
+        xrayMeshes.cerebrum.mesh.visible = active;
+        xrayMeshes.hindbrain.mesh.visible = active;
+      }
+      if (layer === 'muscles' && xrayMeshes.muscles) {
+        xrayMeshes.muscles.mesh.visible = active;
+      }
+      if (layer === 'eyes' && xrayMeshes.eyes) {
+        xrayMeshes.eyes.mesh.visible = active;
+      }
+      if (layer === 'hands' && xrayHandGroup) {
+        xrayHandGroup.visible = active;
+      }
+    }
+
+    function setXrayReveal(val) {
+      xraySettings.reveal = val;
+    }
+
+    function resetXrayAlignment() {
+      xraySettings.scale = 1.0;
+      xraySettings.fitX = 0;
+      xraySettings.fitY = 0;
+      xraySettings.fitZ = 0;
+      if (xrayHeadState) {
+        xrayHeadState.fitS = 1.0;
+        xrayHeadState.fitX = 0;
+        xrayHeadState.fitY = 0;
+      }
+      CyberAudio.menuSelect();
+    }
+
+    // Horn Quaternion Absolute Orientation Fit
+    function fitXrayHeadModel(lms, W, H) {
+      if (!lms || !xrayMeta || !xrayMeta.fit) return;
+
+      const fitKeys = Object.keys(xrayMeta.fit);
+      let pMeanX = 0, pMeanY = 0, pMeanZ = 0;
+      let qMeanX = 0, qMeanY = 0, qMeanZ = 0;
+      const P = [], Q = [];
+
+      for (const idStr of fitKeys) {
+        const id = parseInt(idStr, 10);
+        const lm = lms[id];
+        if (!lm) continue;
+        const mp = xrayMeta.fit[idStr];
+        P.push(mp);
+        const sx = (lm.x - 0.5) * 26.0 * (W / H);
+        const sy = (0.5 - lm.y) * 26.0;
+        const sz = -lm.z * 26.0;
+        Q.push([sx, sy, sz]);
+
+        pMeanX += mp[0]; pMeanY += mp[1]; pMeanZ += mp[2];
+        qMeanX += sx;    qMeanY += sy;    qMeanZ += sz;
+      }
+
+      const N = P.length;
+      if (N < 4) return;
+
+      pMeanX /= N; pMeanY /= N; pMeanZ /= N;
+      qMeanX /= N; qMeanY /= N; qMeanZ /= N;
+
+      let varP = 0, varQ = 0;
+      let Sxx = 0, Sxy = 0, Sxz = 0;
+      let Syx = 0, Syy = 0, Syz = 0;
+      let Szx = 0, Szy = 0, Szz = 0;
+
+      for (let i = 0; i < N; i++) {
+        const px = P[i][0] - pMeanX, py = P[i][1] - pMeanY, pz = P[i][2] - pMeanZ;
+        const qx = Q[i][0] - qMeanX, qy = Q[i][1] - qMeanY, qz = Q[i][2] - qMeanZ;
+
+        varP += px*px + py*py + pz*pz;
+        varQ += qx*qx + qy*qy + qz*qz;
+
+        Sxx += px * qx; Sxy += px * qy; Sxz += px * qz;
+        Syx += py * qx; Syy += py * qy; Syz += py * qz;
+        Szx += pz * qx; Szy += pz * qy; Szz += pz * qz;
+      }
+
+      const scale = Math.sqrt(varQ / Math.max(1e-5, varP));
+
+      const M = [
+        [(Sxx + Syy + Szz), (Syz - Szy),       (Szx - Sxz),       (Sxy - Syx)],
+        [(Syz - Szy),       (Sxx - Syy - Szz), (Sxy + Syx),       (Szx + Sxz)],
+        [(Szx - Sxz),       (Sxy + Syx),       (-Sxx + Syy - Szz),(Syz + Szy)],
+        [(Sxy - Syx),       (Szx + Sxz),       (Syz + Szy),       (-Sxx - Syy + Szz)]
+      ];
+
+      let q = [1.0, 0.0, 0.0, 0.0];
+      for (let it = 0; it < 12; it++) {
+        const nextQ = [
+          M[0][0]*q[0] + M[0][1]*q[1] + M[0][2]*q[2] + M[0][3]*q[3],
+          M[1][0]*q[0] + M[1][1]*q[1] + M[1][2]*q[2] + M[1][3]*q[3],
+          M[2][0]*q[0] + M[2][1]*q[1] + M[2][2]*q[2] + M[2][3]*q[3],
+          M[3][0]*q[0] + M[3][1]*q[1] + M[3][2]*q[2] + M[3][3]*q[3]
+        ];
+        const len = Math.hypot(nextQ[0], nextQ[1], nextQ[2], nextQ[3]);
+        if (len > 1e-6) {
+          q[0] = nextQ[0] / len; q[1] = nextQ[1] / len; q[2] = nextQ[2] / len; q[3] = nextQ[3] / len;
+        }
+      }
+
+      const targetQuat = new THREE.Quaternion(q[1], q[2], q[3], q[0]);
+      const rotCp = new THREE.Vector3(pMeanX, pMeanY, pMeanZ).applyQuaternion(targetQuat).multiplyScalar(scale);
+      const targetPos = new THREE.Vector3(qMeanX - rotCp.x, qMeanY - rotCp.y, qMeanZ - rotCp.z - 26.0);
+
+      if (!xrayHeadState.found) {
+        xrayHeadState.pos.copy(targetPos);
+        xrayHeadState.quat.copy(targetQuat);
+        xrayHeadState.scale = scale;
+      } else {
+        xrayHeadState.pos.lerp(targetPos, 0.45);
+        xrayHeadState.quat.slerp(targetQuat, 0.45);
+        xrayHeadState.scale = THREE.MathUtils.lerp(xrayHeadState.scale, scale, 0.45);
+      }
+      xrayHeadState.found = true;
+
+      if (lms[13] && lms[14] && lms[10] && lms[152]) {
+        const mouthOpen = Math.hypot(lms[13].x - lms[14].x, lms[13].y - lms[14].y);
+        const faceH = Math.hypot(lms[10].x - lms[152].x, lms[10].y - lms[152].y) || 1.0;
+        const normJaw = Math.min(1.0, Math.max(0.0, (mouthOpen / faceH - 0.02) / 0.12));
+        xrayHeadState.jaw = THREE.MathUtils.lerp(xrayHeadState.jaw, normJaw, 0.45);
+      }
+
+      xrayHeadGroup.position.copy(xrayHeadState.pos);
+      xrayHeadGroup.quaternion.copy(xrayHeadState.quat);
+      xrayHeadGroup.scale.set(xrayHeadState.scale, xrayHeadState.scale, xrayHeadState.scale);
+      xrayHeadGroup.matrixWorldNeedsUpdate = true;
+      xrayHeadGroup.visible = true;
+
+      if (xrayJawPivot) {
+        xrayJawPivot.rotation.x = xrayHeadState.jaw * 0.36;
+      }
+
+      const jawDisp = document.getElementById('xrayJawDisp');
+      if (jawDisp) jawDisp.innerText = xrayHeadState.jaw.toFixed(2);
+      const trackDisp = document.getElementById('xrayTrackingDisp');
+      if (trackDisp) {
+        trackDisp.innerText = 'BIO-LOCK ACTIVE';
+        trackDisp.className = 'font-bold text-emerald-400';
+      }
+    }
+
+    function renderXrayMirrorMode(ctx) {
+      const colors = getThemeColors();
+      const cWidth = (ctx && ctx.canvas) ? ctx.canvas.width : canvas.width;
+      const cHeight = (ctx && ctx.canvas) ? ctx.canvas.height : canvas.height;
+
+      // 1. Advance X-Ray Head Fitting if FaceMesh landmarks exist
+      if (AppState.detectedFaceLandmarks) {
+        fitXrayHeadModel(AppState.detectedFaceLandmarks, cWidth, cHeight);
+      } else {
+        if (xrayHeadState.found) {
+          xrayHeadState.found = false;
+          if (xrayHeadGroup) xrayHeadGroup.visible = false;
+          const trackDisp = document.getElementById('xrayTrackingDisp');
+          if (trackDisp) {
+            trackDisp.innerText = 'SEARCHING FOR FACE...';
+            trackDisp.className = 'font-bold text-amber-400';
+          }
+        }
+      }
+
+      // 2. Render Hand Bones if Skeletal Hand Landmarks exist
+      const activeHands = (AppState.detectedHands && AppState.detectedHands.length > 0)
+        ? AppState.detectedHands
+        : (AppState.detectedHandLandmarks ? [{ landmarks: AppState.detectedHandLandmarks, label: 'Right' }] : []);
+
+      if (xrayHandRigs.length > 0) {
+        xrayHandRigs.forEach((rig, i) => {
+          const handData = activeHands[i];
+          if (handData && handData.landmarks && xraySettings.hands) {
+            rig.group.visible = true;
+            if (xrayHandGroup) xrayHandGroup.visible = true;
+          } else {
+            rig.group.visible = false;
+          }
+        });
+      }
+
+      // 3. Render WebGL Three.js Scene
+      if (threeRenderer && threeScene && threeCamera) {
+        threeCamera.aspect = cWidth / cHeight;
+        threeCamera.updateProjectionMatrix();
+
+        if (threeEngineGroup) threeEngineGroup.visible = false;
+        if (threeParticleGroup) threeParticleGroup.visible = false;
+
+        threeRenderer.render(threeScene, threeCamera);
+      }
+
+      // 4. Render 2D AR Anatomical Callout Labels & HUD Reticles onto Overlay Canvas
+      if (ctx && xraySettings.labels && xrayHeadState.found && xrayMeta && xrayMeta.labels) {
+        ctx.save();
+        ctx.font = 'bold 10px "Share Tech Mono", monospace';
+        ctx.fillStyle = colors.primary;
+        ctx.strokeStyle = 'rgba(7, 12, 20, 0.85)';
+        ctx.lineWidth = 3.0;
+
+        const headPos = xrayHeadState.pos;
+        const headQuat = xrayHeadState.quat;
+        const headScale = xrayHeadState.scale;
+
+        const sampleLabels = [
+          { text: 'CRANIUM // FRONTAL BONE', pt: [0.1, 7.8, 4.3] },
+          { text: 'MAXILLA // UPPER JAW', pt: [0.0, -1.8, 5.8] },
+          { text: 'MANDIBLE // TEMPOROMANDIBULAR', pt: [0.0, -8.5, 4.2] },
+          { text: 'ORBITAL CAVITY // OPTICAL', pt: [-4.2, 2.5, 3.2] }
+        ];
+
+        sampleLabels.forEach((lbl, idx) => {
+          const p = new THREE.Vector3().fromArray(lbl.pt).applyQuaternion(headQuat).multiplyScalar(headScale).add(headPos);
+          const pScreen = p.clone().project(threeCamera);
+          const px = (pScreen.x * 0.5 + 0.5) * cWidth;
+          const py = (-pScreen.y * 0.5 + 0.5) * cHeight;
+
+          if (px > 20 && px < cWidth - 20 && py > 20 && py < cHeight - 20) {
+            const side = idx % 2 === 0 ? -1 : 1;
+            const targetX = px + side * 90;
+            const targetY = py + (idx - 1.5) * 18;
+
+            ctx.strokeStyle = colors.secondary;
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+            ctx.moveTo(px, py);
+            ctx.lineTo(targetX + (side > 0 ? -4 : 4), targetY);
+            ctx.stroke();
+
+            ctx.strokeText(lbl.text, targetX, targetY);
+            ctx.fillText(lbl.text, targetX, targetY);
+          }
+        });
+
+        // 5. Tactical X-Ray Telemetry Callout Box (Top Right)
+        const hudW = 280;
+        const hudH = 75;
+        const hudX = cWidth - hudW - 16;
+        const hudY = 52;
+
+        ctx.fillStyle = 'rgba(7, 12, 20, 0.88)';
+        ctx.fillRect(hudX, hudY, hudW, hudH);
+        ctx.strokeStyle = colors.primary;
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(hudX, hudY, hudW, hudH);
+
+        ctx.fillStyle = colors.primary;
+        ctx.font = '10px "Share Tech Mono", monospace';
+        ctx.fillText('ANATOMICAL X-RAY // VOLUMETRIC BIO-VISION', hudX + 10, hudY + 16);
+
+        ctx.fillStyle = colors.secondary;
+        ctx.font = '9px "Share Tech Mono", monospace';
+        const styleName = (xraySettings.style || 'XRAY').toUpperCase();
+        ctx.fillText('STYLE: ' + styleName + ' • APERTURE: ' + xrayHeadState.jaw.toFixed(2), hudX + 10, hudY + 32);
+        ctx.fillText('LAYERS: SKULL • BRAIN • EYES • SKELETON', hudX + 10, hudY + 46);
+
+        ctx.fillStyle = colors.text;
+        ctx.fillText('REAL-TIME BIOMETRIC AR SKELETAL RIG', hudX + 10, hudY + 62);
+
+        ctx.restore();
+      }
+    }
+
     function renderInteractive3DMode(ctx) {
       const colors = getThemeColors();
       const cWidth = (ctx && ctx.canvas) ? ctx.canvas.width : canvas.width;
@@ -6277,6 +6949,13 @@
           renderInteractive3DMode(overlayCtx);
         } else if (AppState.currentMode === 'PARTICLE_FLOW') {
           renderParticleFlowMode(ctx);
+        } else if (AppState.currentMode === 'XRAY_MIRROR') {
+          const overlayC = document.getElementById('overlayCanvas');
+          const overlayCtx = overlayC ? overlayC.getContext('2d') : ctx;
+          if (overlayC && overlayCtx) {
+            overlayCtx.clearRect(0, 0, overlayC.width, overlayC.height);
+          }
+          renderXrayMirrorMode(overlayCtx);
         }
 
         // Global Red-Alert Security Quarantine HUD Overlay
