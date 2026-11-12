@@ -123,10 +123,12 @@
         <label for="reveal">Reveal</label>
         <select id="reveal">
           <option value="whole">Whole head</option>
-          <option value="left">Left half only</option>
-          <option value="right">Right half only</option>
-          <option value="top">Top of the head only</option>
-          <option value="bottom">Lower face only</option>
+          <option value="coronal">Coronal (front-to-back depth)</option>
+          <option value="coronal_back">Coronal (back-to-front)</option>
+          <option value="left">Left half only (Sagittal)</option>
+          <option value="right">Right half only (Sagittal)</option>
+          <option value="top">Top of the head only (Axial)</option>
+          <option value="bottom">Lower face only (Axial)</option>
           <option value="lens">X-ray lens (follows your fingertip)</option>
         </select>
       </div>
@@ -443,17 +445,24 @@ function updateHead(matrixData, lms, jawOpen) {
   jawPivot.matrixWorldNeedsUpdate = true;
 }
 
-const clipState = { on: 0, x: 1, y: 0, w: 0 };
+const clipState = { on: 0, x: 1, y: 0, z: 0, w: 0 };
 let jawM = null;
 const XRAY_GAIN = { outline: 0.55, muscles: 0.5, cerebrum: 0.36, hindbrain: 0.6, eyes: 0.9 };
 function applyLayers() {
   const reveal = S.reveal;
   let clipOn = 0, cx = 1, cy = 0, cz = 0, cw = 0;
-  if (reveal === "left")   { clipOn = 1; cx = 1;  cy = 0; cw = (S.cut - 0.5) * 16; }      // your left = +x
-  if (reveal === "right")  { clipOn = 1; cx = -1; cy = 0; cw = (S.cut - 0.5) * 16; }
-  if (reveal === "top")    { clipOn = 1; cx = 0; cy = 1;  cw = -9 + (1 - S.cut) * 22; }
-  if (reveal === "bottom") { clipOn = 1; cx = 0; cy = -1; cw = -(-9 + S.cut * 22); }
-  clipState.on = clipOn; clipState.x = cx; clipState.y = cy; clipState.w = cw;
+  if (reveal === "left" || reveal === "sagittal_left")   { clipOn = 1; cx = 1;  cy = 0; cz = 0; cw = (S.cut - 0.5) * 18; }
+  else if (reveal === "right" || reveal === "sagittal_right") { clipOn = 1; cx = -1; cy = 0; cz = 0; cw = (S.cut - 0.5) * 18; }
+  else if (reveal === "top" || reveal === "axial_top")    { clipOn = 1; cx = 0; cy = 1;  cz = 0; cw = -9 + (1 - S.cut) * 22; }
+  else if (reveal === "bottom" || reveal === "axial_bottom") { clipOn = 1; cx = 0; cy = -1; cz = 0; cw = -(-9 + S.cut * 22); }
+  else if (reveal === "coronal" || reveal === "coronal_front" || reveal === "front") {
+    // Slices front-to-back: cuts off anterior facial skin, jaw, and frontal bone to expose internal brain and occipital
+    clipOn = 1; cx = 0; cy = 0; cz = -1; cw = -7.5 + S.cut * 24.0;
+  } else if (reveal === "coronal_back" || reveal === "back") {
+    // Slices back-to-front
+    clipOn = 1; cx = 0; cy = 0; cz = 1; cw = 7.5 - (1.0 - S.cut) * 24.0;
+  }
+  clipState.on = clipOn; clipState.x = cx; clipState.y = cy; clipState.z = cz; clipState.w = cw;
   jawPivot.updateMatrix(); meshes.jaw.mesh.updateMatrix();
   jawM.copy(jawPivot.matrix).multiply(meshes.jaw.mesh.matrix);
   const heavy = (S.skull ? 1 : 0) + (S.brain ? 1 : 0) + (S.muscles ? 1 : 0);
@@ -559,7 +568,7 @@ function collectHeadLabels(lens) {
     let best = null;
     for (const p of L.pts) {
       lp.fromArray(p); if (L.jaw) lp.applyMatrix4(jawM);
-      if (clipState.on && clipState.x * lp.x + clipState.y * lp.y < clipState.w) continue;   // cut away
+      if (clipState.on && (clipState.x * lp.x + clipState.y * lp.y + clipState.z * lp.z < clipState.w)) continue;   // cut away
       ln.set(lp.x - HEAD_C[0], lp.y - HEAD_C[1], lp.z - HEAD_C[2]).transformDirection(M);
       lp.applyMatrix4(M);
       const facing = -(ln.x * lp.x + ln.y * lp.y + ln.z * lp.z) / (lp.length() || 1);
@@ -862,10 +871,25 @@ $("start").onclick = async () => {
   }
 };
 
+// Hardware Watchdog Heartbeat: maintains camera lock state in backend
+setInterval(() => {
+  if (video && video.srcObject && video.srcObject.active) {
+    fetch("/api/xray/heartbeat", { method: "POST" }).catch(() => {});
+  }
+}, 1500);
+
 window.addEventListener("beforeunload", () => {
   if (video && video.srcObject) {
     try { video.srcObject.getTracks().forEach(t => t.stop()); } catch (e) {}
   }
+  try { navigator.sendBeacon("/api/xray/release"); } catch (e) {}
+});
+
+window.addEventListener("pagehide", () => {
+  if (video && video.srcObject) {
+    try { video.srcObject.getTracks().forEach(t => t.stop()); } catch (e) {}
+  }
+  try { navigator.sendBeacon("/api/xray/release"); } catch (e) {}
 });
 
 if (DEMO) boot().then(demoLoop).catch(e => setStatus("Demo failed: " + e.message, "bad"));
@@ -896,6 +920,10 @@ window.addEventListener("message", (e) => {
     if (typeof applyLayers === "function") applyLayers();
   } else if (d.type === "SET_REVEAL" && d.reveal) {
     S.reveal = d.reveal;
+    save(); syncUI();
+    if (typeof applyLayers === "function") applyLayers();
+  } else if (d.type === "SET_CUT") {
+    S.cut = Math.max(0, Math.min(1, parseFloat(d.value)));
     save(); syncUI();
     if (typeof applyLayers === "function") applyLayers();
   } else if (d.type === "SET_SLIDER" && d.key) {

@@ -70,6 +70,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/jsl/delete", post(jsl_delete_handler))
         .route("/api/mode", get(mode_get_handler).post(mode_set_handler))
         .route("/api/filter", get(filter_get_handler).post(filter_set_handler))
+        .route("/api/xray/heartbeat", post(xray_heartbeat_handler))
+        .route("/api/xray/release", post(xray_release_handler))
         .nest_service("/", ServeDir::new("ui"))
         .with_state(state);
 
@@ -297,6 +299,34 @@ async fn mode_set_handler(Json(payload): Json<ModeRequest>) -> Response {
         .header(header::CONTENT_TYPE, "application/json")
         .header("Access-Control-Allow-Origin", "*")
         .body(axum::body::Body::from(format!("{{\"status\": \"ok\", \"mode\": \"{}\"}}", mode)))
+        .unwrap()
+}
+
+async fn xray_heartbeat_handler() -> Response {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs_f64();
+    let _ = tokio::fs::write("data/xray_heartbeat.txt", now.to_string().as_bytes()).await;
+    Response::builder()
+        .header(header::CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
+        .body(axum::body::Body::from("{\"status\": \"ok\"}"))
+        .unwrap()
+}
+
+async fn xray_release_handler() -> Response {
+    let _ = tokio::fs::write("data/xray_heartbeat.txt", b"0").await;
+    let mode = tokio::fs::read_to_string("data/current_mode.txt")
+        .await
+        .unwrap_or_default();
+    if mode.trim() == "XRAY_MIRROR" {
+        let _ = tokio::fs::write("data/current_mode.txt", b"OBJECT_DETECT").await;
+    }
+    Response::builder()
+        .header(header::CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
+        .body(axum::body::Body::from("{\"status\": \"released\"}"))
         .unwrap()
 }
 

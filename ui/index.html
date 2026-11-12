@@ -1019,16 +1019,27 @@
               </div>
             </div>
 
-            <!-- Reveal Window / Lens Option -->
-            <div class="p-2 bg-black/60 border rounded space-y-1.5" style="border-color: var(--panel-border);">
+            <!-- Reveal Window & Anatomical Slicing Plane Option -->
+            <div class="p-2 bg-black/60 border rounded space-y-2" style="border-color: var(--panel-border);">
               <div class="flex justify-between items-center text-[10px]">
-                <span class="opacity-70 font-semibold">REVEAL / CUT MODE:</span>
-                <select id="xrayRevealMode" onchange="setXrayReveal(this.value)" class="bg-black border rounded px-1.5 py-0.5 text-[10px] text-cyan-300 outline-none" style="border-color: var(--panel-border);">
+                <span class="opacity-70 font-semibold">ANATOMICAL SLICER:</span>
+                <select id="xrayRevealMode" onchange="setXrayReveal(this.value)" class="bg-black border rounded px-1.5 py-0.5 text-[10px] text-cyan-300 outline-none max-w-[55%]" style="border-color: var(--panel-border);">
                   <option value="whole" selected>FULL BIO-SCAN</option>
+                  <option value="coronal">CORONAL (FRONT-TO-BACK)</option>
+                  <option value="coronal_back">CORONAL (BACK-TO-FRONT)</option>
+                  <option value="top">AXIAL (TOP-TO-BOTTOM)</option>
+                  <option value="bottom">AXIAL (BOTTOM-TO-TOP)</option>
+                  <option value="left">SAGITTAL (LEFT-TO-RIGHT)</option>
+                  <option value="right">SAGITTAL (RIGHT-TO-LEFT)</option>
                   <option value="lens">INDEX FINGER LENS</option>
-                  <option value="left">LEFT HALF</option>
-                  <option value="right">RIGHT HALF</option>
                 </select>
+              </div>
+              <div id="xrayCutContainer" class="hidden pt-1 border-t" style="border-color: var(--panel-border);">
+                <div class="flex justify-between items-center text-[10px] mb-1">
+                  <span class="opacity-70 font-semibold" id="xrayCutLabel">CROSS-SECTION DEPTH:</span>
+                  <span id="xrayCutDisp" class="font-mono text-cyan-400 font-bold">50%</span>
+                </div>
+                <input type="range" id="xrayCutSlider" min="0" max="100" value="50" oninput="setXrayCut(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
               </div>
             </div>
 
@@ -3831,6 +3842,7 @@
           xrayF.classList.add('hidden');
           if (xrayF.src && xrayF.src !== 'about:blank') {
             xrayF.src = 'about:blank';
+            try { fetch('/api/xray/release', { method: 'POST' }).catch(() => {}); } catch (e) {}
           }
         }
       }
@@ -6594,7 +6606,23 @@
 
     function setXrayReveal(val) {
       xraySettings.reveal = val;
+      const cutBox = document.getElementById('xrayCutContainer');
+      const cutLbl = document.getElementById('xrayCutLabel');
+      if (cutBox) {
+        cutBox.classList.toggle('hidden', val === 'whole');
+      }
+      if (cutLbl) {
+        cutLbl.innerText = val === 'lens' ? 'LENS RADIUS:' : 'CROSS-SECTION DEPTH:';
+      }
       postToXray({ type: 'SET_REVEAL', reveal: val });
+    }
+
+    function setXrayCut(val) {
+      const cutNorm = parseFloat(val) / 100.0;
+      xraySettings.cut = cutNorm;
+      const disp = document.getElementById('xrayCutDisp');
+      if (disp) disp.innerText = `${val}%`;
+      postToXray({ type: 'SET_CUT', value: cutNorm });
     }
 
     function setXraySkullScale(val) {

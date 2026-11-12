@@ -167,16 +167,36 @@ while True:
                 with yolo_lock:
                     yolo_target_mode = current_mode
 
-        # When X-Ray Mirror is active, release camera hardware so browser WebRTC/getUserMedia can access it exclusively
+        # Check X-Ray Mirror status & verify browser heartbeat watchdog
         if current_mode == "XRAY_MIRROR":
-            if cap is not None:
+            xray_alive = False
+            if os.path.exists("data/xray_heartbeat.txt"):
                 try:
-                    cap.release()
+                    with open("data/xray_heartbeat.txt", "r") as hf:
+                        hb_val = float(hf.read().strip())
+                        if hb_val > 0 and (now - hb_val) < 3.5:
+                            xray_alive = True
                 except Exception:
                     pass
-                cap = None
-            time.sleep(0.08)
-            continue
+
+            if xray_alive:
+                # Browser is actively using camera; keep hardware released
+                if cap is not None:
+                    try:
+                        cap.release()
+                    except Exception:
+                        pass
+                    cap = None
+                time.sleep(0.08)
+                continue
+            else:
+                # Heartbeat expired or tab closed: auto-recover camera for local modes
+                current_mode = "OBJECT_DETECT"
+                try:
+                    with open("data/current_mode.txt", "w") as mf:
+                        mf.write("OBJECT_DETECT")
+                except Exception:
+                    pass
 
         # Re-acquire camera hardware when exiting X-Ray Mirror back to local detection modes
         if cap is None or not cap.isOpened():
