@@ -1050,6 +1050,32 @@
               </div>
             </div>
 
+            <!-- Anatomical Fit & Head Calibration Controls -->
+            <div class="p-2 bg-black/60 border rounded space-y-2" style="border-color: var(--panel-border);">
+              <div class="text-[9px] opacity-70 font-semibold text-cyan-400">CRANIAL FIT & BIOMETRIC CALIBRATION:</div>
+              <div>
+                <div class="flex justify-between items-center text-[10px] mb-1">
+                  <span class="opacity-70 font-semibold">SKULL SCALE (HEAD FIT):</span>
+                  <span id="xraySkullScaleDisp" class="font-mono text-cyan-400 font-bold">118%</span>
+                </div>
+                <input type="range" id="xraySkullScaleSlider" min="70" max="160" value="118" oninput="setXraySkullScale(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
+              </div>
+              <div>
+                <div class="flex justify-between items-center text-[10px] mb-1">
+                  <span class="opacity-70 font-semibold">VERTICAL SHIFT (ALIGNMENT):</span>
+                  <span id="xraySkullShiftYDisp" class="font-mono text-cyan-400 font-bold">-0.2 cm</span>
+                </div>
+                <input type="range" id="xraySkullShiftYSlider" min="-20" max="20" value="-2" oninput="setXraySkullShiftY(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
+              </div>
+              <div>
+                <div class="flex justify-between items-center text-[10px] mb-1">
+                  <span class="opacity-70 font-semibold">JAW ANGLE SENSITIVITY:</span>
+                  <span id="xrayJawSensDisp" class="font-mono text-cyan-400 font-bold">100%</span>
+                </div>
+                <input type="range" id="xrayJawSensSlider" min="50" max="200" value="100" oninput="setXrayJawSens(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
+              </div>
+            </div>
+
             <!-- Diagnostics Telemetry -->
             <div class="p-2 bg-black/50 border rounded text-[10px] space-y-1" style="border-color: var(--panel-border);">
               <div class="flex justify-between items-center text-slate-300">
@@ -6552,6 +6578,27 @@
     function setXrayReveal(val) {
       xraySettings.reveal = val;
       postToXray({ type: 'SET_REVEAL', reveal: val });
+    }
+
+    function setXraySkullScale(val) {
+      const scale = parseInt(val, 10) / 100.0;
+      const disp = document.getElementById('xraySkullScaleDisp');
+      if (disp) disp.innerText = `${val}%`;
+      postToXray({ type: 'SET_SKULL_SCALE', value: scale });
+    }
+
+    function setXraySkullShiftY(val) {
+      const shiftCm = parseInt(val, 10) / 10.0;
+      const disp = document.getElementById('xraySkullShiftYDisp');
+      if (disp) disp.innerText = `${shiftCm > 0 ? '+' : ''}${shiftCm.toFixed(1)} cm`;
+      postToXray({ type: 'SET_SKULL_SHIFT_Y', value: shiftCm });
+    }
+
+    function setXrayJawSens(val) {
+      const sens = parseInt(val, 10) / 100.0;
+      const disp = document.getElementById('xrayJawSensDisp');
+      if (disp) disp.innerText = `${val}%`;
+      postToXray({ type: 'SET_JAW_SENS', value: sens });
     }
 
     function resetXrayAlignment() {
