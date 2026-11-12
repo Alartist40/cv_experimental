@@ -903,17 +903,22 @@ $("start").onclick = async () => {
       throw new Error("this browser will not give this page a camera. Try Chrome or Edge.");
     setStatus("Connecting camera feed…");
 
+    // Ping backend heartbeat so camera lock is guaranteed to be released by background daemon
+    try { await fetch("/api/xray/heartbeat", { method: "POST" }); } catch (e) {}
+    await new Promise(r => setTimeout(r, 250));
+
     let stream = null, lastErr = null;
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 4; attempt++) {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
         if (stream) break;
       } catch (err) {
         lastErr = err;
-        if (attempt < 3) {
-          setStatus(`Camera busy, retrying (${attempt}/3)…`);
-          await new Promise(r => setTimeout(r, 450));
+        if (attempt < 4) {
+          setStatus(`Camera busy, waiting for device release (${attempt}/4)…`);
+          try { await fetch("/api/xray/heartbeat", { method: "POST" }); } catch (e) {}
+          await new Promise(r => setTimeout(r, 650));
         }
       }
     }

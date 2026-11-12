@@ -138,6 +138,7 @@ last_gesture = None
 last_gesture_time = 0.0
 last_mode_read_time = 0.0
 current_mode = "OBJECT_DETECT"
+xray_mode_entered_time = 0.0
 
 # Target frame interval: ~30-33 FPS (fluid, responsive video ingest)
 TARGET_INTERVAL = 0.030
@@ -158,6 +159,8 @@ while True:
                 except Exception:
                     pass
             if new_mode != current_mode:
+                if new_mode == "XRAY_MIRROR":
+                    xray_mode_entered_time = now
                 current_mode = new_mode
                 last_gesture = None
                 with yolo_lock:
@@ -169,28 +172,35 @@ while True:
 
         # Check X-Ray Mirror status & verify browser heartbeat watchdog
         if current_mode == "XRAY_MIRROR":
-            xray_alive = False
-            if os.path.exists("data/xray_heartbeat.txt"):
+            # 1. Immediately ensure V4L2 device is released so the browser can acquire it cleanly
+            if cap is not None:
                 try:
-                    with open("data/xray_heartbeat.txt", "r") as hf:
-                        hb_val = float(hf.read().strip())
-                        if hb_val > 0 and (now - hb_val) < 3.5:
-                            xray_alive = True
+                    cap.release()
                 except Exception:
                     pass
+                cap = None
 
-            if xray_alive:
-                # Browser is actively using camera; keep hardware released
-                if cap is not None:
+            # 2. Check browser heartbeat watchdog with a generous 10s grace period for initial camera load
+            time_since_entered = now - xray_mode_entered_time
+            xray_alive = True
+            if time_since_entered > 10.0:
+                has_hb = False
+                if os.path.exists("data/xray_heartbeat.txt"):
                     try:
-                        cap.release()
+                        with open("data/xray_heartbeat.txt", "r") as hf:
+                            hb_val = float(hf.read().strip())
+                            if hb_val > 0 and (now - hb_val) < 5.0:
+                                has_hb = True
                     except Exception:
                         pass
-                    cap = None
+                if not has_hb:
+                    xray_alive = False
+
+            if xray_alive:
                 time.sleep(0.08)
                 continue
             else:
-                # Heartbeat expired or tab closed: auto-recover camera for local modes
+                # Heartbeat truly expired after grace period: auto-recover camera for local modes
                 current_mode = "OBJECT_DETECT"
                 try:
                     with open("data/current_mode.txt", "w") as mf:

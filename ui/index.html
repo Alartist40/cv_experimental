@@ -4063,6 +4063,9 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ mode: newMode })
         });
+        if (newMode === 'XRAY_MIRROR') {
+          await fetch('/api/xray/heartbeat', { method: 'POST' }).catch(() => {});
+        }
       } catch (e) {}
 
       const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'EMOTION_READER', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT', 'XRAY_MIRROR'];

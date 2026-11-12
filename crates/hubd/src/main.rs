@@ -295,6 +295,13 @@ async fn mode_get_handler() -> Response {
 async fn mode_set_handler(Json(payload): Json<ModeRequest>) -> Response {
     let mode = payload.mode.trim().to_uppercase();
     let _ = tokio::fs::write("data/current_mode.txt", mode.as_bytes()).await;
+    if mode == "XRAY_MIRROR" {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs_f64();
+        let _ = tokio::fs::write("data/xray_heartbeat.txt", now.to_string().as_bytes()).await;
+    }
     Response::builder()
         .header(header::CONTENT_TYPE, "application/json")
         .header("Access-Control-Allow-Origin", "*")
