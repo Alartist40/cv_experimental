@@ -6,13 +6,13 @@
 <title>X-Ray Mirror</title>
 <style>
   :root { --bg:#090c13; --panel:#141926; --line:#262d42; --fg:#eef1f8; --dim:#8b95b2;
-          --accent:#7fd1ff; --ok:#57d98a; --bad:#ff5d73; }
+          --accent:#7fd1ff; --ok:#57d98a; --bad:#ff5d73; --ar: 1.7778; }
   * { box-sizing:border-box; }
   html,body { margin:0; min-height:100%; background:var(--bg); color:var(--fg);
               font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
   .wrap { display:flex; gap:20px; padding:20px; justify-content:center; align-items:flex-start; }
   .stagecol { flex:1 1 auto; min-width:0; display:flex; justify-content:center; }
-  .stage { position:relative; width:min(100%, calc((100vh - 40px) * var(--ar, 1.3333))); aspect-ratio:var(--ar, 1.3333);
+  .stage { position:relative; width:min(100%, calc((100vh - 40px) * var(--ar, 1.7778))); aspect-ratio:var(--ar, 1.7778);
            background:radial-gradient(ellipse at 50% 40%, #131a2b, #05070c 75%); border:1px solid var(--line);
            border-radius:16px; overflow:hidden; }
   .stage video, .stage canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
@@ -61,7 +61,7 @@
   body.is-embedded .wrap { padding:0 !important; margin:0 !important; gap:0 !important; width:100vw !important; height:100vh !important; max-width:100% !important; max-height:100% !important; justify-content:center !important; align-items:center !important; }
   body.is-embedded aside { display:none !important; }
   body.is-embedded .stagecol { width:100% !important; height:100% !important; flex:1 1 100% !important; display:flex !important; justify-content:center !important; align-items:center !important; }
-  body.is-embedded .stage { width:min(100vw, calc(100vh * var(--ar, 1.3333))) !important; height:min(100vh, calc(100vw / var(--ar, 1.3333))) !important; aspect-ratio:var(--ar, 1.3333) !important; max-width:100% !important; max-height:100% !important; border:none !important; border-radius:0 !important; }
+  body.is-embedded .stage { width:min(100vw, calc(100vh * var(--ar, 1.7778))) !important; height:min(100vh, calc(100vw / var(--ar, 1.7778))) !important; aspect-ratio:var(--ar, 1.7778) !important; max-width:100% !important; max-height:100% !important; border:none !important; border-radius:0 !important; }
 </style>
 </head>
 <body>
@@ -171,16 +171,17 @@ const HAND_MODEL = MODELS + "hand_landmarker/hand_landmarker/float16/1/hand_land
 const META = JSON.parse($("meshmeta").textContent);
 
 // ------------------------------ settings ------------------------------
+const CURRENT_SETTINGS_VERSION = 2;
 const DEFAULTS = { skull: true, brain: false, muscles: false, eyes: true, outline: true, hands: true,
                    style: "xray", bright: 1, real: 0.12, feather: 0.2, reveal: "whole", cut: 0.5, showdata: false,
-                   fs: 1.18, fw: 1.05, fh: 1.08, fd: 1.05, fx: 0, fy: -0.2, fz: 0, labels: false, jawSens: 1.0 };
+                   fs: 1.25, fw: 1.08, fh: 1.12, fd: 1.08, fx: 0, fy: -0.2, fz: 0, labels: false, jawSens: 1.0,
+                   handShiftX: 0, handScale: 1.0 };
 let S = Object.assign({}, DEFAULTS);
 try {
-  const saved = JSON.parse(localStorage.getItem("xr_settings") || "{}");
+  const saved = JSON.parse(localStorage.getItem("xr_settings_v2") || "{}");
   Object.assign(S, saved);
-  if (S.fs === 1.0 && !saved.fs_custom) S.fs = 1.18;
 } catch (e) {}
-function save() { try { localStorage.setItem("xr_settings", JSON.stringify(S)); } catch (e) {} }
+function save() { try { localStorage.setItem("xr_settings_v2", JSON.stringify(S)); } catch (e) {} }
 const LAYERS = ["skull", "brain", "muscles", "eyes", "outline", "hands"];
 const SLIDERS = ["bright", "real", "feather", "cut", "fs", "fw", "fh", "fd", "fx", "fy", "fz"];
 
@@ -289,8 +290,13 @@ function buildScene() {
   renderer.setClearColor(0x000000, 0);
   renderer.autoClear = false;
   headScene = new THREE.Scene(); handScene = new THREE.Scene();
-  // MediaPipe places the face for a camera with a 63 degree vertical field of view.
-  cam = new THREE.PerspectiveCamera(63, W / H, 1, 10000);
+  
+  // MediaPipe Tasks FaceLandmarker metric matrix uses fx = fy = width.
+  // The correct vertical FOV in camera space is 2 * atan(height / (2 * width)).
+  const vw = (video && video.videoWidth) ? video.videoWidth : 1280;
+  const vh = (video && video.videoHeight) ? video.videoHeight : 720;
+  const initFov = 2.0 * Math.atan((vh / 2.0) / vw) * (180.0 / Math.PI);
+  cam = new THREE.PerspectiveCamera(initFov, W / H, 1, 10000);
   ortho = new THREE.OrthographicCamera(0, W, H, 0, -5000, 5000);
   const geos = decodeMeshes();
 
@@ -345,7 +351,13 @@ function resize() {
   if (renderer) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(W, H, false);
-    cam.aspect = W / H; cam.updateProjectionMatrix(); baseProj = cam.projectionMatrix.clone();
+    const vw = (video && video.videoWidth) ? video.videoWidth : 1280;
+    const vh = (video && video.videoHeight) ? video.videoHeight : 720;
+    const fovDeg = 2.0 * Math.atan((vh / 2.0) / vw) * (180.0 / Math.PI);
+    cam.fov = fovDeg;
+    cam.aspect = W / H;
+    cam.updateProjectionMatrix();
+    baseProj = cam.projectionMatrix.clone();
     ortho.right = W; ortho.top = H; ortho.updateProjectionMatrix();
   }
   for (const id of ["shade", "hud"]) { const c = $(id); c.width = W; c.height = H; }
@@ -461,8 +473,10 @@ function updateHand(rig, lms, isRight) {
   if (!rig.pts) rig.pts = lms.map(() => new THREE.Vector3());
   const fresh = !rig.group.visible;
   const vt = getVideoTransform();
+  const shiftX = (S.handShiftX !== undefined ? S.handShiftX : 0);
+  const hScale = (S.handScale !== undefined ? S.handScale : 1.0);
   lms.forEach((p, i) => {
-    const sx = p.x * vt.rw - vt.ox;
+    const sx = (p.x * vt.rw - vt.ox) + shiftX;
     const sy = p.y * vt.rh - vt.oy;
     const sz = -p.z * vt.rw;
     tmpV.set(sx, H - sy, sz);
@@ -471,8 +485,10 @@ function updateHand(rig, lms, isRight) {
   const P = rig.pts, sign = isRight ? 1 : -1;
   // palm block (wrist bones + the four finger metacarpals) follows wrist, index knuckle and little-finger knuckle
   e1.subVectors(P[5], P[0]); e2.subVectors(P[17], P[0]);
-  e3.crossVectors(e1, e2).normalize().multiplyScalar(sign * Math.sqrt(e1.length() * e2.length()));
-  rig.palm.matrix.makeBasis(e1, e2, e3).setPosition(P[0]);
+  e3.crossVectors(e1, e2).normalize().multiplyScalar(sign * Math.sqrt(e1.length() * e2.length()) * hScale);
+  const palmE1 = e1.clone().multiplyScalar(hScale);
+  const palmE2 = e2.clone().multiplyScalar(hScale);
+  rig.palm.matrix.makeBasis(palmE1, palmE2, e3).setPosition(P[0]);
   rig.palm.matrixWorldNeedsUpdate = true;
   // every finger bone spans two tracked joints; its roll comes from the line across the knuckles
   vC.subVectors(P[17], P[5]).normalize();
@@ -483,7 +499,7 @@ function updateHand(rig, lms, isRight) {
     vB.copy(vC).addScaledVector(vA, -vC.dot(vA));
     if (vB.lengthSq() < 1e-6) vB.set(1, 0, 0); vB.normalize();
     e3.crossVectors(vA, vB).multiplyScalar(sign);
-    const L = len * (b % 4 === 0 ? 0.8 : 1);              // fingertip points sit past the end of the bone
+    const L = len * (b % 4 === 0 ? 0.8 : 1) * hScale;              // fingertip points sit past the end of the bone
     hm.makeBasis(e1.copy(vA).multiplyScalar(L), e2.copy(vB).multiplyScalar(L), e3.multiplyScalar(L)).setPosition(P[a]);
     rig.bones[i].matrix.copy(hm);
     rig.bones[i].matrixWorldNeedsUpdate = true;
@@ -494,7 +510,8 @@ function updateHand(rig, lms, isRight) {
 // the dark "veil" that hides the real hand so the bones read clearly (drawn on the 2D layer under the 3D one)
 function drawHandVeil(g, lms, alpha) {
   const vt = getVideoTransform();
-  const px = i => lms[i].x * vt.rw - vt.ox, py = i => lms[i].y * vt.rh - vt.oy;
+  const shiftX = (S.handShiftX !== undefined ? S.handShiftX : 0);
+  const px = i => (lms[i].x * vt.rw - vt.ox) + shiftX, py = i => lms[i].y * vt.rh - vt.oy;
   const d = Math.hypot(px(5) - px(17), py(5) - py(17)) || 1;
   g.fillStyle = g.strokeStyle = "rgba(4,7,13," + alpha.toFixed(3) + ")";
   g.lineJoin = g.lineCap = "round";
@@ -711,6 +728,13 @@ function liveLoop() {
     requestAnimationFrame(tick);
     if (video.readyState < 2 || video.currentTime === lastTime) return;
     lastTime = video.currentTime;
+    if (video.videoWidth && video.videoHeight) {
+      const currentAr = (video.videoWidth / video.videoHeight).toFixed(4);
+      if (stage.style.getPropertyValue("--ar") !== currentAr) {
+        stage.style.setProperty("--ar", currentAr);
+        resize();
+      }
+    }
     const now = performance.now();
     let faceLms = null, hands = [], sides = [];
     try {
@@ -787,6 +811,13 @@ $("start").onclick = async () => {
       video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
     video.srcObject = stream;
     await video.play();
+    if (!video.videoWidth || !video.videoHeight) {
+      await new Promise(r => {
+        video.onloadedmetadata = () => r();
+        video.onloadeddata = () => r();
+        setTimeout(r, 600);
+      });
+    }
     if (video.videoWidth && video.videoHeight) stage.style.setProperty("--ar", (video.videoWidth / video.videoHeight).toFixed(4));
     $("intro").hidden = true;
     stageName = "3D engine";
@@ -852,6 +883,24 @@ window.addEventListener("message", (e) => {
     save();
   } else if (d.type === "SET_SKULL_SHIFT_Y") {
     S.fy = d.value;
+    save(); syncUI();
+  } else if (d.type === "SET_HAND_SHIFT_X") {
+    S.handShiftX = d.value;
+    save();
+  } else if (d.type === "SET_HAND_SCALE") {
+    S.handScale = d.value;
+    save();
+  } else if (d.type === "RESET_BIOMETRIC_FIT") {
+    S.fs = DEFAULTS.fs;
+    S.fw = DEFAULTS.fw;
+    S.fh = DEFAULTS.fh;
+    S.fd = DEFAULTS.fd;
+    S.fx = DEFAULTS.fx;
+    S.fy = DEFAULTS.fy;
+    S.fz = DEFAULTS.fz;
+    S.jawSens = DEFAULTS.jawSens;
+    S.handShiftX = DEFAULTS.handShiftX;
+    S.handScale = DEFAULTS.handScale;
     save(); syncUI();
   } else if (d.type === "START_CAMERA") {
     if ($("start") && !$("start").disabled) $("start").click();

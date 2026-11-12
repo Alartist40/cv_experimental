@@ -1052,13 +1052,16 @@
 
             <!-- Anatomical Fit & Head Calibration Controls -->
             <div class="p-2 bg-black/60 border rounded space-y-2" style="border-color: var(--panel-border);">
-              <div class="text-[9px] opacity-70 font-semibold text-cyan-400">CRANIAL FIT & BIOMETRIC CALIBRATION:</div>
+              <div class="flex justify-between items-center">
+                <span class="text-[9px] opacity-70 font-semibold text-cyan-400">CRANIAL & SKELETAL CALIBRATION:</span>
+                <button type="button" onclick="resetXrayBiometricFit()" class="text-[9px] text-cyan-400/80 hover:text-cyan-300 underline font-mono">RESET</button>
+              </div>
               <div>
                 <div class="flex justify-between items-center text-[10px] mb-1">
                   <span class="opacity-70 font-semibold">SKULL SCALE (HEAD FIT):</span>
-                  <span id="xraySkullScaleDisp" class="font-mono text-cyan-400 font-bold">118%</span>
+                  <span id="xraySkullScaleDisp" class="font-mono text-cyan-400 font-bold">125%</span>
                 </div>
-                <input type="range" id="xraySkullScaleSlider" min="70" max="160" value="118" oninput="setXraySkullScale(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
+                <input type="range" id="xraySkullScaleSlider" min="70" max="180" value="125" oninput="setXraySkullScale(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
               </div>
               <div>
                 <div class="flex justify-between items-center text-[10px] mb-1">
@@ -1073,6 +1076,20 @@
                   <span id="xrayJawSensDisp" class="font-mono text-cyan-400 font-bold">100%</span>
                 </div>
                 <input type="range" id="xrayJawSensSlider" min="50" max="200" value="100" oninput="setXrayJawSens(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
+              </div>
+              <div>
+                <div class="flex justify-between items-center text-[10px] mb-1">
+                  <span class="opacity-70 font-semibold">HAND SKELETON SCALE:</span>
+                  <span id="xrayHandScaleDisp" class="font-mono text-cyan-400 font-bold">100%</span>
+                </div>
+                <input type="range" id="xrayHandScaleSlider" min="70" max="150" value="100" oninput="setXrayHandScale(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
+              </div>
+              <div>
+                <div class="flex justify-between items-center text-[10px] mb-1">
+                  <span class="opacity-70 font-semibold">HAND HORIZONTAL NUDGE:</span>
+                  <span id="xrayHandShiftXDisp" class="font-mono text-cyan-400 font-bold">0 px</span>
+                </div>
+                <input type="range" id="xrayHandShiftXSlider" min="-80" max="80" value="0" oninput="setXrayHandShiftX(this.value)" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer">
               </div>
             </div>
 
@@ -3808,7 +3825,7 @@
         if (newMode === 'XRAY_MIRROR') {
           xrayF.classList.remove('hidden');
           if (!xrayF.src || xrayF.src === 'about:blank' || !xrayF.src.includes('xray.html')) {
-            xrayF.src = '/xray.html?embed=1&autostart=1';
+            xrayF.src = '/xray.html?embed=1&autostart=1&v=' + Date.now();
           }
         } else {
           xrayF.classList.add('hidden');
@@ -6599,6 +6616,35 @@
       const disp = document.getElementById('xrayJawSensDisp');
       if (disp) disp.innerText = `${val}%`;
       postToXray({ type: 'SET_JAW_SENS', value: sens });
+    }
+
+    function setXrayHandScale(val) {
+      const scale = parseInt(val, 10) / 100.0;
+      const disp = document.getElementById('xrayHandScaleDisp');
+      if (disp) disp.innerText = `${val}%`;
+      postToXray({ type: 'SET_HAND_SCALE', value: scale });
+    }
+
+    function setXrayHandShiftX(val) {
+      const px = parseInt(val, 10);
+      const disp = document.getElementById('xrayHandShiftXDisp');
+      if (disp) disp.innerText = `${px > 0 ? '+' : ''}${px} px`;
+      postToXray({ type: 'SET_HAND_SHIFT_X', value: px });
+    }
+
+    function resetXrayBiometricFit() {
+      const ss = document.getElementById('xraySkullScaleSlider');
+      if (ss) { ss.value = 125; setXraySkullScale(125); }
+      const sy = document.getElementById('xraySkullShiftYSlider');
+      if (sy) { sy.value = -2; setXraySkullShiftY(-2); }
+      const js = document.getElementById('xrayJawSensSlider');
+      if (js) { js.value = 100; setXrayJawSens(100); }
+      const hs = document.getElementById('xrayHandScaleSlider');
+      if (hs) { hs.value = 100; setXrayHandScale(100); }
+      const hx = document.getElementById('xrayHandShiftXSlider');
+      if (hx) { hx.value = 0; setXrayHandShiftX(0); }
+      postToXray({ type: 'RESET_BIOMETRIC_FIT' });
+      CyberAudio.menuSelect();
     }
 
     function resetXrayAlignment() {
