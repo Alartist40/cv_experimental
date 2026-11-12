@@ -142,6 +142,10 @@
     </div>
 
     <div class="panel">
+      <button id="btnExportXrayDossier" type="button" style="width:100%;font:inherit;font-size:13px;font-weight:700;color:var(--accent);background:rgba(127,209,255,0.1);border:1px solid var(--accent);border-radius:9px;padding:8px 12px;cursor:pointer;">📸 Export Anatomical Dossier PNG</button>
+    </div>
+
+    <div class="panel">
       <h3>Fit to my head</h3>
       <div class="row"><label for="fs">Overall size <b id="fsv"></b></label><input id="fs" type="range" min="0.7" max="1.4" step="0.005"></div>
       <div class="row"><label for="fw">Width <b id="fwv"></b></label><input id="fw" type="range" min="0.8" max="1.25" step="0.005"></div>
@@ -1035,8 +1039,63 @@ window.addEventListener("message", (e) => {
     save(); syncUI();
   } else if (d.type === "START_CAMERA") {
     if ($("start") && !$("start").disabled) $("start").click();
+  } else if (d.type === "EXPORT_DOSSIER") {
+    exportXrayDossier();
   }
 });
+
+function exportXrayDossier() {
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  x.fillStyle = "#060a12";
+  x.fillRect(0, 0, W, H);
+
+  // Draw camera video feed
+  if (video && video.videoWidth && video.videoHeight) {
+    x.save();
+    x.translate(W, 0);
+    x.scale(-1, 1);
+    x.drawImage(video, 0, 0, W, H);
+    x.restore();
+  }
+
+  // Draw shade and 3D gl
+  x.save();
+  x.translate(W, 0);
+  x.scale(-1, 1);
+  x.drawImage($("shade"), 0, 0, W, H);
+  x.drawImage($("gl"), 0, 0, W, H);
+  x.restore();
+
+  // Draw 2D labels and hud
+  x.drawImage($("hud"), 0, 0);
+
+  // Overlay Tactical Medical Watermark
+  x.fillStyle = "rgba(7, 12, 22, 0.85)";
+  x.strokeStyle = "rgba(127, 209, 255, 0.6)";
+  x.lineWidth = 1.5;
+  if (x.roundRect) x.roundRect(20, 20, Math.min(W - 40, 480), 65, 6); else x.rect(20, 20, Math.min(W - 40, 480), 65);
+  x.fill(); x.stroke();
+
+  x.fillStyle = "#7fd1ff";
+  x.font = "bold 14px monospace";
+  x.fillText("AERIS // ANATOMICAL BIO-VISION DOSSIER", 34, 44);
+  x.fillStyle = "#94a3b8";
+  x.font = "11px monospace";
+  x.fillText(`TIME: ${new Date().toUTCString()} • AR SKELETAL RIG`, 34, 68);
+
+  const a = document.createElement("a");
+  a.download = `AERIS_XRAY_DOSSIER_${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+  a.href = c.toDataURL("image/png");
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+if ($("btnExportXrayDossier")) {
+  $("btnExportXrayDossier").onclick = exportXrayDossier;
+}
 </script>
 </body>
 </html>
