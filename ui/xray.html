@@ -111,6 +111,7 @@
       <div class="seg" id="style">
         <button data-style="xray">X-ray</button>
         <button data-style="solid">Solid</button>
+        <button data-style="thermal">Thermal</button>
       </div>
       <div class="row"><label for="bright">Brightness</label><input id="bright" type="range" min="0.3" max="2.2" step="0.01"></div>
     </div>
@@ -242,7 +243,7 @@ void main() {
 }`;
 const FRAG = `
 uniform vec3 uColor; uniform vec3 uSolidColor;
-uniform float uOpacity, uGain, uMode, uClipOn, uFade, uFeather, uCutSoft; uniform vec4 uClip;
+uniform float uOpacity, uGain, uMode, uClipOn, uFade, uFeather, uCutSoft, uThermalStress; uniform vec4 uClip;
 varying vec3 vN; varying vec3 vV; varying vec3 vL;
 void main() {
   float soft = 1.0;                                    // edge feather: 1 = fully drawn, 0 = faded out
@@ -255,7 +256,35 @@ void main() {
   float ndv = abs(dot(n, normalize(vV)));
   if (uFeather > 0.001) soft *= smoothstep(0.0, uFeather, ndv);   // surfaces turning away at the outline fade out
   float fade = uFade > 0.5 ? smoothstep(-12.4, -9.2, vL.y) : 1.0;   // the neck fades out instead of ending in a hard edge
-  if (uMode > 1.5) {                                   // flat veil that hides the real face
+  if (uMode > 2.5) {                                   // thermal stress: biomechanical TMJ & masseter strain gradient
+    vec3 leftTMJ = vec3(-4.8, 0.84, -3.8);
+    vec3 rightTMJ = vec3(4.8, 0.84, -3.8);
+    float dTMJ = min(length(vL - leftTMJ), length(vL - rightTMJ));
+    vec3 leftMass = vec3(-4.9, -3.5, -1.1);
+    vec3 rightMass = vec3(4.9, -3.5, -1.1);
+    float dMass = min(length(vL - leftMass), length(vL - rightMass));
+    float dMand = length(vL - vec3(0.0, -7.4, 4.2));
+
+    float hingeStress = smoothstep(6.5, 0.5, dTMJ);
+    float ramusStress = smoothstep(7.0, 1.0, dMass) * 0.82;
+    float chinStress = smoothstep(5.0, 0.8, dMand) * 0.45;
+
+    float baseStrain = hingeStress * 0.35 + ramusStress * 0.25;
+    float dynamicStrain = (hingeStress * 1.35 + ramusStress * 1.1 + chinStress * 0.6) * uThermalStress;
+    float strain = clamp(baseStrain + dynamicStrain, 0.0, 1.0);
+
+    vec3 colRest = vec3(0.0, 0.72, 1.0);
+    vec3 colMid  = vec3(0.95, 0.95, 0.1);
+    vec3 colPeak = vec3(1.0, 0.18, 0.04);
+    vec3 thermalCol = strain < 0.45 ? mix(colRest, colMid, strain / 0.45) : mix(colMid, colPeak, (strain - 0.45) / 0.55);
+
+    float wave = sin(vL.y * 3.0 - uThermalStress * 6.0) * 0.05 * strain;
+    thermalCol += vec3(wave);
+
+    float rim = pow(1.0 - ndv, 2.0);
+    float a = clamp((0.08 + 0.92 * rim) * uGain * uOpacity * fade, 0.0, 1.0);
+    gl_FragColor = vec4(thermalCol, a * soft);
+  } else if (uMode > 1.5) {                            // flat veil that hides the real face
     gl_FragColor = vec4(uColor, uOpacity * fade * soft);
   } else if (uMode > 0.5) {                            // solid, lit
     vec3 fn = gl_FrontFacing ? n : -n;
@@ -267,12 +296,14 @@ void main() {
     float a = clamp((0.035 + 0.95 * rim) * uGain * uOpacity * fade, 0.0, 1.0);
     gl_FragColor = vec4(uColor, a * soft);
   }
-}`;
+}
+`;
 
 function makeMat(xray, solid, mode) {
   return new THREE.ShaderMaterial({
     uniforms: { uColor: { value: new THREE.Color(xray) }, uSolidColor: { value: new THREE.Color(solid) },
-                uOpacity: { value: 1 }, uGain: { value: 1 }, uMode: { value: mode || 0 }, uOrtho: { value: 0 }, uFade: { value: 0 }, uFeather: { value: 0 }, uCutSoft: { value: 0 },
+                uOpacity: { value: 1 }, uGain: { value: 1 }, uMode: { value: mode || 0 }, uThermalStress: { value: 0 },
+                uOrtho: { value: 0 }, uFade: { value: 0 }, uFeather: { value: 0 }, uCutSoft: { value: 0 },
                 uClipOn: { value: 0 }, uClip: { value: new THREE.Vector4(1, 0, 0, 0) }, uToHead: { value: new THREE.Matrix4() } },
     vertexShader: VERT, fragmentShader: FRAG, side: THREE.DoubleSide, transparent: true,
     depthTest: false, depthWrite: false, blending: mode === 2 ? THREE.NormalBlending : THREE.AdditiveBlending
@@ -348,9 +379,10 @@ function eachMat(fn) {
 function applyStyle() {
   if (!renderer) return;
   const solid = S.style === "solid";
+  const thermal = S.style === "thermal";
   eachMat((m, info) => {
     if (info.fixedMode !== undefined) return;            // veil and outline keep their own look
-    m.uniforms.uMode.value = solid ? 1 : 0;
+    m.uniforms.uMode.value = thermal ? 3 : (solid ? 1 : 0);
     m.blending = solid ? THREE.NormalBlending : THREE.AdditiveBlending;
     m.depthTest = solid; m.depthWrite = solid; m.needsUpdate = true;
   });
@@ -672,6 +704,23 @@ function renderFrame(now, faceLms, hands, sides) {
   if (!head.found) headGroup.visible = false;
   applyLayers();
 
+  // Biomechanical Thermal Stress uniform propagation
+  const thermalVal = Math.min(1.5, Math.max(0, head.jaw)) * 1.6;
+  for (const k in meshes) {
+    const m = meshes[k].mesh.material;
+    if (m && m.uniforms && m.uniforms.uThermalStress) {
+      m.uniforms.uThermalStress.value = thermalVal;
+    }
+  }
+  handRigs.forEach(rig => {
+    if (!rig.group.visible) return;
+    for (const m of [rig.palm, ...rig.bones]) {
+      if (m.material.uniforms && m.material.uniforms.uThermalStress) {
+        m.material.uniforms.uThermalStress.value = thermalVal * 0.5;
+      }
+    }
+  });
+
   // x-ray lens: a round window; outside it you see the plain camera picture
   let mask = "none", lens = null;
   if (S.reveal === "lens") {
@@ -771,6 +820,30 @@ function liveLoop() {
         const hd = hr.handedness || hr.handednesses || [];
         // The tracker names hands as if the picture were mirrored; ours is not, so the names are swapped.
         sides = hands.map((h, i) => !!(hd[i] && hd[i][0] && hd[i][0].categoryName === "Left"));
+
+        // Touchless Air-Swipe Gesture Detection (Kiosk navigation)
+        if (hands.length > 0 && hands[0] && hands[0][0]) {
+          const wrist = hands[0][0]; // landmark 0
+          if (!window._xraySwipeHistory) window._xraySwipeHistory = [];
+          window._xraySwipeHistory.push({ x: wrist.x, y: wrist.y, t: now });
+          if (window._xraySwipeHistory.length > 8) window._xraySwipeHistory.shift();
+
+          if (window._xraySwipeHistory.length >= 4 && (!window._lastSwipeAt || now - window._lastSwipeAt > 800)) {
+            const oldest = window._xraySwipeHistory[0];
+            const dt = (now - oldest.t);
+            const dx = wrist.x - oldest.x;
+            const dy = Math.abs(wrist.y - oldest.y);
+            if (dt > 60 && dt < 320 && dy < 0.16) {
+              if (dx > 0.14) {
+                window._lastSwipeAt = now;
+                window.parent.postMessage({ type: 'AIR_SWIPE', direction: 'right' }, '*');
+              } else if (dx < -0.14) {
+                window._lastSwipeAt = now;
+                window.parent.postMessage({ type: 'AIR_SWIPE', direction: 'left' }, '*');
+              }
+            }
+          }
+        }
       }
     } catch (e) { say("The tracker hit an error: " + e.message, "bad"); return; }
     say(head.found ? "Tracking your head." + (hands.length ? " Hand bones on." : "")

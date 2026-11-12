@@ -1435,6 +1435,14 @@
       menuSelect() {
         this.playTone(523.25, 'triangle', 0.08, 0.06, 1046.5);
       },
+      // Touchless Air-Gesture UI Navigation Swipe Tone
+      airSwipeTone(direction = 'right') {
+        if (direction === 'right') {
+          this.playTone(520, 'sine', 0.08, 0.06, 980);
+        } else {
+          this.playTone(980, 'sine', 0.08, 0.06, 520);
+        }
+      },
       // Biometric Scan / Lock Chime
       bioChime(authorized = true) {
         if (authorized) {
@@ -1764,6 +1772,29 @@
       AppState.detectedHands = handsList;
       AppState.detectedHandLandmarks = handsList[0].landmarks;
 
+      // Touchless Air-Gesture UI Swipe Detection (Zero-touch Kiosk navigation)
+      if (multiLms && multiLms.length > 0 && multiLms[0] && multiLms[0][0]) {
+        const wrist = multiLms[0][0]; // landmark 0
+        const now = performance.now();
+        if (!window._mainSwipeHistory) window._mainSwipeHistory = [];
+        window._mainSwipeHistory.push({ x: wrist.x, y: wrist.y, t: now });
+        if (window._mainSwipeHistory.length > 8) window._mainSwipeHistory.shift();
+
+        if (window._mainSwipeHistory.length >= 4 && (!window._lastMainSwipeAt || now - window._lastMainSwipeAt > 800)) {
+          const oldest = window._mainSwipeHistory[0];
+          const dt = (now - oldest.t);
+          const dx = wrist.x - oldest.x;
+          const dy = Math.abs(wrist.y - oldest.y);
+          if (dt > 60 && dt < 320 && dy < 0.16) {
+            if (dx > 0.14) {
+              triggerTouchlessAirSwipe('right');
+            } else if (dx < -0.14) {
+              triggerTouchlessAirSwipe('left');
+            }
+          }
+        }
+      }
+
       // Update gesture dictionary UI with multi-hand readout
       if (handsList.length === 1) {
         updateGestureMenuUI(handsList[0].gesture);
@@ -2047,6 +2078,10 @@
       threeEngineGroup = new THREE.Group();
       threeScene.add(threeEngineGroup);
 
+      threeHandOccluderGroup = new THREE.Group();
+      threeHandOccluderGroup.renderOrder = -1; // Prime WebGL depth buffer before CAD model
+      threeScene.add(threeHandOccluderGroup);
+
       threeParticleGroup = new THREE.Group();
       threeScene.add(threeParticleGroup);
       buildGalaxyParticleSystem();
@@ -2081,6 +2116,93 @@
       }, { passive: false });
       c.addEventListener('dblclick', () => {
         toggleCadExplode();
+      });
+    }
+
+    let threeHandOccluderGroup = null;
+    let threeHandOccluderMat = null;
+
+    function updateThreeHandOcclusion(activeHands) {
+      if (!threeHandOccluderGroup || !threeCamera) return;
+
+      while (threeHandOccluderGroup.children.length > 0) {
+        const child = threeHandOccluderGroup.children.pop();
+        if (child.geometry) child.geometry.dispose();
+      }
+
+      if (!activeHands || activeHands.length === 0) return;
+
+      if (!threeHandOccluderMat) {
+        threeHandOccluderMat = new THREE.MeshBasicMaterial({
+          colorWrite: false, // Prime WebGL depth buffer (invisible)
+          depthWrite: true,
+          depthTest: true,
+          side: THREE.DoubleSide
+        });
+      }
+
+      // Camera frustum mapping: Camera at (0, 0, 4.5), fov 50 deg, aspect 16/9
+      // Hand depth at Z = 1.6 (between camera at 4.5 and CAD model at 0)
+      const handPlaneZ = 1.6;
+      const dist = 4.5 - handPlaneZ; // 2.9
+      const halfFovRad = (50 / 2) * (Math.PI / 180);
+      const visH = 2 * Math.tan(halfFovRad) * dist;
+      const visW = visH * (16 / 9);
+
+      activeHands.forEach(h => {
+        const lm = h.landmarks;
+        if (!lm || lm.length < 21) return;
+
+        // Convert 21 landmarks to 3D points
+        const pts3D = lm.map(p => {
+          const x3d = (p.x - 0.5) * visW;
+          const y3d = (0.5 - p.y) * visH;
+          const z3d = handPlaneZ - (p.z || 0) * 1.5;
+          return new THREE.Vector3(x3d, y3d, z3d);
+        });
+
+        // Palm fan triangles (from wrist 0 to metacarpals)
+        const palmIndices = [0, 1, 2,  0, 2, 5,  0, 5, 9,  0, 9, 13,  0, 13, 17];
+        const positions = [];
+        palmIndices.forEach(idx => {
+          const pt = pts3D[idx];
+          positions.push(pt.x, pt.y, pt.z);
+        });
+
+        // Finger bone strip segments
+        const fingerChains = [
+          [1, 2, 3, 4],       // Thumb
+          [5, 6, 7, 8],       // Index
+          [9, 10, 11, 12],    // Middle
+          [13, 14, 15, 16],   // Ring
+          [17, 18, 19, 20]    // Pinky
+        ];
+
+        fingerChains.forEach(chain => {
+          for (let i = 0; i < chain.length - 1; i++) {
+            const a = pts3D[chain[i]];
+            const b = pts3D[chain[i + 1]];
+            const dir = new THREE.Vector3().subVectors(b, a).normalize();
+            const side = new THREE.Vector3(-dir.y, dir.x, 0).normalize().multiplyScalar(0.06);
+            
+            const p1 = new THREE.Vector3().subVectors(a, side);
+            const p2 = new THREE.Vector3().addVectors(a, side);
+            const p3 = new THREE.Vector3().addVectors(b, side);
+            const p4 = new THREE.Vector3().subVectors(b, side);
+
+            positions.push(
+              p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z,
+              p1.x, p1.y, p1.z, p3.x, p3.y, p3.z, p4.x, p4.y, p4.z
+            );
+          }
+        });
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+        geo.computeVertexNormals();
+
+        const mesh = new THREE.Mesh(geo, threeHandOccluderMat);
+        threeHandOccluderGroup.add(mesh);
       });
     }
 
@@ -3930,6 +4052,7 @@
         if (cadExplodeBtn) cadExplodeBtn.classList.add('hidden');
         initInteractive3D();
         if (threeEngineGroup) threeEngineGroup.visible = false;
+        if (threeHandOccluderGroup) threeHandOccluderGroup.visible = false;
         if (threeParticleGroup) threeParticleGroup.visible = true;
         if (xrayHeadGroup) xrayHeadGroup.visible = false;
         if (xrayHandGroup) xrayHandGroup.visible = false;
@@ -3952,6 +4075,52 @@
 
       lucide.createIcons();
     };
+
+    // -------------------------------------------------------------------------
+    // TOUCHLESS AIR-GESTURE UI NAVIGATION ENGINE (ZERO-TOUCH KIOSK MODE)
+    // -------------------------------------------------------------------------
+    function triggerTouchlessAirSwipe(dir) {
+      const now = performance.now();
+      if (window._lastMainSwipeAt && now - window._lastMainSwipeAt < 750) return;
+      window._lastMainSwipeAt = now;
+      const modes = ['OBJECT_DETECT', 'FACE_BIOMETRIC', 'EMOTION_READER', 'HAND_GESTURE', 'INTERACTIVE_3D', 'PARTICLE_FLOW', 'BIRD_DETECT', 'XRAY_MIRROR'];
+      let idx = modes.indexOf(AppState.currentMode);
+      if (idx === -1) idx = 0;
+      const nextIdx = dir === 'right' ? (idx + 1) % modes.length : (idx - 1 + modes.length) % modes.length;
+      const nextMode = modes[nextIdx];
+      if (typeof CyberAudio !== 'undefined' && CyberAudio.airSwipeTone) {
+        CyberAudio.airSwipeTone(dir);
+      }
+      showAirGestureToast(`AIR-SWIPE: ${nextMode.replace(/_/g, ' ')}`, dir === 'right' ? '👉' : '👈');
+      if (typeof window.switchSystemMode === 'function') {
+        window.switchSystemMode(nextMode);
+      }
+    }
+
+    function showAirGestureToast(text, icon = '👉') {
+      let badge = document.getElementById('airGestureBadge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'airGestureBadge';
+        badge.className = 'fixed top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 scale-95 flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-400 bg-black/85 backdrop-blur-md text-cyan-300 font-mono text-xs shadow-[0_0_25px_rgba(34,211,238,0.45)]';
+        document.body.appendChild(badge);
+      }
+      badge.innerHTML = `<span class="text-base">${icon}</span> <span class="tracking-wider font-bold">${text}</span>`;
+      badge.classList.remove('opacity-0', 'scale-95');
+      badge.classList.add('opacity-100', 'scale-100');
+      clearTimeout(badge._timer);
+      badge._timer = setTimeout(() => {
+        badge.classList.remove('opacity-100', 'scale-100');
+        badge.classList.add('opacity-0', 'scale-95');
+      }, 1600);
+    }
+
+    // Forwarded air swipes from embedded iframes (e.g. X-Ray mirror)
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'AIR_SWIPE' && event.data.direction) {
+        triggerTouchlessAirSwipe(event.data.direction);
+      }
+    });
 
     // Helper: Update Object Inventory Matrix in the Right Sidebar
     function updateObjectInventoryUI(detections) {
@@ -6576,7 +6745,7 @@
           }
         }
       });
-      postToXray({ type: 'SET_STYLE', style: style === 'thermal' ? 'xray' : style });
+      postToXray({ type: 'SET_STYLE', style: style });
       if (typeof applyXrayThemeColors === 'function') applyXrayThemeColors();
     }
 
@@ -7224,8 +7393,19 @@
         const explodeBtn = document.getElementById('cadExplodeBtnText');
         if (explodeBtn) explodeBtn.innerText = threeTargetExplode > 0.4 ? 'ASSEMBLE' : 'EXPLODE';
 
+        // Active tracked hands for Depth Occlusion & Viewport Rendering
+        const activeHands = (AppState.detectedHands && AppState.detectedHands.length > 0)
+          ? AppState.detectedHands
+          : (AppState.detectedHandLandmarks ? [{ landmarks: AppState.detectedHandLandmarks, label: 'Right' }] : []);
+
+        // Hardware-Accelerated 3D WebGL Depth Buffer Hand Occlusion
+        if (typeof updateThreeHandOcclusion === 'function') {
+          updateThreeHandOcclusion(activeHands);
+        }
+
         // Enforce CAD visibility and Particle dormancy
         threeEngineGroup.visible = true;
+        if (threeHandOccluderGroup) threeHandOccluderGroup.visible = true;
         if (threeParticleGroup) threeParticleGroup.visible = false;
 
         threeRenderer.render(threeScene, threeCamera);
@@ -7737,6 +7917,7 @@
         // Enforce Particle visibility and CAD dormancy
         threeParticleGroup.visible = true;
         if (threeEngineGroup) threeEngineGroup.visible = false;
+        if (threeHandOccluderGroup) threeHandOccluderGroup.visible = false;
 
         threeRenderer.render(threeScene, threeCamera);
       }
