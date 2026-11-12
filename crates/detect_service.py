@@ -145,12 +145,6 @@ TARGET_INTERVAL = 0.030
 while True:
     try:
         t_start = time.time()
-        ret, frame = cap.read()
-        if not ret:
-            time.sleep(0.05)
-            continue
-
-        frame_count += 1
         now = time.time()
 
         # Check operating mode from data/current_mode.txt every 0.1s
@@ -172,6 +166,31 @@ while True:
             else:
                 with yolo_lock:
                     yolo_target_mode = current_mode
+
+        # When X-Ray Mirror is active, release camera hardware so browser WebRTC/getUserMedia can access it exclusively
+        if current_mode == "XRAY_MIRROR":
+            if cap is not None:
+                try:
+                    cap.release()
+                except Exception:
+                    pass
+                cap = None
+            time.sleep(0.08)
+            continue
+
+        # Re-acquire camera hardware when exiting X-Ray Mirror back to local detection modes
+        if cap is None or not cap.isOpened():
+            cap = cv2.VideoCapture(0)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            time.sleep(0.05)
+
+        ret, frame = cap.read()
+        if not ret:
+            time.sleep(0.05)
+            continue
+
+        frame_count += 1
 
         # Read active lighting filter / exposure bias setting from data/lighting_filter.txt
         lighting_mode = "NORMAL"
@@ -253,7 +272,7 @@ while True:
 
             last_latency = round((time.time() - t0) * 1000, 1)
 
-        elif current_mode in ("FACE_BIOMETRIC", "EMOTION_READER", "XRAY_MIRROR"):
+        elif current_mode in ("FACE_BIOMETRIC", "EMOTION_READER"):
             # Mode 2 & Mode 2B: Biometric Face Tracking & Emotion Reader
             t0 = time.time()
             try:
