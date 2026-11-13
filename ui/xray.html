@@ -966,40 +966,6 @@ function liveLoop() {
         const hd = hr.handedness || hr.handednesses || [];
         // The tracker names hands as if the picture were mirrored; ours is not, so the names are swapped.
         sides = hands.map((h, i) => !!(hd[i] && hd[i][0] && hd[i][0].categoryName === "Left"));
-
-        // Touchless Air-Swipe Gesture Detection (Natural 120ms-750ms window & Audio)
-        if (hands.length > 0 && hands[0] && hands[0][0]) {
-          const palmPt = hands[0][9] || hands[0][0]; // Center of palm / wrist
-          if (!window._xraySwipeHistory) window._xraySwipeHistory = [];
-          window._xraySwipeHistory.push({ x: palmPt.x, y: palmPt.y, t: now });
-          if (window._xraySwipeHistory.length > 25) window._xraySwipeHistory.shift();
-
-          if (window._xraySwipeHistory.length >= 6 && (!window._lastSwipeAt || now - window._lastSwipeAt > 800)) {
-            for (let i = 0; i < window._xraySwipeHistory.length - 4; i++) {
-              const startPt = window._xraySwipeHistory[i];
-              const dt = now - startPt.t;
-              if (dt >= 120 && dt <= 750) {
-                const dx = palmPt.x - startPt.x;
-                const dy = Math.abs(palmPt.y - startPt.y);
-                if (dy < 0.28) {
-                  if (dx > 0.11) {
-                    window._lastSwipeAt = now;
-                    window._xraySwipeHistory = [];
-                    XrayAudio.playAirSwipe('right');
-                    window.parent.postMessage({ type: 'AIR_SWIPE', direction: 'right' }, '*');
-                    break;
-                  } else if (dx < -0.11) {
-                    window._lastSwipeAt = now;
-                    window._xraySwipeHistory = [];
-                    XrayAudio.playAirSwipe('left');
-                    window.parent.postMessage({ type: 'AIR_SWIPE', direction: 'left' }, '*');
-                    break;
-                  }
-                }
-              }
-            }
-          }
-        }
       }
     } catch (e) { say("The tracker hit an error: " + e.message, "bad"); return; }
     say(head.found ? "Tracking your head." + (hands.length ? " Hand bones on." : "")
