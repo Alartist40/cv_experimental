@@ -51,8 +51,13 @@ yolo_target_mode = "OBJECT_DETECT"
 def yolo_worker():
     global yolo_last_results, yolo_last_latency, yolo_frame_to_process, yolo_target_mode
     while yolo_running:
-        frame_copy = None
         current_target_mode = yolo_target_mode
+        # Strict dormancy: if user is in 3D, Face, Hand, or X-Ray mode, completely sleep YOLO to preserve 100% CPU/GPU for UI
+        if current_target_mode not in ("OBJECT_DETECT", "BIRD_DETECT"):
+            time.sleep(0.1)
+            continue
+
+        frame_copy = None
         with yolo_lock:
             if yolo_frame_to_process is not None:
                 frame_copy = yolo_frame_to_process.copy()
@@ -284,7 +289,7 @@ while True:
                 detections = list(yolo_last_results)
                 last_latency = yolo_last_latency or 18.0
 
-        elif current_mode in ("HAND_GESTURE", "INTERACTIVE_3D", "PARTICLE_FLOW"):
+        elif current_mode == "HAND_GESTURE":
             # Hand Pose CV: runs 21-joint tracking (YOLO paused, low compute)
             t0 = time.time()
             try:

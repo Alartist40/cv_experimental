@@ -315,6 +315,7 @@ async fn xray_heartbeat_handler() -> Response {
         .unwrap_or_default()
         .as_secs_f64();
     let _ = tokio::fs::write("data/xray_heartbeat.txt", now.to_string().as_bytes()).await;
+    let _ = tokio::fs::write("data/current_mode.txt", b"XRAY_MIRROR").await;
     Response::builder()
         .header(header::CONTENT_TYPE, "application/json")
         .header("Access-Control-Allow-Origin", "*")

@@ -213,18 +213,114 @@ function syncUI() {
   $("cutrow").hidden = S.reveal === "whole";
   $("cutlabel").textContent = S.reveal === "lens" ? "Lens size" : "Cut position";
 }
-for (const k of LAYERS) $("L_" + k).onchange = e => { S[k] = e.target.checked; save(); };
-for (const b of $("style").children) b.onclick = () => { S.style = b.dataset.style; save(); syncUI(); applyStyle(); };
+// ---------------------------------------------------------------------------
+// ZERO-ASSET PROCEDURAL WEB AUDIO SYNTHESIZER FOR X-RAY BIO-VISION
+// ---------------------------------------------------------------------------
+const XrayAudio = {
+  ctx: null,
+  init() {
+    if (this.ctx) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) this.ctx = new AC();
+    } catch (e) {}
+  },
+  resume() {
+    if (this.ctx && this.ctx.state === "suspended") {
+      this.ctx.resume();
+    }
+  },
+  playModeTone(mode) {
+    this.init(); this.resume();
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.connect(g); g.connect(this.ctx.destination);
+    const now = this.ctx.currentTime;
+    if (mode === "thermal") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(840, now + 0.16);
+      g.gain.setValueAtTime(0.08, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.start(now); osc.stop(now + 0.22);
+    } else if (mode === "solid") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.14);
+      g.gain.setValueAtTime(0.09, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      osc.start(now); osc.stop(now + 0.16);
+    } else {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(620, now);
+      osc.frequency.exponentialRampToValueAtTime(1150, now + 0.18);
+      g.gain.setValueAtTime(0.08, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.start(now); osc.stop(now + 0.2);
+    }
+  },
+  playLayerClick() {
+    this.init(); this.resume();
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.connect(g); g.connect(this.ctx.destination);
+    const now = this.ctx.currentTime;
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(440, now + 0.05);
+    g.gain.setValueAtTime(0.07, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    osc.start(now); osc.stop(now + 0.05);
+  },
+  playAirSwipe(dir) {
+    this.init(); this.resume();
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.connect(g); g.connect(this.ctx.destination);
+    const now = this.ctx.currentTime;
+    osc.type = "sine";
+    if (dir === "right") {
+      osc.frequency.setValueAtTime(360, now);
+      osc.frequency.exponentialRampToValueAtTime(820, now + 0.12);
+    } else {
+      osc.frequency.setValueAtTime(820, now);
+      osc.frequency.exponentialRampToValueAtTime(360, now + 0.12);
+    }
+    g.gain.setValueAtTime(0.1, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc.start(now); osc.stop(now + 0.14);
+  },
+  playJawPop() {
+    this.init(); this.resume();
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.connect(g); g.connect(this.ctx.destination);
+    const now = this.ctx.currentTime;
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(65, now + 0.08);
+    g.gain.setValueAtTime(0.12, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    osc.start(now); osc.stop(now + 0.09);
+  }
+};
+
+for (const k of LAYERS) $("L_" + k).onchange = e => { S[k] = e.target.checked; save(); XrayAudio.playLayerClick(); };
+for (const b of $("style").children) b.onclick = () => { S.style = b.dataset.style; save(); syncUI(); applyStyle(); XrayAudio.playModeTone(S.style); };
 for (const k of SLIDERS) $(k).oninput = e => { S[k] = parseFloat(e.target.value); save(); syncUI(); };
-$("labels").onchange = e => { S.labels = e.target.checked; save(); };
-$("reveal").onchange = e => { S.reveal = e.target.value; S.cut = 0.5; save(); syncUI(); };
-$("showdata").onchange = e => { S.showdata = e.target.checked; save(); syncUI(); };
-$("fitreset").onclick = () => { S.fs = S.fw = S.fh = S.fd = 1; S.fx = S.fy = S.fz = 0; save(); syncUI(); };
+$("labels").onchange = e => { S.labels = e.target.checked; save(); XrayAudio.playLayerClick(); };
+$("reveal").onchange = e => { S.reveal = e.target.value; S.cut = 0.5; save(); syncUI(); XrayAudio.playLayerClick(); };
+$("showdata").onchange = e => { S.showdata = e.target.checked; save(); };
+$("fitreset").onclick = () => { S.fs = S.fw = S.fh = S.fd = 1; S.fx = S.fy = S.fz = 0; save(); syncUI(); XrayAudio.playLayerClick(); };
 for (const b of document.querySelectorAll("[data-preset]")) b.onclick = () => {
   const p = b.dataset.preset;
   S.skull = p === "skull" || p === "all"; S.brain = p === "brain" || p === "all";
   S.muscles = p === "muscles" || p === "all"; S.eyes = p !== "brain"; S.outline = true;
-  save(); syncUI();
+  save(); syncUI(); XrayAudio.playLayerClick();
 };
 syncUI();
 
@@ -247,7 +343,7 @@ void main() {
 }`;
 const FRAG = `
 uniform vec3 uColor; uniform vec3 uSolidColor;
-uniform float uOpacity, uGain, uMode, uClipOn, uFade, uFeather, uCutSoft, uThermalStress; uniform vec4 uClip;
+uniform float uOpacity, uGain, uMode, uClipOn, uFade, uFeather, uCutSoft, uThermalStress, uTime; uniform vec4 uClip;
 varying vec3 vN; varying vec3 vV; varying vec3 vL;
 void main() {
   float soft = 1.0;                                    // edge feather: 1 = fully drawn, 0 = faded out
@@ -260,21 +356,48 @@ void main() {
   float ndv = abs(dot(n, normalize(vV)));
   if (uFeather > 0.001) soft *= smoothstep(0.0, uFeather, ndv);   // surfaces turning away at the outline fade out
   float fade = uFade > 0.5 ? smoothstep(-12.4, -9.2, vL.y) : 1.0;   // the neck fades out instead of ending in a hard edge
-  if (uMode > 2.5) {                                   // thermal stress: biomechanical TMJ & masseter strain gradient
+  if (uMode > 2.5) {                                   // thermal stress: multi-point biomechanical & vascular strain gradient
+    // 1. Temporomandibular joint (TMJ hinge)
     vec3 leftTMJ = vec3(-4.8, 0.84, -3.8);
     vec3 rightTMJ = vec3(4.8, 0.84, -3.8);
     float dTMJ = min(length(vL - leftTMJ), length(vL - rightTMJ));
+
+    // 2. Masseter muscular ramus (chewing strain)
     vec3 leftMass = vec3(-4.9, -3.5, -1.1);
     vec3 rightMass = vec3(4.9, -3.5, -1.1);
     float dMass = min(length(vL - leftMass), length(vL - rightMass));
+
+    // 3. Temporalis tension point (bilateral temples)
+    vec3 leftTemp = vec3(-7.2, 6.5, -2.1);
+    vec3 rightTemp = vec3(7.2, 6.5, -2.1);
+    float dTemp = min(length(vL - leftTemp), length(vL - rightTemp));
+
+    // 4. Supraorbital / Frontalis brow tension (squint & concentration stress)
+    vec3 leftBrow = vec3(-3.0, 8.8, 3.8);
+    vec3 rightBrow = vec3(3.0, 8.8, 3.8);
+    float dBrow = min(length(vL - leftBrow), length(vL - rightBrow));
+
+    // 5. Zygomaticus major (cheekbone expression tension)
+    vec3 leftZygo = vec3(-3.9, -2.3, 2.5);
+    vec3 rightZygo = vec3(3.9, -2.3, 2.5);
+    float dZygo = min(length(vL - leftZygo), length(vL - rightZygo));
+
+    // 6. Suboccipital cranio-cervical hinge (base of skull postural strain)
+    float dSubocc = length(vL - vec3(0.0, -1.2, -9.5));
+
+    // 7. Mentalis / Mandibular symphysis (chin tension)
     float dMand = length(vL - vec3(0.0, -7.4, 4.2));
 
-    float hingeStress = smoothstep(6.5, 0.5, dTMJ);
-    float ramusStress = smoothstep(7.0, 1.0, dMass) * 0.82;
-    float chinStress = smoothstep(5.0, 0.8, dMand) * 0.45;
+    float hingeStress   = smoothstep(6.5, 0.5, dTMJ);
+    float ramusStress   = smoothstep(7.0, 1.0, dMass) * 0.82;
+    float tempStress    = smoothstep(6.2, 0.8, dTemp) * 0.78;
+    float browStress    = smoothstep(5.2, 0.6, dBrow) * 0.65;
+    float zygoStress    = smoothstep(5.5, 0.8, dZygo) * 0.60;
+    float suboccStress  = smoothstep(6.8, 1.0, dSubocc) * 0.72;
+    float chinStress    = smoothstep(5.0, 0.8, dMand) * 0.55;
 
-    float baseStrain = hingeStress * 0.35 + ramusStress * 0.25;
-    float dynamicStrain = (hingeStress * 1.35 + ramusStress * 1.1 + chinStress * 0.6) * uThermalStress;
+    float baseStrain = hingeStress * 0.28 + ramusStress * 0.22 + tempStress * 0.20 + suboccStress * 0.22;
+    float dynamicStrain = (hingeStress * 1.35 + ramusStress * 1.1 + chinStress * 0.65 + tempStress * 0.95 + browStress * 0.80 + zygoStress * 0.75) * uThermalStress;
     float strain = clamp(baseStrain + dynamicStrain, 0.0, 1.0);
 
     vec3 colRest = vec3(0.0, 0.72, 1.0);
@@ -282,8 +405,9 @@ void main() {
     vec3 colPeak = vec3(1.0, 0.18, 0.04);
     vec3 thermalCol = strain < 0.45 ? mix(colRest, colMid, strain / 0.45) : mix(colMid, colPeak, (strain - 0.45) / 0.55);
 
-    float wave = sin(vL.y * 3.0 - uThermalStress * 6.0) * 0.05 * strain;
-    thermalCol += vec3(wave);
+    // Micro-capillary vascular pulse wave traveling across cranial tissue
+    float pulseWave = sin(vL.y * 2.8 - uTime * 4.2) * 0.04 * (strain + 0.25);
+    thermalCol += vec3(pulseWave * 0.8, pulseWave * 0.2, -pulseWave * 0.2);
 
     float rim = pow(1.0 - ndv, 2.0);
     float a = clamp((0.08 + 0.92 * rim) * uGain * uOpacity * fade, 0.0, 1.0);
@@ -307,6 +431,7 @@ function makeMat(xray, solid, mode) {
   return new THREE.ShaderMaterial({
     uniforms: { uColor: { value: new THREE.Color(xray) }, uSolidColor: { value: new THREE.Color(solid) },
                 uOpacity: { value: 1 }, uGain: { value: 1 }, uMode: { value: mode || 0 }, uThermalStress: { value: 0 },
+                uTime: { value: 0 },
                 uOrtho: { value: 0 }, uFade: { value: 0 }, uFeather: { value: 0 }, uCutSoft: { value: 0 },
                 uClipOn: { value: 0 }, uClip: { value: new THREE.Vector4(1, 0, 0, 0) }, uToHead: { value: new THREE.Matrix4() } },
     vertexShader: VERT, fragmentShader: FRAG, side: THREE.DoubleSide, transparent: true,
@@ -708,22 +833,39 @@ function renderFrame(now, faceLms, hands, sides) {
   if (!head.found) headGroup.visible = false;
   applyLayers();
 
-  // Biomechanical Thermal Stress uniform propagation
+  // Biomechanical Thermal Stress, Vascular Pulse & Time uniform propagation
   const thermalVal = Math.min(1.5, Math.max(0, head.jaw)) * 1.6;
+  const tSec = now * 0.001;
   for (const k in meshes) {
     const m = meshes[k].mesh.material;
-    if (m && m.uniforms && m.uniforms.uThermalStress) {
-      m.uniforms.uThermalStress.value = thermalVal;
+    if (m && m.uniforms) {
+      if (m.uniforms.uThermalStress) m.uniforms.uThermalStress.value = thermalVal;
+      if (m.uniforms.uTime) m.uniforms.uTime.value = tSec;
     }
   }
   handRigs.forEach(rig => {
     if (!rig.group.visible) return;
     for (const m of [rig.palm, ...rig.bones]) {
-      if (m.material.uniforms && m.material.uniforms.uThermalStress) {
-        m.material.uniforms.uThermalStress.value = thermalVal * 0.5;
+      if (m.material.uniforms) {
+        if (m.material.uniforms.uThermalStress) m.material.uniforms.uThermalStress.value = thermalVal * 0.5;
+        if (m.material.uniforms.uTime) m.material.uniforms.uTime.value = tSec;
       }
     }
   });
+
+  // Rhythmic vascular brain pulse (±1.2% micro-scale expansion)
+  if (meshes.cerebrum && meshes.cerebrum.mesh) {
+    const pulse = 1.0 + Math.sin(now * 0.0045) * 0.012;
+    meshes.cerebrum.mesh.scale.set(pulse, pulse, pulse);
+  }
+
+  // Audio: jaw articulation click when opening mouth wide
+  if (head.jaw > 0.22 && !window._lastJawOpen) {
+    window._lastJawOpen = true;
+    XrayAudio.playJawPop();
+  } else if (head.jaw <= 0.12) {
+    window._lastJawOpen = false;
+  }
 
   // x-ray lens: a round window; outside it you see the plain camera picture
   let mask = "none", lens = null;
@@ -825,25 +967,35 @@ function liveLoop() {
         // The tracker names hands as if the picture were mirrored; ours is not, so the names are swapped.
         sides = hands.map((h, i) => !!(hd[i] && hd[i][0] && hd[i][0].categoryName === "Left"));
 
-        // Touchless Air-Swipe Gesture Detection (Kiosk navigation)
+        // Touchless Air-Swipe Gesture Detection (Natural 120ms-750ms window & Audio)
         if (hands.length > 0 && hands[0] && hands[0][0]) {
-          const wrist = hands[0][0]; // landmark 0
+          const palmPt = hands[0][9] || hands[0][0]; // Center of palm / wrist
           if (!window._xraySwipeHistory) window._xraySwipeHistory = [];
-          window._xraySwipeHistory.push({ x: wrist.x, y: wrist.y, t: now });
-          if (window._xraySwipeHistory.length > 8) window._xraySwipeHistory.shift();
+          window._xraySwipeHistory.push({ x: palmPt.x, y: palmPt.y, t: now });
+          if (window._xraySwipeHistory.length > 25) window._xraySwipeHistory.shift();
 
-          if (window._xraySwipeHistory.length >= 4 && (!window._lastSwipeAt || now - window._lastSwipeAt > 800)) {
-            const oldest = window._xraySwipeHistory[0];
-            const dt = (now - oldest.t);
-            const dx = wrist.x - oldest.x;
-            const dy = Math.abs(wrist.y - oldest.y);
-            if (dt > 60 && dt < 320 && dy < 0.16) {
-              if (dx > 0.14) {
-                window._lastSwipeAt = now;
-                window.parent.postMessage({ type: 'AIR_SWIPE', direction: 'right' }, '*');
-              } else if (dx < -0.14) {
-                window._lastSwipeAt = now;
-                window.parent.postMessage({ type: 'AIR_SWIPE', direction: 'left' }, '*');
+          if (window._xraySwipeHistory.length >= 6 && (!window._lastSwipeAt || now - window._lastSwipeAt > 800)) {
+            for (let i = 0; i < window._xraySwipeHistory.length - 4; i++) {
+              const startPt = window._xraySwipeHistory[i];
+              const dt = now - startPt.t;
+              if (dt >= 120 && dt <= 750) {
+                const dx = palmPt.x - startPt.x;
+                const dy = Math.abs(palmPt.y - startPt.y);
+                if (dy < 0.28) {
+                  if (dx > 0.11) {
+                    window._lastSwipeAt = now;
+                    window._xraySwipeHistory = [];
+                    XrayAudio.playAirSwipe('right');
+                    window.parent.postMessage({ type: 'AIR_SWIPE', direction: 'right' }, '*');
+                    break;
+                  } else if (dx < -0.11) {
+                    window._lastSwipeAt = now;
+                    window._xraySwipeHistory = [];
+                    XrayAudio.playAirSwipe('left');
+                    window.parent.postMessage({ type: 'AIR_SWIPE', direction: 'left' }, '*');
+                    break;
+                  }
+                }
               }
             }
           }
@@ -908,21 +1060,36 @@ $("start").onclick = async () => {
     await new Promise(r => setTimeout(r, 250));
 
     let stream = null, lastErr = null;
-    for (let attempt = 1; attempt <= 4; attempt++) {
+    const constraintTiers = [
+      { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+      { video: { width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+      { video: true, audio: false }
+    ];
+    for (let attempt = 1; attempt <= 6; attempt++) {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+        const constraints = constraintTiers[Math.min(attempt - 1, constraintTiers.length - 1)];
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
         if (stream) break;
       } catch (err) {
         lastErr = err;
-        if (attempt < 4) {
-          setStatus(`Camera busy, waiting for device release (${attempt}/4)…`);
+        if (attempt < 6) {
+          setStatus(`Camera busy, unlocking video channel (${attempt}/6)…`);
           try { await fetch("/api/xray/heartbeat", { method: "POST" }); } catch (e) {}
-          await new Promise(r => setTimeout(r, 650));
+          await new Promise(r => setTimeout(r, 600));
         }
       }
     }
     if (!stream) throw (lastErr || new Error("Camera acquisition failed"));
+
+    // Persistent heartbeat while active to prevent backend reclamation
+    if (!window._xrayHeartbeatTimer) {
+      window._xrayHeartbeatTimer = setInterval(() => {
+        fetch("/api/xray/heartbeat", { method: "POST" }).catch(() => {});
+      }, 2500);
+    }
+    window.addEventListener("beforeunload", () => {
+      navigator.sendBeacon("/api/xray/release");
+    });
 
     video.srcObject = stream;
     await video.play();

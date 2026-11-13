@@ -391,6 +391,13 @@
         <span id="spatialAudioStatusText">SONAR: OFF</span>
       </button>
 
+      <!-- Live Facial rPPG Heart Rate Vitals Pill -->
+      <div id="hudRppgVitalsPill" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded font-mono text-xs border border-rose-500/30 bg-rose-500/10 text-rose-300" title="Live Facial rPPG (Remote Photoplethysmography) Heart Rate">
+        <i data-lucide="heart" class="w-3.5 h-3.5 fill-rose-500 text-rose-500 animate-pulse"></i>
+        <span id="hudBpmDisplay" class="font-bold">72 BPM</span>
+        <span id="hudVascularRhythm" class="text-[9px] text-emerald-400 font-semibold px-1 rounded bg-black/40">STABLE</span>
+      </div>
+
       <!-- Tactical Holographic Dossier Snapshot Export -->
       <button id="dossierExportBtn" onclick="exportHolographicDossier()" class="flex items-center gap-1.5 px-2.5 py-1.5 border rounded font-semibold transition text-amber-400 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20" title="Export High-Resolution Tactical Medical Dossier PNG">
         <i data-lucide="camera" class="w-3.5 h-3.5"></i>
@@ -1923,22 +1930,34 @@
 
       // Touchless Air-Gesture UI Swipe Detection (Zero-touch Kiosk navigation)
       if (multiLms && multiLms.length > 0 && multiLms[0] && multiLms[0][0]) {
-        const wrist = multiLms[0][0]; // landmark 0
+        const palmPt = multiLms[0][9] || multiLms[0][0]; // Center of palm / wrist
         const now = performance.now();
         if (!window._mainSwipeHistory) window._mainSwipeHistory = [];
-        window._mainSwipeHistory.push({ x: wrist.x, y: wrist.y, t: now });
-        if (window._mainSwipeHistory.length > 8) window._mainSwipeHistory.shift();
+        window._mainSwipeHistory.push({ x: palmPt.x, y: palmPt.y, t: now });
+        if (window._mainSwipeHistory.length > 25) window._mainSwipeHistory.shift();
 
-        if (window._mainSwipeHistory.length >= 4 && (!window._lastMainSwipeAt || now - window._lastMainSwipeAt > 800)) {
-          const oldest = window._mainSwipeHistory[0];
-          const dt = (now - oldest.t);
-          const dx = wrist.x - oldest.x;
-          const dy = Math.abs(wrist.y - oldest.y);
-          if (dt > 60 && dt < 320 && dy < 0.16) {
-            if (dx > 0.14) {
-              triggerTouchlessAirSwipe('right');
-            } else if (dx < -0.14) {
-              triggerTouchlessAirSwipe('left');
+        if (typeof updateAirGestureGuide === 'function') {
+          updateAirGestureGuide(palmPt, window._mainSwipeHistory);
+        }
+
+        if (window._mainSwipeHistory.length >= 6 && (!window._lastMainSwipeAt || now - window._lastMainSwipeAt > 800)) {
+          for (let i = 0; i < window._mainSwipeHistory.length - 4; i++) {
+            const startPt = window._mainSwipeHistory[i];
+            const dt = now - startPt.t;
+            if (dt >= 120 && dt <= 750) {
+              const dx = palmPt.x - startPt.x;
+              const dy = Math.abs(palmPt.y - startPt.y);
+              if (dy < 0.28) {
+                if (dx > 0.11) {
+                  window._mainSwipeHistory = [];
+                  triggerTouchlessAirSwipe('right');
+                  break;
+                } else if (dx < -0.11) {
+                  window._mainSwipeHistory = [];
+                  triggerTouchlessAirSwipe('left');
+                  break;
+                }
+              }
             }
           }
         }
@@ -4236,6 +4255,44 @@
     // -------------------------------------------------------------------------
     // TOUCHLESS AIR-GESTURE UI NAVIGATION ENGINE (ZERO-TOUCH KIOSK MODE)
     // -------------------------------------------------------------------------
+    function updateAirGestureGuide(palmPt, history) {
+      let guide = document.getElementById('airGestureGuidePill');
+      if (!guide) {
+        guide = document.createElement('div');
+        guide.id = 'airGestureGuidePill';
+        guide.className = 'fixed bottom-6 right-6 z-40 pointer-events-none transition-all duration-200 flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-500/40 bg-black/85 backdrop-blur-md text-cyan-300 font-mono text-[11px] shadow-lg shadow-cyan-900/30';
+        document.body.appendChild(guide);
+      }
+      if (!palmPt) {
+        guide.classList.add('opacity-0', 'pointer-events-none');
+        return;
+      }
+      guide.classList.remove('opacity-0');
+      
+      let swipeHint = 'SWIPE ⮜ ⮞';
+      let arrowColor = 'text-cyan-400';
+      if (history && history.length >= 4) {
+        const oldest = history[0];
+        const dx = palmPt.x - oldest.x;
+        const dy = Math.abs(palmPt.y - oldest.y);
+        if (Math.abs(dx) > 0.05 && dy < 0.28) {
+          if (dx > 0) {
+            swipeHint = 'SWIPING RIGHT ➔';
+            arrowColor = 'text-emerald-400 font-bold animate-pulse';
+          } else {
+            swipeHint = '⮘ SWIPING LEFT';
+            arrowColor = 'text-emerald-400 font-bold animate-pulse';
+          }
+        }
+      }
+      guide.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span><span class="text-zinc-400">AIR-SWIPE:</span> <span class="${arrowColor}">${swipeHint}</span>`;
+      
+      clearTimeout(guide._hideTimer);
+      guide._hideTimer = setTimeout(() => {
+        if (guide) guide.classList.add('opacity-0');
+      }, 1500);
+    }
+
     function triggerTouchlessAirSwipe(dir) {
       const now = performance.now();
       if (window._lastMainSwipeAt && now - window._lastMainSwipeAt < 750) return;
@@ -4409,19 +4466,19 @@
         const rhythmEl = document.getElementById('rppgRythmVal');
         const badgeEl = document.getElementById('rppgStatusBadge');
         const perfEl = document.getElementById('rppgPerfVal');
+        const hudBpmEl = document.getElementById('hudBpmDisplay');
+        const hudRhythmEl = document.getElementById('hudVascularRhythm');
 
         if (bpmEl) bpmEl.innerText = this.currentBpm;
+        if (hudBpmEl) hudBpmEl.innerText = `${this.currentBpm} BPM`;
+        const rhythmStatus = this.currentBpm < 60 ? 'BRADYCARDIA' : (this.currentBpm > 105 ? 'ELEVATED' : 'STABLE');
+        const rhythmClass = this.currentBpm < 60 ? 'text-xs font-bold text-cyan-400' : (this.currentBpm > 105 ? 'text-xs font-bold text-amber-400' : 'text-xs font-bold text-emerald-400');
         if (rhythmEl) {
-          if (this.currentBpm < 60) {
-            rhythmEl.innerText = 'BRADYCARDIA';
-            rhythmEl.className = 'text-xs font-bold text-cyan-400';
-          } else if (this.currentBpm > 105) {
-            rhythmEl.innerText = 'ELEVATED';
-            rhythmEl.className = 'text-xs font-bold text-amber-400';
-          } else {
-            rhythmEl.innerText = 'STABLE';
-            rhythmEl.className = 'text-xs font-bold text-emerald-400';
-          }
+          rhythmEl.innerText = rhythmStatus;
+          rhythmEl.className = rhythmClass;
+        }
+        if (hudRhythmEl) {
+          hudRhythmEl.innerText = rhythmStatus;
         }
         if (badgeEl) {
           badgeEl.innerText = 'LOCK 99%';
