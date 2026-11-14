@@ -1,0 +1,54 @@
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/vendor/fonts/ChakraPetch-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 500;
+  src: url('/vendor/fonts/ChakraPetch-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 600;
+  src: url('/vendor/fonts/ChakraPetch-SemiBold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/vendor/fonts/ChakraPetch-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/vendor/fonts/JetBrainsMono-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  src: url('/vendor/fonts/JetBrainsMono-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 600;
+  src: url('/vendor/fonts/JetBrainsMono-SemiBold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/vendor/fonts/JetBrainsMono-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Share Tech Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/vendor/fonts/ShareTechMono-Regular.ttf') format('truetype');
+}
